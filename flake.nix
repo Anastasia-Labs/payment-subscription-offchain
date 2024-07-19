@@ -1,5 +1,6 @@
 {
   description = "A Nix-flake-based Node.js development environment";
+  nixConfig.bash-prompt = "\\[\\e[0m\\][\\[\\e[0;2m\\]nix-develop \\[\\e[0;1m\\]Template \\[\\e[0;32m\\]$(basename $(dirname \\w))/$(basename \\w)\\[\\e[0m\\]]\\[\\e[0m\\]$ \\[\\e[0m\\]";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -13,7 +14,6 @@
         overlays = [
           (self: super: {
             nodejs = super.nodejs-18_x;
-            pnpm = super.nodePackages.pnpm;
           })
         ];
         pkgs = import nixpkgs { inherit overlays system; };
