@@ -1,31 +1,41 @@
 {
-  "name": "payment-subscription-offchain",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "@anastasia-labs/payment-subscription-offchain",
+  "version": "0.1.0",
+  "description": "https://docs.github.com/en/packages/quickstart",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "test": "export NODE_ENV='emulator' && vitest run",
+    "build": "tsup src/index.ts --minify --format esm,cjs --dts --clean",
+    "lint": "eslint",
+    "repack": "pnpm run build  && pnpm pack",
+    "ts-node": "ts-node"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "devDependencies": {
     "@sinclair/typebox": "^0.25.13",
     "@types/node": "^20.4.9",
     "@typescript-eslint/eslint-plugin": "^5.59.1",
     "@typescript-eslint/parser": "^5.59.1",
-    "eslint": "^8.52.0",
+    "eslint": "^8.39.0",
     "eslint-config-prettier": "^8.8.0",
-    "prettier": "^3.1.0",
-    "prettier-eslint": "^16.1.2",
-    "ts-node": "^10.9.2",
+    "ts-node": "^10.9.1",
     "tsup": "^6.7.0",
-    "typescript": "^5.5.3",
+    "typescript": "^5.6.2",
     "vitest": "0.34.6"
   },
+  "directories": {
+    "test": "test"
+  },
   "dependencies": {
-    "@lucid-evolution/lucid": "^0.2.46",
-    "dotenv": "^16.4.5",
-    "ts-pattern": "^5.0.5"
+    "@lucid-evolution/lucid": "^0.3.18",
+    "effect": "^3.8.0"
   },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "packageManager": "pnpm@9.7.1+sha512.faf344af2d6ca65c4c5c8c2224ea77a81a5e8859cbc4e06b1511ddce2f0151512431dd19e6aff31f2c6a8f5f2aced9bd2273e1fed7dd4de1868984059d2c4247"
 }

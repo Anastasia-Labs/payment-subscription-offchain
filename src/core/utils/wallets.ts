@@ -1,130 +1,130 @@
-import {
-  generatePrivateKey,
-  Lucid,
-  Maestro,
-  SpendingValidator,
-  validatorToAddress,
-} from "@lucid-evolution/lucid";
+// import {
+//   generatePrivateKey,
+//   Lucid,
+//   Maestro,
+//   SpendingValidator,
+//   validatorToAddress,
+// } from "@lucid-evolution/lucid";
 
-// const lucid = await createLucidInstance();
+// // const lucid = await createLucidInstance();
 
-// export async function createLucidInstance() {
-//   const maestroToken = Deno.env.get("MAESTRO_TOKEN")!;
-//   // const mTok = process.env.MAESTRO_TOKEN;
+// // export async function createLucidInstance() {
+// //   const maestroToken = Deno.env.get("MAESTRO_TOKEN")!;
+// //   // const mTok = process.env.MAESTRO_TOKEN;
 
-//   // console.log("DotEnv", mTok);
+// //   // console.log("DotEnv", mTok);
 
-//   const maestro = new Maestro({
-//     network: "Preprod",
-//     apiKey: maestroToken,
-//     // turboSubmit: false,
-//   });
+// //   const maestro = new Maestro({
+// //     network: "Preprod",
+// //     apiKey: maestroToken,
+// //     // turboSubmit: false,
+// //   });
 
-//   console.log("Maestro: ", maestroToken);
-//   return await Lucid(maestro, "Preprod");
+// //   console.log("Maestro: ", maestroToken);
+// //   return await Lucid(maestro, "Preprod");
+// // }
+
+// // Function to generate and save private keys for
+// export async function generateAndSavePrivateKeys(walletName: string) {
+//   const privateKey = await generatePrivateKey();
+//   const filename = `../assets/${walletName.toLowerCase()}-pk`;
+
+//   await Deno.writeTextFile(filename, privateKey);
+//   console.log(`${walletName} private key saved on ${filename}`);
+//   return privateKey;
 // }
 
-// Function to generate and save private keys for
-export async function generateAndSavePrivateKeys(walletName: string) {
-  const privateKey = await generatePrivateKey();
-  const filename = `../assets/${walletName.toLowerCase()}-pk`;
+// // Function to check wallet assets
+// export async function checkWalletsAssets(lucid: Lucid, walletName: string) {
+//   const lucidI = await loadWalletInstance(lucid, walletName);
 
-  await Deno.writeTextFile(filename, privateKey);
-  console.log(`${walletName} private key saved on ${filename}`);
-  return privateKey;
-}
+//   console.log(`${walletName}'s address:\n`, await lucidI.wallet().address());
+//   console.log(`${walletName}'s utxos:\n`, await lucidI.wallet().getUtxos());
+//   console.log("\n");
+//   return lucidI.wallet;
+// }
 
-// Function to check wallet assets
-export async function checkWalletsAssets(lucid: Lucid, walletName: string) {
-  const lucidI = await loadWalletInstance(lucid, walletName);
+// export async function loadWalletInstance(lucid: Lucid, walletName: string) {
+//   try {
+//     const privateKey = await Deno.readTextFile(
+//       `../assets/${walletName.toLowerCase()}-pk`,
+//     );
 
-  console.log(`${walletName}'s address:\n`, await lucidI.wallet().address());
-  console.log(`${walletName}'s utxos:\n`, await lucidI.wallet().getUtxos());
-  console.log("\n");
-  return lucidI.wallet;
-}
+//     await lucid.selectWallet.fromPrivateKey(privateKey);
 
-export async function loadWalletInstance(lucid: Lucid, walletName: string) {
-  try {
-    const privateKey = await Deno.readTextFile(
-      `../assets/${walletName.toLowerCase()}-pk`,
-    );
+//     console.log("loadWalletInstance: ", lucid.wallet().address());
 
-    await lucid.selectWallet.fromPrivateKey(privateKey);
+//     // const wallet: Wallet = await makeWalletFromPrivateKey(
+//     //   lucid.config().provider,
+//     //   "Preprod",
+//     //   privateKey,
+//     // );
 
-    console.log("loadWalletInstance: ", lucid.wallet().address());
+//     return lucid;
+//   } catch (error) {
+//     console.error("Error:", error);
+//   }
+// }
 
-    // const wallet: Wallet = await makeWalletFromPrivateKey(
-    //   lucid.config().provider,
-    //   "Preprod",
-    //   privateKey,
-    // );
+// export async function generateVerificationKey(
+//   lucid: Lucid,
+//   walletName: string,
+// ) {
+//   const filename = `../assets/${walletName.toLowerCase()}-vk`;
+//   const wallet = await loadWalletInstance(lucid, walletName);
 
-    return lucid;
-  } catch (error) {
-    console.error("Error:", error);
-  }
-}
+//   // Generate the verification key
+//   const verificationKey = await wallet.verificationKey();
 
-export async function generateVerificationKey(
-  lucid: Lucid,
-  walletName: string,
-) {
-  const filename = `../assets/${walletName.toLowerCase()}-vk`;
-  const wallet = await loadWalletInstance(lucid, walletName);
+//   // Save the verification key to a file
+//   await Deno.writeTextFile(filename, verificationKey);
 
-  // Generate the verification key
-  const verificationKey = await wallet.verificationKey();
+//   console.log("Verification key generated and saved to file.");
+// }
 
-  // Save the verification key to a file
-  await Deno.writeTextFile(filename, verificationKey);
+// export async function checkValidatorAssets(
+//   lucid: Lucid,
+//   validatorName: string,
+// ) {
+//   try {
+//     const plutusJSON = JSON.parse(await Deno.readTextFile("../plutus.json"));
 
-  console.log("Verification key generated and saved to file.");
-}
+//     // NOTE: Use hard coded validator in production
+//     const validator: SpendingValidator = {
+//       type: "PlutusV2",
+//       script: plutusJSON.validators.filter((val: any) =>
+//         val.title == validatorName
+//       )[0].compiledCode,
+//     };
 
-export async function checkValidatorAssets(
-  lucid: Lucid,
-  validatorName: string,
-) {
-  try {
-    const plutusJSON = JSON.parse(await Deno.readTextFile("../plutus.json"));
+//     // Query utxos at vesting validator
+//     const validatorAddr = await validatorToAddress("Preprod", validator);
+//     const utxos = await lucid.utxosAt(validatorAddr);
+//     console.log(`\nValidator: ${validatorName}`);
+//     console.log("Address:", validatorAddr);
+//     console.log("UTXOs:", utxos);
+//   } catch (error) {
+//     console.error("Error:", error);
+//   }
+// }
 
-    // NOTE: Use hard coded validator in production
-    const validator: SpendingValidator = {
-      type: "PlutusV2",
-      script: plutusJSON.validators.filter((val: any) =>
-        val.title == validatorName
-      )[0].compiledCode,
-    };
+// export async function checkAllValidators(lucid: Lucid) {
+//   try {
+//     const plutusJSON = JSON.parse(await Deno.readTextFile("../plutus.json"));
 
-    // Query utxos at vesting validator
-    const validatorAddr = await validatorToAddress("Preprod", validator);
-    const utxos = await lucid.utxosAt(validatorAddr);
-    console.log(`\nValidator: ${validatorName}`);
-    console.log("Address:", validatorAddr);
-    console.log("UTXOs:", utxos);
-  } catch (error) {
-    console.error("Error:", error);
-  }
-}
+//     for (const validatorData of plutusJSON.validators) {
+//       const validator: SpendingValidator = {
+//         type: "PlutusV2",
+//         script: validatorData.compiledCode,
+//       };
 
-export async function checkAllValidators(lucid: Lucid) {
-  try {
-    const plutusJSON = JSON.parse(await Deno.readTextFile("../plutus.json"));
-
-    for (const validatorData of plutusJSON.validators) {
-      const validator: SpendingValidator = {
-        type: "PlutusV2",
-        script: validatorData.compiledCode,
-      };
-
-      const validatorAddr = await validatorToAddress("Preprod", validator);
-      const utxos = await lucid.utxosAt(validatorAddr);
-      console.log(`\nValidator: ${validatorData.title}`);
-      console.log("Address:", validatorAddr);
-      console.log("UTXOs:", utxos, "\n");
-    }
-  } catch (error) {
-    console.error("Error:", error);
-  }
-}
+//       const validatorAddr = await validatorToAddress("Preprod", validator);
+//       const utxos = await lucid.utxosAt(validatorAddr);
+//       console.log(`\nValidator: ${validatorData.title}`);
+//       console.log("Address:", validatorAddr);
+//       console.log("UTXOs:", utxos, "\n");
+//     }
+//   } catch (error) {
+//     console.error("Error:", error);
+//   }
+// }
