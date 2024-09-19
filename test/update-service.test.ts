@@ -8,14 +8,21 @@ import {
   generateEmulatorAccount,
   Lucid,
   LucidEvolution,
+  sendTokenToService,
   ServiceDatum,
   toUnit,
+  updateService,
   validatorToRewardAddress,
   WithdrawalValidator,
 } from "../src/index.js";
 import { beforeEach, expect, test } from "vitest";
 import Script from "./compiled/plutus.json" assert { type: "json" };
-import { MintingPolicy } from "@lucid-evolution/lucid";
+import {
+  MintingPolicy,
+  SpendingValidator,
+  Validator,
+  validatorToAddress,
+} from "@lucid-evolution/lucid";
 import { readServiceMultiValidator } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { subscribe } from "diagnostics_channel";
@@ -28,10 +35,10 @@ type LucidContext = {
   emulator: Emulator;
 };
 
-// const token1 = toUnit(
-//   "2c04fa26b36a376440b0615a7cdf1a0c2df061df89c8c055e2650505",
-//   "63425441",
-// );
+const token1 = toUnit(
+  "2c04fa26b36a376440b0615a7cdf1a0c2df061df89c8c055e2650505",
+  "63425441",
+);
 
 // const token2 = toUnit(
 //   "2c04fa26b36a376440b0615a7cdf1a0c2df061df89c8c055e2650505",
@@ -48,7 +55,7 @@ beforeEach<LucidContext>(async (context) => {
   context.users = {
     merchant: await generateEmulatorAccount({
       lovelace: BigInt(100_000_000),
-      // [token1]: BigInt(100),
+      [token1]: BigInt(1),
     }),
     subscriber1: await generateEmulatorAccount({
       lovelace: BigInt(100_000_000),
@@ -69,30 +76,12 @@ beforeEach<LucidContext>(async (context) => {
   context.lucid = await Lucid(context.emulator, "Custom");
 });
 
-//   async function createSubscriptionService(lucid: LucidEvolution): Promise<void> {
-// const stakingVal : MintingPolicy = {
-//   type: "PlutusV2",
-//   script: Script.validators[0].compiledCode
-// }
-
-//     console.log("createSubscriptionService...")
-
-//     const rewardAddress = validatorToRewardAddress("Custom", stakingVal);
-
-//     const tx = await lucid
-//       .newTx()
-//       .registerStake(rewardAddress)
-//       .complete();
-//     const signedTx = await tx.sign.withWallet().complete();
-//     await signedTx.submit();
-//   }
-
-test<LucidContext>("Test 1 - Create Service", async ({
+test<LucidContext>("Test 1 - Update Service", async ({
   lucid,
   users,
   emulator,
 }) => {
-  console.log("createSubscriptionService...TEST!!!!");
+  console.log("Update Subscription Service...TEST!!!!");
 
   const serviceValidator = readServiceMultiValidator();
 
@@ -104,7 +93,7 @@ test<LucidContext>("Test 1 - Create Service", async ({
   // console.log("serviceScript...TEST!!!! ", serviceScript);
   // console.log("createSubscriptionService...TEST!!!!");
 
-  const createServiceConfig: CreateServiceConfig = {
+  const updateServiceConfig: CreateServiceConfig = {
     service_fee: ADA,
     service_fee_qty: 10_000_000n,
     penalty_fee: ADA,
@@ -119,12 +108,45 @@ test<LucidContext>("Test 1 - Create Service", async ({
 
   lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
 
-  // const createServiceUnSigned = await createService(lucid, createServiceConfig);
-  // const scriptUTxOs = await lucid.utxosAt(serviceValidator.mintService.script);
-  // console.log("Service Validator: ", scriptUTxOs);
-  // expect(createServiceUnSigned.type).toBe("ok");
-  // if (createServiceUnSigned.type == "ok") {
-  //   const createServiceSigned = await createServiceUnSigned.data.sign
+  const merchantUTxO = await lucid.utxosAt(users.merchant.address);
+  console.log("walletUTxO: ", merchantUTxO);
+
+  const sendTokenUnsigned = await sendTokenToService(
+    lucid,
+    updateServiceConfig,
+  );
+
+  expect(sendTokenUnsigned.type).toBe("ok");
+  if (sendTokenUnsigned.type == "ok") {
+    const sendTokenSigned = await sendTokenUnsigned.data.sign
+      .withWallet()
+      .complete();
+    const sendTokenHash = await sendTokenSigned.submit();
+    console.log("TxHash: ", sendTokenHash);
+  }
+  emulator.awaitBlock(100);
+
+  const serviceUTxO = await lucid.utxosAt(serviceValidator.spendService.script);
+
+  const valAddress = validatorToAddress(
+    "Custom",
+    serviceValidator.spendService,
+  );
+
+  console.log("Validator: Address: ", valAddress);
+  console.log("Service Validator Address: AFTER>>>>", serviceUTxO);
+
+  emulator.awaitBlock(100);
+
+  lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
+
+  const updateServiceUnSigned = await updateService(lucid, updateServiceConfig);
+  const scriptUTxOs = await lucid.utxosAt(serviceValidator.spendService.script);
+
+  console.log("Service Validator: ", scriptUTxOs);
+  // expect(updateServiceUnSigned.type).toBe("ok");
+  // if (updateServiceUnSigned.type == "ok") {
+  //   const createServiceSigned = await updateServiceUnSigned.data.sign
   //     .withWallet()
   //     .complete();
   //   const createServiceHash = await createServiceSigned.submit();
