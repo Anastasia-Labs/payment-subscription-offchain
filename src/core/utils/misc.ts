@@ -19,7 +19,7 @@ export const getServiceMultiValidator = (
   };
 
   const network = lucid.config().network;
-  const mintServiceAddress = validatorToRewardAddress(
+  const mintServiceAddress = validatorToAddress(
     network,
     mintServiceValidator,
   );

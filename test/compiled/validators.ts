@@ -1,4 +1,4 @@
-import { MintingPolicy, SpendingValidator } from "@lucid-evolution/lucid";
+import { applyDoubleCborEncoding, MintingPolicy, SpendingValidator } from "@lucid-evolution/lucid";
 
 import blueprint from "./plutus.json" assert { type: "json" };
 
@@ -27,11 +27,11 @@ export function readServiceMultiValidator(): Validators {
     return {
         spendService: {
             type: "PlutusV2",
-            script: spendService.compiledCode,
+            script: applyDoubleCborEncoding(spendService.compiledCode),
         },
         mintService: {
             type: "PlutusV2",
-            script: mintService.compiledCode,
+            script: applyDoubleCborEncoding(mintService.compiledCode),
         },
     };
 }

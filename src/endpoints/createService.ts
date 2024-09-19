@@ -3,6 +3,7 @@ import {
   Assets,
   Constr,
   Data,
+  fromHex,
   fromText,
   LucidEvolution,
   mintingPolicyToId,
@@ -21,9 +22,7 @@ import {
 import { CreateServiceConfig, Result } from "../core/types.js";
 import {
   CreateServiceRedeemer,
-  CreateServiceSchema,
   OutputReference,
-  OutputReferenceSchema,
   ServiceDatum,
   Value,
 } from "../core/contract.types.js";
@@ -93,20 +92,16 @@ export const createService = async (
   const rdmrBuilderMint: RedeemerBuilder = {
     kind: "selected",
     makeRedeemer: (inputIndices: bigint[]) => {
-      const selectedUTxO = merchantUTxOs[0];
-      // const inputIndex = selectedUTxO.outputIndex;
-      // console.log("selectedUTxO :: ", selectedUTxO);
-
-      const output_ref: OutputReference = {
-        txHash: { hash: selectedUTxO.txHash },
-        outputIndex: BigInt(selectedUTxO.outputIndex),
+      const redeemer: CreateServiceRedeemer = {
+        output_reference: {
+          txHash: { hash: merchantUTxOs[0].txHash },
+          outputIndex: BigInt(merchantUTxOs[0].outputIndex),
+        },
+        input_index: inputIndices[0],
       };
-
-      return Data.to(
-        new Constr(0, [Data.to(output_ref, OutputReference), inputIndices[0]]),
-      );
+      return Data.to(redeemer, CreateServiceRedeemer);
     },
-    inputs: merchantUTxOs,
+    inputs: [merchantUTxOs[0]],
   };
 
   console.log("REDEEMER :: ", rdmrBuilderMint);
@@ -135,7 +130,7 @@ export const createService = async (
   try {
     const tx = await lucid
       .newTx()
-      .collectFrom(merchantUTxOs, rdmrBuilderMint)
+      .collectFrom(merchantUTxOs)
       .mintAssets(
         mintingAssets,
         rdmrBuilderMint,
@@ -186,7 +181,8 @@ export const createServiceEffect = async (
     const validators = getServiceMultiValidator(lucid, config.scripts);
     const servicePolicyId = mintingPolicyToId(validators.mintServiceValidator);
 
-    console.log("servicePolicyId: ", servicePolicyId);
+    console.log("servicePolicyId in hex: ", servicePolicyId);
+    console.log("policyId: " + fromHex(servicePolicyId));
 
     const merchantUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(merchantAddress)
@@ -207,6 +203,7 @@ export const createServiceEffect = async (
     const { refTokenName, userTokenName } = createServiceTokens(
       selectedUTxOs[0],
     );
+
     console.log("refTokenName: ", refTokenName);
     console.log("userTokenName: ", userTokenName);
 
@@ -233,18 +230,17 @@ export const createServiceEffect = async (
     const rdmrBuilderMint: RedeemerBuilder = {
       kind: "selected",
       makeRedeemer: (inputIndices: bigint[]) => {
-        return Data.to(new Constr(0, [inputIndices]));
+        const redeemer: CreateServiceRedeemer = {
+          output_reference: {
+            txHash: { hash: selectedUTxOs[0].txHash },
+            outputIndex: BigInt(selectedUTxOs[0].outputIndex),
+          },
+          input_index: inputIndices[0],
+        };
+        return Data.to(redeemer, CreateServiceRedeemer);
       },
-      inputs: selectedUTxOs,
+      inputs: [selectedUTxOs[0]],
     };
-
-    // const redeemer: CreateService = {
-    //   output_reference: {
-    //     txHash: { hash: selectedUTxOs[0].txHash },
-    //     outputIndex: BigInt(selectedUTxOs[0].outputIndex),
-    //   },
-    //   input_index: BigInt(selectedUTxOs[0].outputIndex),
-    // };
 
     // console.log("REDEEMER :: ", redeemer);
 
@@ -254,6 +250,7 @@ export const createServiceEffect = async (
 
     const tx = yield* lucid
       .newTx()
+      .collectFrom(selectedUTxOs)
       .mintAssets(
         mintingAssets,
         rdmrBuilderMint,
