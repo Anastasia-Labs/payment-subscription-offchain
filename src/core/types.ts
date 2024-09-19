@@ -55,15 +55,6 @@ export type ServiceMultiValidator = {
   mintServiceValAddress: Address;
 };
 
-export type MakeOfferConfig = {
-  offer: Assets;
-  toBuy: Assets;
-  scripts: {
-    spending: CborHex;
-    staking: CborHex;
-  };
-};
-
 export type CancelOfferConfig = {
   offerOutRef: OutRef;
   scripts: {

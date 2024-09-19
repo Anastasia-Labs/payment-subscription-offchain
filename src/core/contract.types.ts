@@ -90,3 +90,8 @@ export const ServiceDatumSchema = Data.Object({
 
 export type ServiceDatum = Data.Static<typeof ServiceDatumSchema>;
 export const ServiceDatum = ServiceDatumSchema as unknown as ServiceDatum;
+
+export const ADA = {
+    symbol: "",
+    name: "",
+};

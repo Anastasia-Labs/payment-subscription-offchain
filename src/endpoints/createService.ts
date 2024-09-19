@@ -21,6 +21,7 @@ import {
 } from "../core/utils/index.js";
 import { CreateServiceConfig, Result } from "../core/types.js";
 import {
+  ADA,
   CreateServiceRedeemer,
   OutputReference,
   ServiceDatum,
@@ -31,18 +32,6 @@ import {
   generateUniqueAssetName,
 } from "../core/utils/assets.js";
 import { Effect } from "effect";
-
-export const ADA = {
-  symbol: "",
-  name: "",
-};
-
-// const assetNameLabels = {
-//   prefix100: "000643b0",
-//   prefix222: "000de140",
-//   prefix333: "0014df10",
-//   prefix444: "001bc280",
-// };
 
 const createServiceTokens = (utxo: UTxO) => {
   const refTokenName = generateUniqueAssetName(utxo, assetNameLabels.prefix100);
@@ -83,10 +72,31 @@ export const createService = async (
   console.log("refTokenName: ", refTokenName);
   console.log("userTokenName: ", userTokenName);
 
-  const mintingAssets: Assets = {
-    [`${servicePolicyId}${refTokenName}`]: 1n,
-    [`${servicePolicyId}${userTokenName}`]: 1n,
-  };
+  // Create the redeemer
+  // const rdmrBuilderMint: RedeemerBuilder = {
+  //   kind: "self",
+  //   makeRedeemer: (inputIndex: bigint) => {
+  //     const selectedUTxO = merchantUTxOs[0];
+  //     // const inputIndex = selectedUTxO.outputIndex;
+  //     // console.log("selectedUTxO :: ", selectedUTxO);
+
+  //     const output_ref: OutputReference = {
+  //       txHash: { hash: selectedUTxO.txHash },
+  //       outputIndex: BigInt(selectedUTxO.outputIndex),
+  //     };
+
+  // const createService: CreateServiceRedeemer = {
+  //   output_reference: output_ref,
+  //   input_index: inputIndex,
+  // };
+
+  // return Data.to(createService, CreateServiceRedeemer);
+  //     // return Data.to(
+  //     //   new Constr(0, [Data.to(output_ref, OutputReference), inputIndices[0]),
+  //     // );
+  //   },
+  //   // inputs: merchantUTxOs,
+  // };
 
   // Create the redeemer
   const rdmrBuilderMint: RedeemerBuilder = {
@@ -117,15 +127,30 @@ export const createService = async (
   };
 
   const directDatum = Data.to<ServiceDatum>(currDatum, ServiceDatum);
+
+  const output_ref: OutputReference = {
+    txHash: { hash: merchantUTxOs[0].txHash },
+    outputIndex: BigInt(merchantUTxOs[0].outputIndex),
+  };
+
+  const createService: CreateServiceRedeemer = {
+    output_reference: output_ref,
+    input_index: output_ref.outputIndex,
+  };
   // add 2 ADA protocol fee and 2 ADA minADA deposit fee
   // protocol fee gets paid if the offer is accepted otherwise its returned.
   // config.offer["lovelace"] = (config.offer["lovelace"] || 0n) + 4_000_000n;
 
   // const walletUTxOs = await lucid.wallet().getUtxos();
   console.log("merchantUTxOs :: ", merchantUTxOs);
+  // console.log("mintServiceValidator :: ", validators.mintServiceValidator);
 
   // const feeUTxOs = selectUTxOs(selectedUTxOs, { lovelace: BigInt(2_000_000) });
   // console.log("feeUTxOs :: ", feeUTxOs);
+  const mintingAssets: Assets = {
+    [`${servicePolicyId}${refTokenName}`]: 1n,
+    [`${servicePolicyId}${userTokenName}`]: 1n,
+  };
 
   try {
     const tx = await lucid
@@ -134,22 +159,24 @@ export const createService = async (
       .mintAssets(
         mintingAssets,
         rdmrBuilderMint,
+        // Data.to(createService, CreateServiceRedeemer),
       )
-      .pay.ToContract(validators.mintServiceValAddress, {
-        kind: "inline",
-        value: directDatum,
-      }, {
-        lovelace: 1_000_000n,
-        [`${servicePolicyId}${refTokenName}`]: 1n,
-      })
-      .pay.ToAddress(merchantAddress, {
-        [`${servicePolicyId}${userTokenName}`]: 1n,
-      })
+      // .pay.ToContract(validators.mintServiceValAddress, {
+      //   kind: "inline",
+      //   value: directDatum,
+      // }, {
+      //   lovelace: 1_000_000n,
+      //   [`${servicePolicyId}${refTokenName}`]: 1n,
+      // })
+      // .pay.ToAddress(merchantAddress, {
+      //   [`${servicePolicyId}${userTokenName}`]: 1n,
+      // })
       .validTo(Date.now() + 900000)
       .attach.MintingPolicy(validators.mintServiceValidator)
-      .complete({
-        coinSelection: false, // Setting to false to avoid using distributor funds
-      });
+      .complete();
+    // .complete({
+    //   coinSelection: false, // Setting to false to avoid using distributor funds
+    // });
     // const tx = await lucid
     //   .newTx()
     // .collectFrom(feeUTxOs)
@@ -159,7 +186,7 @@ export const createService = async (
     //   )
     //   .complete();
 
-    console.log("data: ", tx);
+    console.log("data: ", tx.toJSON());
     return { type: "ok", data: tx };
   } catch (error) {
     console.log("ERROR: ", error);
