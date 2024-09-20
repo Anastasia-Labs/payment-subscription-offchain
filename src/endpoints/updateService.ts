@@ -59,22 +59,23 @@ export const updateService = async (
     config: UpdateServiceConfig,
 ): Promise<Result<TxSignBuilder>> => {
     console.log("updateService..........: ");
-    const merchantAddress: Address = await lucid.wallet().address();
+    //const merchantAddress: Address = await lucid.wallet().address();
 
     const validators = getServiceMultiValidator(lucid, config.scripts);
-    const servicePolicyId = mintingPolicyToId(validators.mintServiceValidator);
+    
+    //const servicePolicyId = mintingPolicyToId(validators.mintServiceValidator);
 
-    console.log("servicePolicyId: ", servicePolicyId);
+    //console.log("servicePolicyId: ", servicePolicyId);
 
-    const merchantUTxOs = await lucid.utxosAt(merchantAddress);
+    //const merchantUTxOs = await lucid.utxosAt(merchantAddress);
     // const contractUTxOs = await lucid.utxosAt(validators.mintServiceValAddress);
     // const mintUtxoScriptRef = contractUTxOs.find((utxo) =>
     //   utxo.scriptRef ?? null
     // );
 
-    if (!merchantUTxOs || !merchantUTxOs.length) {
-        console.error("No UTxO found at user address: " + merchantAddress);
-    }
+    // if (!merchantUTxOs || !merchantUTxOs.length) {
+    //     console.error("No UTxO found at user address: " + merchantAddress);
+    // }
     // const serviceNFTUTxO = merchantUTxOs.find((utxo) =>
     //     Object.keys(utxo.assets).some((asset) =>
     //         asset.startsWith(servicePolicyId) && utxo.assets[asset] === 1n
@@ -104,12 +105,12 @@ export const updateService = async (
     // const network = lucid.config().network;
     // const nftLockerAddress = validatorToAddress(network, config.scripts.spending.);
     const refToken = toUnit(
-        "0d7895b6e27a70a4175c822a1e792a2fdc59817f7f7773079044812f",
+        "cbe8007737fc6a3376cad95dfce70a2c947a0502569d6b9e4fbcf9e9",
         "000643b09e6291970cb44dd94008c79bcaf9d86f18b4b49ba5b2a04781db7199",
     );
 
     const userNft = toUnit(
-        "0d7895b6e27a70a4175c822a1e792a2fdc59817f7f7773079044812f",
+        "cbe8007737fc6a3376cad95dfce70a2c947a0502569d6b9e4fbcf9e9",
         "000de1409e6291970cb44dd94008c79bcaf9d86f18b4b49ba5b2a04781db7199",
     );
 
@@ -150,35 +151,35 @@ export const updateService = async (
     // };
 
     // Create the redeemer
-    const rdmrBuilderMint: RedeemerBuilder = {
-        kind: "selected",
-        makeRedeemer: (inputIndices: bigint[]) => {
-            const selectedUTxO = merchantUTxOs[0];
-            // const inputIndex = selectedUTxO.outputIndex;
-            // console.log("selectedUTxO :: ", selectedUTxO);
+    // const rdmrBuilderMint: RedeemerBuilder = {
+    //     kind: "selected",
+    //     makeRedeemer: (inputIndices: bigint[]) => {
+    //         const selectedUTxO = merchantUTxOs[0];
+    //         // const inputIndex = selectedUTxO.outputIndex;
+    //         // console.log("selectedUTxO :: ", selectedUTxO);
 
-            const output_ref: OutputReference = {
-                txHash: { hash: selectedUTxO.txHash },
-                outputIndex: BigInt(selectedUTxO.outputIndex),
-            };
+    //         const output_ref: OutputReference = {
+    //             txHash: { hash: selectedUTxO.txHash },
+    //             outputIndex: BigInt(selectedUTxO.outputIndex),
+    //         };
 
-            const createService: CreateServiceRedeemer = {
-                output_reference: output_ref,
-                input_index: inputIndices[0],
-            };
+    //         const createService: CreateServiceRedeemer = {
+    //             output_reference: output_ref,
+    //             input_index: inputIndices[0],
+    //         };
 
-            console.log(
-                "createService :: ",
-                Data.to(createService, CreateServiceRedeemer),
-            );
-            return Data.to(createService, CreateServiceRedeemer);
+    //         console.log(
+    //             "createService :: ",
+    //             Data.to(createService, CreateServiceRedeemer),
+    //         );
+    //         return Data.to(createService, CreateServiceRedeemer);
 
-            // return Data.to(
-            //   new Constr(0, [Data.to(output_ref, OutputReference), inputIndices[0]]),
-            // );
-        },
-        inputs: merchantUTxOs,
-    };
+    //         // return Data.to(
+    //         //   new Constr(0, [Data.to(output_ref, OutputReference), inputIndices[0]]),
+    //         // );
+    //     },
+    //     inputs: merchantUTxOs,
+    // };
 
     // console.log("REDEEMER :: ", rdmrBuilderMint);
 
@@ -194,15 +195,15 @@ export const updateService = async (
 
     const directDatum = Data.to<ServiceDatum>(updatedDatum, ServiceDatum);
 
-    const output_ref: OutputReference = {
-        txHash: { hash: merchantUTxOs[0].txHash },
-        outputIndex: BigInt(merchantUTxOs[0].outputIndex),
-    };
+    // const output_ref: OutputReference = {
+    //     txHash: { hash: merchantUTxOs[0].txHash },
+    //     outputIndex: BigInt(merchantUTxOs[0].outputIndex),
+    // };
 
-    const createService: CreateServiceRedeemer = {
-        output_reference: output_ref,
-        input_index: output_ref.outputIndex,
-    };
+    // const createService: CreateServiceRedeemer = {
+    //     output_reference: output_ref,
+    //     input_index: output_ref.outputIndex,
+    // };
 
     // const updateService: MintServiceRedeemer = "UpdateService";
     // const removeService: MintServiceRedeemer = "RemoveService";
@@ -216,20 +217,21 @@ export const updateService = async (
         MintServiceRedeemer,
     );
     console.log("Redeemer updateService: ", updateService);
+    //const merchantUTxOs = await lucid.ut
 
     try {
         const tx = await lucid
             .newTx()
-            .collectFrom(merchantUTxOs)
+            //.collectFrom(merchantUTxOs)
             .collectFrom(serviceUTxO, updateService)
-            // .pay.ToContract(validators.spendServiceValAddress, {
-            //     kind: "inline",
-            //     value: directDatum,
-            // }, {
-            //     lovelace: 3_000_000n,
-            //     [refToken]: 1n,
-            // })
-            .pay.ToAddress(merchantAddress, {
+            .pay.ToContract(validators.spendServiceValAddress, {
+                kind: "inline",
+                value: directDatum,
+            }, {
+                lovelace: 3_000_000n,
+                [refToken]: 1n,
+            })
+            .pay.ToAddress(config.merchantAddr, {
                 [userNft]: 1n,
             })
             .attach.SpendingValidator(validators.spendServiceValidator)
@@ -246,7 +248,7 @@ export const updateService = async (
         //   )
         //   .complete();
 
-        console.log("data: ", tx.toJSON());
+        //console.log("data: ", tx.toJSON());
         return { type: "ok", data: tx };
     } catch (error) {
         console.log("ERROR: ", error);
