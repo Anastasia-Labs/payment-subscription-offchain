@@ -75,8 +75,19 @@ export type CreateServiceRedeemer = Data.Static<typeof CreateServiceSchema>;
 export const CreateServiceRedeemer =
     CreateServiceSchema as unknown as CreateServiceRedeemer;
 
-// export const RedeemerMint = () => Data.to(new Constr(0, []));
-// export const RedeemerBurn = () => Data.to(new Constr(1, []));
+export const MintAccountSchema = Data.Enum([
+    Data.Literal("UpdateService"),
+    Data.Literal("RemoveService"),
+]);
+
+export type MintServiceRedeemer = Data.Static<typeof MintAccountSchema>;
+export const MintServiceRedeemer =
+    MintAccountSchema as unknown as MintServiceRedeemer;
+
+// const deleteService: MintServiceRedeemer = "DeleteService";
+
+// export const UpdateService = () => Data.to(new Constr(0, []));
+// export const RemoveService = () => Data.to(new Constr(1, []));
 
 export const ServiceDatumSchema = Data.Object({
     service_fee: AssetClassSchema,

@@ -1,7 +1,7 @@
 {
   "preamble": {
-    "title": "aiken-lang/payment-subscription",
-    "description": "Aiken contracts for project 'aiken-lang/payment-subscription'",
+    "title": "anastasia-labs/payment-subscription",
+    "description": "Aiken contracts for project 'anastasia-labs/payment-subscription'",
     "version": "0.0.0",
     "plutusVersion": "v2",
     "compiler": {
