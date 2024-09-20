@@ -20,18 +20,35 @@ export type AssetClass = {
 
 export type CreateServiceConfig = {
   service_fee: AssetClass;
-  service_fee_qty: BigInt;
+  service_fee_qty: bigint;
   penalty_fee: AssetClass;
-  penalty_fee_qty: BigInt;
-  interval_length: BigInt;
-  num_intervals: BigInt;
-  minimum_ada: BigInt;
+  penalty_fee_qty: bigint;
+  interval_length: bigint;
+  num_intervals: bigint;
+  minimum_ada: bigint;
   is_active: boolean;
   scripts: {
     spending: CborHex;
     minting: CborHex;
     staking: CborHex;
   };
+};
+
+export type UpdateServiceConfig = {
+  new_service_fee: AssetClass;
+  new_service_fee_qty: bigint;
+  new_penalty_fee: AssetClass;
+  new_penalty_fee_qty: bigint;
+  new_interval_length: bigint;
+  new_num_intervals: bigint;
+  new_minimum_ada: bigint;
+  is_active: boolean;
+  scripts: {
+    spending: CborHex;
+    minting: CborHex;
+    staking: CborHex;
+  };
+  merchantAddr : Address
 };
 
 export type MakeServiceConfig = {
