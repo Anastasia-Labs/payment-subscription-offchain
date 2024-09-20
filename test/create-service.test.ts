@@ -19,7 +19,7 @@ import { MintingPolicy } from "@lucid-evolution/lucid";
 import { readServiceMultiValidator } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { subscribe } from "diagnostics_channel";
-import { useState } from "react";
+
 //   import stakingValidator from "./directOfferStaking.json" assert { type : "json" };
 
 type LucidContext = {
@@ -119,19 +119,19 @@ test<LucidContext>("Test 1 - Create Service", async ({
 
   lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
 
-  // const createServiceUnSigned = await createService(lucid, createServiceConfig);
-  // const scriptUTxOs = await lucid.utxosAt(serviceValidator.mintService.script);
-  // console.log("Service Validator: ", scriptUTxOs);
-  // expect(createServiceUnSigned.type).toBe("ok");
-  // if (createServiceUnSigned.type == "ok") {
-  //   const createServiceSigned = await createServiceUnSigned.data.sign
-  //     .withWallet()
-  //     .complete();
-  //   const createServiceHash = await createServiceSigned.submit();
-  //   console.log("TxHash: ", createServiceHash);
-  // }
-  // const merchantUTxO = await lucid.utxosAt(users.merchant.address);
-  // console.log("walletUTxO: ", merchantUTxO);
+  const createServiceUnSigned = await createService(lucid, createServiceConfig);
+  const scriptUTxOs = await lucid.utxosAt(serviceValidator.mintService.script);
+  console.log("Service Validator: ", scriptUTxOs);
+  expect(createServiceUnSigned.type).toBe("ok");
+  if (createServiceUnSigned.type == "ok") {
+    const createServiceSigned = await createServiceUnSigned.data.sign
+      .withWallet()
+      .complete();
+    const createServiceHash = await createServiceSigned.submit();
+    console.log("TxHash: ", createServiceHash);
+  }
+  const merchantUTxO = await lucid.utxosAt(users.merchant.address);
+  console.log("walletUTxO: ", merchantUTxO);
   emulator.awaitBlock(100);
 
   // // Fetch Offer
