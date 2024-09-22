@@ -20,7 +20,6 @@ import {
 } from "../core/utils/index.js";
 import { CreateServiceConfig, Result } from "../core/types.js";
 import {
-  ADA,
   CreateServiceRedeemer,
   CreateServiceSchema,
   OutputReference,
@@ -33,6 +32,7 @@ import {
   generateUniqueAssetName,
 } from "../core/utils/assets.js";
 import { Effect } from "effect";
+import { ADA } from "../core/constants.js";
 
 const createServiceTokens = (utxo: UTxO) => {
   const refTokenName = generateUniqueAssetName(utxo, assetNameLabels.prefix100);
@@ -140,6 +140,7 @@ export const createService = async (
     interval_length: 1n,
     num_intervals: 12n,
     minimum_ada: 2_000_000n,
+    is_active: true,
   };
 
   const directDatum = Data.to<ServiceDatum>(currDatum, ServiceDatum);

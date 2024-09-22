@@ -10,3 +10,8 @@ export const PROTOCOL_PAYMENT_KEY =
     "014e9d57e1623f7eeef5d0a8d4e6734a562ba32cf910244cd74e1680";
 export const PROTOCOL_STAKE_KEY =
     "5e8aa3f089868eaadf188426f49db6566624844b6c5d529b38f3b8a7";
+
+export const ADA = {
+    policyId: "",
+    assetName: "",
+};

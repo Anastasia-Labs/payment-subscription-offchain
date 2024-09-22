@@ -1,5 +1,4 @@
 import { UTxO } from "@lucid-evolution/lucid";
-import { blake2b } from "@noble/hashes/blake2b";
 import { bytesToHex, concatBytes, hexToBytes } from "@noble/hashes/utils";
 import { sha3_256 } from "@noble/hashes/sha3";
 

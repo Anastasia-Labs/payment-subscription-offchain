@@ -64,6 +64,7 @@ export const sendTokenToService = async (
         interval_length: config.interval_length,
         num_intervals: config.num_intervals,
         minimum_ada: config.minimum_ada,
+        is_active: config.is_active,
     };
 
     const directDatum = Data.to<ServiceDatum>(currDatum, ServiceDatum);
@@ -84,6 +85,7 @@ export const sendTokenToService = async (
                 validators.spendServiceValAddress,
                 { kind: "inline", value: directDatum },
                 { lovelace: 5_000_000n, [refToken]: 1n },
+                validators.spendServiceValidator,
             )
             .complete();
 

@@ -1,5 +1,5 @@
 import { Constr, Data, OutRef } from "@lucid-evolution/lucid";
-import { AssetClass } from "./types.js";
+import { boolean } from "effect/Equivalence";
 
 export const OutputReferenceSchema = Data.Object({
     txHash: Data.Object({ hash: Data.Bytes({ minLength: 32, maxLength: 32 }) }),
@@ -48,8 +48,8 @@ export const AddressD = AddressSchema as unknown as AddressD;
 //NOTE: liqwid-plutarch-extra AssetClass version, not PlutusLedgerApi.V1.Value
 export const AssetClassSchema = Data.Object(
     {
-        symbol: Data.Bytes(),
-        name: Data.Bytes(),
+        policyId: Data.Bytes(),
+        assetName: Data.Bytes(),
     },
     { hasConstr: false },
 );
@@ -75,19 +75,31 @@ export type CreateServiceRedeemer = Data.Static<typeof CreateServiceSchema>;
 export const CreateServiceRedeemer =
     CreateServiceSchema as unknown as CreateServiceRedeemer;
 
-export const MintAccountSchema = Data.Enum([
+export const MintServiceSchema = Data.Enum([
     Data.Literal("UpdateService"),
     Data.Literal("RemoveService"),
 ]);
 
-export type MintServiceRedeemer = Data.Static<typeof MintAccountSchema>;
+export type MintServiceRedeemer = Data.Static<typeof MintServiceSchema>;
 export const MintServiceRedeemer =
-    MintAccountSchema as unknown as MintServiceRedeemer;
+    MintServiceSchema as unknown as MintServiceRedeemer;
 
 // const deleteService: MintServiceRedeemer = "DeleteService";
 
 // export const UpdateService = () => Data.to(new Constr(0, []));
 // export const RemoveService = () => Data.to(new Constr(1, []));
+
+// pub type ServiceDatum {
+//     service_fee: AssetClass,
+//     service_fee_qty: Int,
+//     // non-negative
+//     penalty_fee: AssetClass,
+//     penalty_fee_qty: Int,
+//     interval_length: Int,
+//     num_intervals: Int,
+//     minimum_ada: Int,
+//     is_active: Bool,
+//   }
 
 export const ServiceDatumSchema = Data.Object({
     service_fee: AssetClassSchema,
@@ -97,12 +109,8 @@ export const ServiceDatumSchema = Data.Object({
     interval_length: Data.Integer(),
     num_intervals: Data.Integer(),
     minimum_ada: Data.Integer(),
+    is_active: Data.Boolean(),
 });
 
 export type ServiceDatum = Data.Static<typeof ServiceDatumSchema>;
 export const ServiceDatum = ServiceDatumSchema as unknown as ServiceDatum;
-
-export const ADA = {
-    symbol: "",
-    name: "",
-};

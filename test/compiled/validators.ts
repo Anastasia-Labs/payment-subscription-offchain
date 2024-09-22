@@ -16,8 +16,8 @@ export function readServiceMultiValidator(): Validators {
         throw new Error("spendService validator not found");
     }
 
-    const mintService = blueprint.validators.find(
-        (v) => v.title === "service_multi_validator.mint_service",
+    const mintService = blueprint.validators.find((v) =>
+        v.title === "service_multi_validator.mint_service"
     );
 
     if (!mintService) {
