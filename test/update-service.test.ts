@@ -12,7 +12,7 @@ import {
 } from "../src/index.js";
 import { beforeEach, expect, test } from "vitest";
 import { mintingPolicyToId, validatorToAddress } from "@lucid-evolution/lucid";
-import { readServiceMultiValidator } from "./compiled/validators.js";
+import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 
 type LucidContext = {
@@ -21,7 +21,7 @@ type LucidContext = {
   emulator: Emulator;
 };
 
-const serviceValidator = readServiceMultiValidator();
+const serviceValidator = readMultiValidators();
 const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
 
 const refNft = toUnit(

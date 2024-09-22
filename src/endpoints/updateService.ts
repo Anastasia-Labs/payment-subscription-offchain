@@ -10,9 +10,9 @@ import {
     TxSignBuilder,
     validatorToAddress,
 } from "@lucid-evolution/lucid";
-import { getServiceMultiValidator } from "../core/utils/index.js";
+import { getMultiValidator } from "../core/utils/index.js";
 import { Result, UpdateServiceConfig } from "../core/types.js";
-import { MintServiceRedeemer, ServiceDatum } from "../core/contract.types.js";
+import { ServiceDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
 
 export const updateService = (
@@ -25,14 +25,14 @@ export const updateService = (
             lucid.wallet().address()
         );
 
-        // const validators = getServiceMultiValidator(lucid, config.scripts);
+        // const validators = getMultiValidator(lucid, config.scripts);
         const spendValidator: SpendingValidator = {
             type: "PlutusV2",
             script: config.scripts.spending,
         };
-        const validators = getServiceMultiValidator(lucid, config.scripts);
+        const validators = getMultiValidator(lucid, config.scripts);
         const servicePolicyId = mintingPolicyToId(
-            validators.mintServiceValidator,
+            validators.mintValidator,
         );
 
         const spendServiceValidatorAddress = validatorToAddress(

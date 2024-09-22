@@ -66,23 +66,27 @@ export type Value = Data.Static<typeof ValueSchema>;
 export const Value = ValueSchema as unknown as Value;
 
 /// Redeemers
-export const CreateServiceSchema = Data.Object({
+export const CreateMintSchema = Data.Object({
     output_reference: OutputReferenceSchema,
     input_index: Data.Integer(),
 });
 
-export type CreateServiceRedeemer = Data.Static<typeof CreateServiceSchema>;
+export type CreateServiceRedeemer = Data.Static<typeof CreateMintSchema>;
 export const CreateServiceRedeemer =
-    CreateServiceSchema as unknown as CreateServiceRedeemer;
+    CreateMintSchema as unknown as CreateServiceRedeemer;
 
-export const MintServiceSchema = Data.Enum([
-    Data.Literal("UpdateService"),
-    Data.Literal("RemoveService"),
-]);
+// export const MintServiceSchema = Data.Enum([
+//     Data.Literal("UpdateService"),
+//     Data.Literal("RemoveService"),
+// ]);
 
-export type MintServiceRedeemer = Data.Static<typeof MintServiceSchema>;
-export const MintServiceRedeemer =
-    MintServiceSchema as unknown as MintServiceRedeemer;
+// export type MintServiceRedeemer = Data.Static<typeof MintServiceSchema>;
+// export const MintServiceRedeemer =
+//     MintServiceSchema as unknown as MintServiceRedeemer;
+
+export type CreateAccountRedeemer = Data.Static<typeof CreateMintSchema>;
+export const CreateAccountRedeemer =
+    CreateMintSchema as unknown as CreateAccountRedeemer;
 
 // const deleteService: MintServiceRedeemer = "DeleteService";
 
@@ -114,3 +118,12 @@ export const ServiceDatumSchema = Data.Object({
 
 export type ServiceDatum = Data.Static<typeof ServiceDatumSchema>;
 export const ServiceDatum = ServiceDatumSchema as unknown as ServiceDatum;
+
+export const AccountDatumSchema = Data.Object({
+    email: Data.Bytes(),
+    phone: Data.Bytes(),
+    account_created: Data.Integer(),
+});
+
+export type AccountDatum = Data.Static<typeof AccountDatumSchema>;
+export const AccountDatum = AccountDatumSchema as unknown as AccountDatum;

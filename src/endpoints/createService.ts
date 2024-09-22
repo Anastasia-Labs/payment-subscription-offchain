@@ -17,7 +17,7 @@ import {
 import {
   fromAddress,
   fromAssets,
-  getServiceMultiValidator,
+  getMultiValidator,
   selectUtxos,
 } from "../core/utils/index.js";
 import { CreateServiceConfig, Result } from "../core/types.js";
@@ -49,8 +49,8 @@ export const createService = async (
 ): Promise<Result<TxSignBuilder>> => {
   const merchantAddress: Address = await lucid.wallet().address();
 
-  const validators = getServiceMultiValidator(lucid, config.scripts);
-  const servicePolicyId = mintingPolicyToId(validators.mintServiceValidator);
+  const validators = getMultiValidator(lucid, config.scripts);
+  const servicePolicyId = mintingPolicyToId(validators.mintValidator);
 
   console.log("servicePolicyId: ", servicePolicyId);
 
@@ -94,7 +94,7 @@ export const createService = async (
       },
       outputIndex: BigInt(merchantUTxOs[0].outputIndex),
     },
-    input_index: BigInt(merchantUTxOs[0].outputIndex),
+    input_index: 0n,
   };
   const redeemerData = Data.to(redeemer, CreateServiceRedeemer);
 
@@ -142,15 +142,15 @@ export const createService = async (
         lovelace: 1_000_000n,
         [`${servicePolicyId}${userTokenName}`]: 1n,
       })
-      .pay.ToContract(validators.mintServiceValAddress, {
+      .pay.ToContract(validators.mintValAddress, {
         kind: "inline",
         value: directDatum,
       }, {
         lovelace: 1_000_000n,
         [`${servicePolicyId}${refTokenName}`]: 1n,
       })
-      .validTo(Date.now() + 900000)
-      .attach.MintingPolicy(validators.mintServiceValidator)
+      // .validTo(Date.now() + 900000)
+      .attach.MintingPolicy(validators.mintValidator)
       .complete();
     // .complete({
     //   coinSelection: false, // Setting to false to avoid using distributor funds
@@ -174,98 +174,98 @@ export const createService = async (
   }
 };
 
-export const createServiceEffect = async (
-  lucid: LucidEvolution,
-  config: CreateServiceConfig,
-): Promise<Effect.Effect<TxSignBuilder, TransactionError, never>> =>
-  Effect.gen(function* () { // return type ,
-    const merchantAddress = yield* Effect.promise(() =>
-      lucid.wallet().address()
-    );
+// export const createServiceEffect = async (
+//   lucid: LucidEvolution,
+//   config: CreateServiceConfig,
+// ): Promise<Effect.Effect<TxSignBuilder, TransactionError, never>> =>
+//   Effect.gen(function* () { // return type ,
+//     const merchantAddress = yield* Effect.promise(() =>
+//       lucid.wallet().address()
+//     );
 
-    const validators = getServiceMultiValidator(lucid, config.scripts);
-    const servicePolicyId = mintingPolicyToId(validators.mintServiceValidator);
+//     const validators = getMultiValidator(lucid, config.scripts);
+//     const servicePolicyId = mintingPolicyToId(validators.mintValidator);
 
-    console.log("servicePolicyId in hex: ", servicePolicyId);
-    console.log("policyId: " + fromHex(servicePolicyId));
+//     console.log("servicePolicyId in hex: ", servicePolicyId);
+//     console.log("policyId: " + fromHex(servicePolicyId));
 
-    const merchantUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(merchantAddress)
-    );
+//     const merchantUTxOs = yield* Effect.promise(() =>
+//       lucid.utxosAt(merchantAddress)
+//     );
 
-    console.log("Merchant UTxO");
-    console.log(merchantUTxOs);
+//     console.log("Merchant UTxO");
+//     console.log(merchantUTxOs);
 
-    if (!merchantUTxOs || !merchantUTxOs.length) {
-      console.error("No UTxO found at user address: " + merchantAddress);
-    }
+//     if (!merchantUTxOs || !merchantUTxOs.length) {
+//       console.error("No UTxO found at user address: " + merchantAddress);
+//     }
 
-    // Selecting a utxo containing atleast 5 ADA to cover tx fees and min ADA
-    // Note: To avoid tx balancing errors, the utxo should only contain lovelaces
-    const selectedUTxOs = selectUTxOs(merchantUTxOs, {
-      ["lovelace"]: 5000000n,
-    });
-    const { refTokenName, userTokenName } = createServiceTokens(
-      selectedUTxOs[0],
-    );
+//     // Selecting a utxo containing atleast 5 ADA to cover tx fees and min ADA
+//     // Note: To avoid tx balancing errors, the utxo should only contain lovelaces
+//     const selectedUTxOs = selectUTxOs(merchantUTxOs, {
+//       ["lovelace"]: 5000000n,
+//     });
+//     const { refTokenName, userTokenName } = createServiceTokens(
+//       selectedUTxOs[0],
+//     );
 
-    console.log("refTokenName: ", refTokenName);
-    console.log("userTokenName: ", userTokenName);
+//     console.log("refTokenName: ", refTokenName);
+//     console.log("userTokenName: ", userTokenName);
 
-    const mintingAssets: Assets = {
-      [`${servicePolicyId}${refTokenName}`]: 1n,
-      [`${servicePolicyId}${userTokenName}`]: 1n,
-    };
+//     const mintingAssets: Assets = {
+//       [`${servicePolicyId}${refTokenName}`]: 1n,
+//       [`${servicePolicyId}${userTokenName}`]: 1n,
+//     };
 
-    // const mintUtxoScriptRef = yield* Effect.fromNullable(
-    //   selectedUTxOs.find((utxo) => utxo.scriptRef ?? null),
-    // );
+//     // const mintUtxoScriptRef = yield* Effect.fromNullable(
+//     //   selectedUTxOs.find((utxo) => utxo.scriptRef ?? null),
+//     // );
 
-    // const selectedMintUTxOs = selectedUTxOs
-    //   .filter((utxo) => {
-    //     return (
-    //       utxo.scriptRef &&
-    //       (utxo.txHash !== mintUtxoScriptRef.txHash ||
-    //         utxo.outputIndex !== mintUtxoScriptRef.outputIndex)
-    //     );
-    //   })
-    //   .slice(0, 3);
+//     // const selectedMintUTxOs = selectedUTxOs
+//     //   .filter((utxo) => {
+//     //     return (
+//     //       utxo.scriptRef &&
+//     //       (utxo.txHash !== mintUtxoScriptRef.txHash ||
+//     //         utxo.outputIndex !== mintUtxoScriptRef.outputIndex)
+//     //     );
+//     //   })
+//     //   .slice(0, 3);
 
-    // Create the redeemer
-    const rdmrBuilderMint: RedeemerBuilder = {
-      kind: "selected",
-      makeRedeemer: (inputIndices: bigint[]) => {
-        const redeemer: CreateServiceRedeemer = {
-          output_reference: {
-            txHash: { hash: selectedUTxOs[0].txHash },
-            outputIndex: BigInt(selectedUTxOs[0].outputIndex),
-          },
-          input_index: inputIndices[0],
-        };
-        return Data.to(redeemer, CreateServiceRedeemer);
-      },
-      inputs: [selectedUTxOs[0]],
-    };
+//     // Create the redeemer
+//     const rdmrBuilderMint: RedeemerBuilder = {
+//       kind: "selected",
+//       makeRedeemer: (inputIndices: bigint[]) => {
+//         const redeemer: CreateServiceRedeemer = {
+//           output_reference: {
+//             txHash: { hash: selectedUTxOs[0].txHash },
+//             outputIndex: BigInt(selectedUTxOs[0].outputIndex),
+//           },
+//           input_index: inputIndices[0],
+//         };
+//         return Data.to(redeemer, CreateServiceRedeemer);
+//       },
+//       inputs: [selectedUTxOs[0]],
+//     };
 
-    // console.log("REDEEMER :: ", redeemer);
+//     // console.log("REDEEMER :: ", redeemer);
 
-    const walletUTxOs = yield* Effect.promise(() => lucid.wallet().getUtxos());
+//     const walletUTxOs = yield* Effect.promise(() => lucid.wallet().getUtxos());
 
-    const feeUTxOs = selectUTxOs(walletUTxOs, { lovelace: BigInt(2_000_000) });
+//     const feeUTxOs = selectUTxOs(walletUTxOs, { lovelace: BigInt(2_000_000) });
 
-    const tx = yield* lucid
-      .newTx()
-      .collectFrom(selectedUTxOs)
-      .mintAssets(
-        mintingAssets,
-        rdmrBuilderMint,
-      )
-      .pay.ToAddress(validators.mintServiceValAddress, {
-        [`${servicePolicyId}${refTokenName}`]: 1n,
-      })
-      .validTo(Date.now() + 900000)
-      .attach.MintingPolicy(validators.mintServiceValidator)
-      .completeProgram();
+//     const tx = yield* lucid
+//       .newTx()
+//       .collectFrom(selectedUTxOs)
+//       .mintAssets(
+//         mintingAssets,
+//         rdmrBuilderMint,
+//       )
+//       .pay.ToAddress(validators.mintValAddress, {
+//         [`${servicePolicyId}${refTokenName}`]: 1n,
+//       })
+//       .validTo(Date.now() + 900000)
+//       .attach.MintingPolicy(validators.mintValidator)
+//       .completeProgram();
 
-    return tx;
-  });
+//     return tx;
+//   });

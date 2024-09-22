@@ -3,36 +3,26 @@ import {
   Assets,
   Constr,
   Data,
-  fromHex,
   fromText,
   LucidEvolution,
   mintingPolicyToId,
-  RedeemerBuilder,
-  selectUTxOs,
   toUnit,
   TransactionError,
   TxSignBuilder,
   UTxO,
 } from "@lucid-evolution/lucid";
+import { getMultiValidator } from "../core/utils/index.js";
+import { CreateAccountConfig } from "../core/types.js";
 import {
-  fromAddress,
-  fromAssets,
-  getServiceMultiValidator,
-  selectUtxos,
-} from "../core/utils/index.js";
-import { CreateServiceConfig, Result } from "../core/types.js";
-import {
+  AccountDatum,
+  CreateAccountRedeemer,
   CreateServiceRedeemer,
-  OutputReference,
-  ServiceDatum,
-  Value,
 } from "../core/contract.types.js";
 import {
   assetNameLabels,
   generateUniqueAssetName,
 } from "../core/utils/assets.js";
 import { Effect } from "effect";
-import { ADA } from "../core/constants.js";
 
 const createAccountTokens = (utxo: UTxO) => {
   const refTokenName = generateUniqueAssetName(utxo, assetNameLabels.prefix100);
@@ -43,95 +33,96 @@ const createAccountTokens = (utxo: UTxO) => {
   return { refTokenName, userTokenName };
 };
 
-export const createAccount = async (
+export const createAccount = (
   lucid: LucidEvolution,
-  config: CreateServiceConfig,
-): Promise<Result<TxSignBuilder>> => {
-  const merchantAddress: Address = await lucid.wallet().address();
+  config: CreateAccountConfig,
+): Effect.Effect<TxSignBuilder, TransactionError, never> =>
+  Effect.gen(function* () { // return type ,
+    const merchantAddress: Address = yield* Effect.promise(() =>
+      lucid.wallet().address()
+    );
+    const validators = getMultiValidator(lucid, config.scripts);
+    const servicePolicyId = mintingPolicyToId(validators.mintValidator);
 
-  const validators = getServiceMultiValidator(lucid, config.scripts);
-  const servicePolicyId = mintingPolicyToId(validators.mintServiceValidator);
+    console.log("servicePolicyId: ", servicePolicyId);
 
-  console.log("servicePolicyId: ", servicePolicyId);
+    const merchantUTxOs = yield* Effect.promise(() =>
+      lucid.utxosAt(merchantAddress)
+    ); // const contractUTxOs = await lucid.utxosAt(validators.mintServiceValAddress);
+    // const mintUtxoScriptRef = contractUTxOs.find((utxo) =>
+    //   utxo.scriptRef ?? null
+    // );
 
-  const merchantUTxOs = await lucid.utxosAt(merchantAddress);
-  // const contractUTxOs = await lucid.utxosAt(validators.mintServiceValAddress);
-  // const mintUtxoScriptRef = contractUTxOs.find((utxo) =>
-  //   utxo.scriptRef ?? null
-  // );
+    if (!merchantUTxOs || !merchantUTxOs.length) {
+      console.error("No UTxO found at user address: " + merchantAddress);
+    }
 
-  if (!merchantUTxOs || !merchantUTxOs.length) {
-    console.error("No UTxO found at user address: " + merchantAddress);
-  }
+    // Selecting a utxo containing atleast 5 ADA to cover tx fees and min ADA
+    // Note: To avoid tx balancing errors, the utxo should only contain lovelaces
+    // const selectedUTxOs = selectUTxOs(merchantUTxOs, { ["lovelace"]: 5000000n });
+    const { refTokenName, userTokenName } = createAccountTokens(
+      merchantUTxOs[0],
+    );
+    console.log("refTokenName: ", refTokenName);
+    console.log("userTokenName: ", userTokenName);
 
-  // Selecting a utxo containing atleast 5 ADA to cover tx fees and min ADA
-  // Note: To avoid tx balancing errors, the utxo should only contain lovelaces
-  // const selectedUTxOs = selectUTxOs(merchantUTxOs, { ["lovelace"]: 5000000n });
-  const { refTokenName, userTokenName } = createAccountTokens(merchantUTxOs[0]);
-  console.log("refTokenName: ", refTokenName);
-  console.log("userTokenName: ", userTokenName);
+    // Create the redeemer
+    // const rdmrBuilderMint: RedeemerBuilder = {
+    //   kind: "selected",
+    //   makeRedeemer: (inputIndices: bigint[]) => {
+    //     const redeemer: CreateServiceRedeemer = {
+    //       output_reference: {
+    //         txHash: { hash: merchantUTxOs[0].txHash },
+    //         outputIndex: BigInt(merchantUTxOs[0].outputIndex),
+    //       },
+    //       input_index: inputIndices[0],
+    //     };
+    //     return Data.to(redeemer, CreateServiceRedeemer);
+    //   },
+    //   inputs: [merchantUTxOs[0]],
+    // };
 
-  // Create the redeemer
-  // const rdmrBuilderMint: RedeemerBuilder = {
-  //   kind: "selected",
-  //   makeRedeemer: (inputIndices: bigint[]) => {
-  //     const redeemer: CreateServiceRedeemer = {
-  //       output_reference: {
-  //         txHash: { hash: merchantUTxOs[0].txHash },
-  //         outputIndex: BigInt(merchantUTxOs[0].outputIndex),
-  //       },
-  //       input_index: inputIndices[0],
-  //     };
-  //     return Data.to(redeemer, CreateServiceRedeemer);
-  //   },
-  //   inputs: [merchantUTxOs[0]],
-  // };
-
-  const redeemer: CreateServiceRedeemer = {
-    output_reference: {
-      txHash: {
-        hash: merchantUTxOs[0].txHash,
+    const redeemer: CreateAccountRedeemer = {
+      output_reference: {
+        txHash: {
+          hash: merchantUTxOs[0].txHash,
+        },
+        outputIndex: BigInt(merchantUTxOs[0].outputIndex),
       },
-      outputIndex: BigInt(merchantUTxOs[0].outputIndex),
-    },
-    input_index: BigInt(merchantUTxOs[0].outputIndex),
-  };
-  const redeemerData = Data.to(redeemer, CreateServiceRedeemer);
+      input_index: BigInt(merchantUTxOs[0].outputIndex),
+    };
+    const redeemerData = Data.to(redeemer, CreateServiceRedeemer);
 
-  // console.log("REDEEMER :: ", rdmrBuilderMint);
+    const accountRedeemer = Data.to(
+      new Constr(0, [redeemerData]),
+    );
 
-  const currDatum: ServiceDatum = {
-    service_fee: ADA,
-    service_fee_qty: 10_000_000n,
-    penalty_fee: ADA,
-    penalty_fee_qty: 1_000_000n,
-    interval_length: 1n,
-    num_intervals: 12n,
-    minimum_ada: 2_000_000n,
-    is_active: true,
-  };
+    const currDatum: AccountDatum = {
+      email: fromText(config.email),
+      phone: fromText(config.phone),
+      account_created: config.account_created,
+    };
 
-  const directDatum = Data.to<ServiceDatum>(currDatum, ServiceDatum);
+    const directDatum = Data.to<AccountDatum>(currDatum, AccountDatum);
 
-  console.log("merchantUTxOs :: ", merchantUTxOs);
+    console.log("merchantUTxOs :: ", merchantUTxOs);
 
-  const refToken = toUnit(
-    servicePolicyId,
-    refTokenName,
-  );
+    const refToken = toUnit(
+      servicePolicyId,
+      refTokenName,
+    );
 
-  const userToken = toUnit(
-    servicePolicyId,
-    refTokenName,
-  );
+    const userToken = toUnit(
+      servicePolicyId,
+      refTokenName,
+    );
 
-  const mintingAssets: Assets = {
-    [refToken]: 1n,
-    [userToken]: 1n,
-  };
+    const mintingAssets: Assets = {
+      [refToken]: 1n,
+      [userToken]: 1n,
+    };
 
-  try {
-    const tx = await lucid
+    const tx = yield* lucid
       .newTx()
       .collectFrom(merchantUTxOs)
       .mintAssets(
@@ -142,7 +133,7 @@ export const createAccount = async (
         lovelace: 1_000_000n,
         [`${servicePolicyId}${userTokenName}`]: 1n,
       })
-      .pay.ToContract(validators.mintServiceValAddress, {
+      .pay.ToContract(validators.mintValAddress, {
         kind: "inline",
         value: directDatum,
       }, {
@@ -150,121 +141,7 @@ export const createAccount = async (
         [`${servicePolicyId}${refTokenName}`]: 1n,
       })
       .validTo(Date.now() + 900000)
-      .attach.MintingPolicy(validators.mintServiceValidator)
-      .complete();
-    // .complete({
-    //   coinSelection: false, // Setting to false to avoid using distributor funds
-    // });
-    // const tx = await lucid
-    //   .newTx()
-    // .collectFrom(feeUTxOs)
-    //   .pay.ToContract(
-    //     validators.mintServiceValAddress,
-    // { kind: "inline", value: directDatum },
-    //   )
-    //   .complete();
-
-    console.log("data: ", tx.toJSON());
-    return { type: "ok", data: tx };
-  } catch (error) {
-    console.log("ERROR: ", error);
-
-    if (error instanceof Error) return { type: "error", error: error };
-    return { type: "error", error: new Error(`${JSON.stringify(error)}`) };
-  }
-};
-
-export const createServiceEffect = async (
-  lucid: LucidEvolution,
-  config: CreateServiceConfig,
-): Promise<Effect.Effect<TxSignBuilder, TransactionError, never>> =>
-  Effect.gen(function* () { // return type ,
-    const merchantAddress = yield* Effect.promise(() =>
-      lucid.wallet().address()
-    );
-
-    const validators = getServiceMultiValidator(lucid, config.scripts);
-    const servicePolicyId = mintingPolicyToId(validators.mintServiceValidator);
-
-    console.log("servicePolicyId in hex: ", servicePolicyId);
-    console.log("policyId: " + fromHex(servicePolicyId));
-
-    const merchantUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(merchantAddress)
-    );
-
-    console.log("Merchant UTxO");
-    console.log(merchantUTxOs);
-
-    if (!merchantUTxOs || !merchantUTxOs.length) {
-      console.error("No UTxO found at user address: " + merchantAddress);
-    }
-
-    // Selecting a utxo containing atleast 5 ADA to cover tx fees and min ADA
-    // Note: To avoid tx balancing errors, the utxo should only contain lovelaces
-    const selectedUTxOs = selectUTxOs(merchantUTxOs, {
-      ["lovelace"]: 5000000n,
-    });
-    const { refTokenName, userTokenName } = createAccountTokens(
-      selectedUTxOs[0],
-    );
-
-    console.log("refTokenName: ", refTokenName);
-    console.log("userTokenName: ", userTokenName);
-
-    const mintingAssets: Assets = {
-      [`${servicePolicyId}${refTokenName}`]: 1n,
-      [`${servicePolicyId}${userTokenName}`]: 1n,
-    };
-
-    // const mintUtxoScriptRef = yield* Effect.fromNullable(
-    //   selectedUTxOs.find((utxo) => utxo.scriptRef ?? null),
-    // );
-
-    // const selectedMintUTxOs = selectedUTxOs
-    //   .filter((utxo) => {
-    //     return (
-    //       utxo.scriptRef &&
-    //       (utxo.txHash !== mintUtxoScriptRef.txHash ||
-    //         utxo.outputIndex !== mintUtxoScriptRef.outputIndex)
-    //     );
-    //   })
-    //   .slice(0, 3);
-
-    // Create the redeemer
-    const rdmrBuilderMint: RedeemerBuilder = {
-      kind: "selected",
-      makeRedeemer: (inputIndices: bigint[]) => {
-        const redeemer: CreateServiceRedeemer = {
-          output_reference: {
-            txHash: { hash: selectedUTxOs[0].txHash },
-            outputIndex: BigInt(selectedUTxOs[0].outputIndex),
-          },
-          input_index: inputIndices[0],
-        };
-        return Data.to(redeemer, CreateServiceRedeemer);
-      },
-      inputs: [selectedUTxOs[0]],
-    };
-
-    // console.log("REDEEMER :: ", redeemer);
-
-    const walletUTxOs = yield* Effect.promise(() => lucid.wallet().getUtxos());
-
-    const feeUTxOs = selectUTxOs(walletUTxOs, { lovelace: BigInt(2_000_000) });
-
-    const tx = yield* lucid
-      .newTx()
-      .collectFrom(selectedUTxOs)
-      .mintAssets(
-        mintingAssets,
-        rdmrBuilderMint,
-      )
-      .pay.ToAddress(validators.mintServiceValAddress, {
-        [`${servicePolicyId}${refTokenName}`]: 1n,
-      })
-      .validTo(Date.now() + 900000)
-      .attach.MintingPolicy(validators.mintServiceValidator)
+      .attach.MintingPolicy(validators.mintValidator)
       .completeProgram();
 
     return tx;

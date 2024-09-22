@@ -16,7 +16,7 @@ import {
     Result,
     UpdateServiceConfig,
 } from "../core/types.js";
-import { ADA, getServiceMultiValidator, ServiceDatum } from "../core/index.js";
+import { ADA, getMultiValidator, ServiceDatum } from "../core/index.js";
 import {
     assetNameLabels,
     generateUniqueAssetName,
@@ -39,13 +39,13 @@ export const sendTokenToService = async (
     config: CreateServiceConfig,
 ): Promise<Result<TxSignBuilder>> => {
     console.log("sendTokenToService...");
-    const validators = getServiceMultiValidator(lucid, config.scripts);
-    const servicePolicyId = mintingPolicyToId(validators.mintServiceValidator);
+    const validators = getMultiValidator(lucid, config.scripts);
+    const servicePolicyId = mintingPolicyToId(validators.mintValidator);
     const merchantAddress: Address = await lucid.wallet().address();
     const merchantUTxOs = await lucid.utxosAt(merchantAddress);
 
     const contractUTxOs = await lucid.utxosAt(
-        validators.spendServiceValAddress,
+        validators.spendValAddress,
     );
 
     const { refTokenName, userTokenName } = createServiceTokens(
@@ -53,7 +53,7 @@ export const sendTokenToService = async (
     );
     console.log(
         "Service Validator Address: BEFORE>>>",
-        validators.spendServiceValAddress,
+        validators.spendValAddress,
     );
     console.log("Service Validator UTxO: BEFORE>>>", contractUTxOs);
     const currDatum: ServiceDatum = {
@@ -82,14 +82,79 @@ export const sendTokenToService = async (
         const tx = await lucid
             .newTx()
             .pay.ToContract(
-                validators.spendServiceValAddress,
+                validators.spendValAddress,
                 { kind: "inline", value: directDatum },
                 { lovelace: 5_000_000n, [refToken]: 1n },
-                validators.spendServiceValidator,
+                validators.spendValidator,
             )
             .complete();
 
-       // console.log("data: ", tx.toJSON());
+        // console.log("data: ", tx.toJSON());
+        return { type: "ok", data: tx };
+    } catch (error) {
+        console.log("ERROR: ", error);
+
+        if (error instanceof Error) return { type: "error", error: error };
+        return { type: "error", error: new Error(`${JSON.stringify(error)}`) };
+    }
+};
+
+export const sendTokenToAccount = async (
+    lucid: LucidEvolution,
+    config: CreateServiceConfig,
+): Promise<Result<TxSignBuilder>> => {
+    console.log("sendTokenToService...");
+    const validators = getMultiValidator(lucid, config.scripts);
+    const servicePolicyId = mintingPolicyToId(validators.mintValidator);
+    const merchantAddress: Address = await lucid.wallet().address();
+    const merchantUTxOs = await lucid.utxosAt(merchantAddress);
+
+    const contractUTxOs = await lucid.utxosAt(
+        validators.spendValAddress,
+    );
+
+    const { refTokenName, userTokenName } = createServiceTokens(
+        merchantUTxOs[0],
+    );
+    console.log(
+        "Service Validator Address: BEFORE>>>",
+        validators.spendValAddress,
+    );
+    console.log("Service Validator UTxO: BEFORE>>>", contractUTxOs);
+    const currDatum: ServiceDatum = {
+        service_fee: config.service_fee,
+        service_fee_qty: config.service_fee_qty,
+        penalty_fee: config.penalty_fee,
+        penalty_fee_qty: config.penalty_fee_qty,
+        interval_length: config.interval_length,
+        num_intervals: config.num_intervals,
+        minimum_ada: config.minimum_ada,
+        is_active: config.is_active,
+    };
+
+    const directDatum = Data.to<ServiceDatum>(currDatum, ServiceDatum);
+
+    const refToken = toUnit(
+        servicePolicyId,
+        refTokenName,
+    );
+
+    console.log("PolicyId: ", servicePolicyId);
+    console.log("refTokenName: ", refTokenName);
+    console.log("userTokenName: ", userTokenName);
+
+    try {
+        const tx = await lucid
+            .newTx()
+            .pay.ToContract(
+                validators.spendValAddress,
+                { kind: "inline", value: directDatum },
+                { lovelace: 5_000_000n, [refToken]: 1n },
+                validators.spendValidator,
+            )
+            .complete();
+
+        // console.log("data: ", tx.toJSON());
         return { type: "ok", data: tx };
     } catch (error) {
         console.log("ERROR: ", error);

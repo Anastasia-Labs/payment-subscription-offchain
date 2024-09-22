@@ -45,29 +45,10 @@ export type UpdateServiceConfig = {
   };
 };
 
-// export type MakeServiceConfig = {
-//   service_fee: AssetClassD;
-//   service_fee_qty: BigInt;
-//   penalty_fee: AssetClassD;
-//   penalty_fee_qty: BigInt;
-//   interval_length: BigInt;
-//   num_intervals: BigInt;
-//   minimum_ada: BigInt;
-//   is_active: boolean;
-//   scripts: {
-//     minting: CborHex;
-//   };
-// };
-
 export type CreateAccountConfig = {
-  service_fee: AssetClassD;
-  service_fee_qty: bigint;
-  penalty_fee: AssetClassD;
-  penalty_fee_qty: bigint;
-  interval_length: bigint;
-  num_intervals: bigint;
-  minimum_ada: bigint;
-  is_active: boolean;
+  email: string;
+  phone: string;
+  account_created: bigint;
   scripts: {
     spending: CborHex;
     minting: CborHex;
@@ -75,11 +56,11 @@ export type CreateAccountConfig = {
   };
 };
 
-export type ServiceMultiValidator = {
-  spendServiceValidator: Script;
-  spendServiceValAddress: Address;
-  mintServiceValidator: Script;
-  mintServiceValAddress: Address;
+export type MultiValidator = {
+  spendValidator: Script;
+  spendValAddress: Address;
+  mintValidator: Script;
+  mintValAddress: Address;
 };
 
 export type CancelOfferConfig = {

@@ -7,36 +7,36 @@ import {
   validatorToAddress,
   validatorToRewardAddress,
 } from "@lucid-evolution/lucid";
-import { CborHex, ServiceMultiValidator } from "../types.js";
+import { CborHex, MultiValidator } from "../types.js";
 
-export const getServiceMultiValidator = (
+export const getMultiValidator = (
   lucid: LucidEvolution,
   scripts: { spending: CborHex; minting: CborHex; staking: CborHex },
-): ServiceMultiValidator => {
-  const mintServiceValidator: MintingPolicy = {
+): MultiValidator => {
+  const mintValidator: MintingPolicy = {
     type: "PlutusV2",
     script: scripts.minting,
   };
 
   const network = lucid.config().network;
-  const mintServiceAddress = validatorToAddress(
+  const mintAddress = validatorToAddress(
     network,
-    mintServiceValidator,
+    mintValidator,
   );
 
-  const spendServiceValidator: SpendingValidator = {
+  const spendValidator: SpendingValidator = {
     type: "PlutusV2",
     script: scripts.spending,
   };
-  const spendServiceValidatorAddress = validatorToAddress(
+  const spendValidatorAddress = validatorToAddress(
     network,
-    spendServiceValidator,
+    spendValidator,
   );
 
   return {
-    spendServiceValidator: spendServiceValidator,
-    spendServiceValAddress: spendServiceValidatorAddress,
-    mintServiceValidator: mintServiceValidator,
-    mintServiceValAddress: mintServiceAddress,
+    spendValidator: spendValidator,
+    spendValAddress: spendValidatorAddress,
+    mintValidator: mintValidator,
+    mintValAddress: mintAddress,
   };
 };

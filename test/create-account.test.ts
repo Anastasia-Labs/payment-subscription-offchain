@@ -1,22 +1,22 @@
 import {
   AcceptOfferConfig,
   ADA,
-  createService,
-  CreateServiceConfig,
-  createServiceEffect,
+  createAccount,
+  CreateAccountConfig,
   Emulator,
   generateEmulatorAccount,
   Lucid,
   LucidEvolution,
   ServiceDatum,
   toUnit,
+  validatorToAddress,
   validatorToRewardAddress,
   WithdrawalValidator,
 } from "../src/index.js";
 import { beforeEach, expect, test } from "vitest";
 import Script from "./compiled/plutus.json" assert { type: "json" };
 import { MintingPolicy } from "@lucid-evolution/lucid";
-import { readServiceMultiValidator } from "./compiled/validators.js";
+import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { subscribe } from "diagnostics_channel";
 
@@ -69,262 +69,53 @@ beforeEach<LucidContext>(async (context) => {
   context.lucid = await Lucid(context.emulator, "Custom");
 });
 
-test<LucidContext>("Test 1 - Create Service", async ({
+test<LucidContext>("Test 1 - Create Account", async ({
   lucid,
   users,
   emulator,
 }) => {
-  console.log("createSubscriptionService...TEST!!!!");
+  console.log("createSubscriptionAccount...TEST!!!!");
 
-  const serviceValidator = readServiceMultiValidator();
+  const accountValidator = readMultiValidators();
 
-  const serviceScript = {
-    spending: serviceValidator.spendService.script,
-    minting: serviceValidator.mintService.script,
+  const accountScript = {
+    spending: accountValidator.spendAccount.script,
+    minting: accountValidator.mintAccount.script,
     staking: "",
   };
 
-  const createServiceConfig: CreateServiceConfig = {
-    service_fee: ADA,
-    service_fee_qty: 10_000_000n,
-    penalty_fee: ADA,
-    penalty_fee_qty: 1_000_000n,
-    interval_length: 1n,
-    num_intervals: 12n,
-    minimum_ada: 2_000_000n,
-    is_active: true,
-    scripts: serviceScript,
+  const createAccountConfig: CreateAccountConfig = {
+    email: "business@web3.ada",
+    phone: "288-481-2686",
+    account_created: BigInt(emulator.now()),
+    scripts: accountScript,
   };
 
   lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
-
-  const createServiceUnSigned = await createService(lucid, createServiceConfig);
-  const scriptUTxOs = await lucid.utxosAt(serviceValidator.mintService.script);
-  console.log("Service Validator: ", scriptUTxOs);
-  expect(createServiceUnSigned.type).toBe("ok");
-  if (createServiceUnSigned.type == "ok") {
-    const createServiceSigned = await createServiceUnSigned.data.sign
-      .withWallet()
+  const accountAddress = validatorToAddress(
+    "Custom",
+    accountValidator.spendAccount,
+  );
+  try {
+    const createAccountResult = await Effect.runPromise(
+      createAccount(lucid, createAccountConfig),
+    );
+    const createAccountSigned = await createAccountResult.sign.withWallet()
       .complete();
-    const createServiceHash = await createServiceSigned.submit();
-    console.log("TxHash: ", createServiceHash);
+    const createAccountHash = await createAccountSigned.submit();
+    console.log("TxHash: ", createAccountHash);
+  } catch (error) {
+    console.error("Error updating Account:", error);
+    throw error; // or handle it as appropriate for your test
   }
-  const merchantUTxO = await lucid.utxosAt(users.merchant.address);
-  console.log("walletUTxO: ", merchantUTxO);
   emulator.awaitBlock(100);
 
-  // // Fetch Offer
-  // const offerConfig: FetchOfferConfig = {
-  //   scripts: offerScripts
-  // };
+  const updatedMerchantUTxO = await lucid.utxosAt(users.merchant.address);
+  console.log("updatedMerchantUTxO: After:", updatedMerchantUTxO);
 
-  // const offers1 = await getOfferUTxOs(lucid, offerConfig);
+  const scriptUTxOs = await lucid.utxosAt(accountAddress);
 
-  // console.log("Make Offer");
-  // console.log("Available Offers", offers1);
-  // console.log("utxos at merchant wallet", await lucid.utxosAt(users.merchant.address));
+  console.log("Updated Account Validator: UTxOs", scriptUTxOs);
 
-  // const acceptOfferConfig: AcceptOfferConfig = {
-  //   offerOutRef: offers1[0].outRef,
-  //   scripts: offerScripts
-  // };
-
-  // // Register Staking Validator's Reward Address
-  // await registerRewardAddress(lucid);
-
-  // // Accept Offer
-  // lucid.selectWallet.fromSeed(users.subscriber1.seedPhrase);
-
-  // const acceptOfferUnsigned1 = await acceptOffer(lucid, acceptOfferConfig);
-
-  // expect(acceptOfferUnsigned1.type).toBe("ok");
-  // if (acceptOfferUnsigned1.type == "ok"){
-  //   const acceptOfferSigned1 = await acceptOfferUnsigned1.data
-  //   .sign.withWallet()
-  //   .complete();
-  //   const acceptOfferSignedHash1 = await acceptOfferSigned1.submit();
-  // }
-
-  // emulator.awaitBlock(100);
-
-  // const offers2 = await getOfferUTxOs(lucid, offerConfig);
-  // console.log("Accept Offer");
-  // console.log("Available Offers", JSON.stringify(offers2, replacer));
-  // console.log("utxos at merchant wallet", await lucid.utxosAt(users.merchant.address));
-  // console.log("utxos at subscriber1 wallet", await lucid.utxosAt(users.subscriber1.address));
-  // console.log(
-  //       "utxos at protocol wallet",
-  //       await lucid.utxosAt(
-  //         lucid.utils.credentialToAddress(
-  //           lucid.utils.keyHashToCredential(PROTOCOL_PAYMENT_KEY),
-  //           lucid.utils.keyHashToCredential(PROTOCOL_STAKE_KEY)
-  //         )
-  //       )
-  //     );
+  emulator.awaitBlock(100);
 });
-
-// test<LucidContext>("Test 1 - Create Service Effect", async ({
-//   lucid,
-//   users,
-//   emulator,
-// }) => {
-//   console.log("createSubscriptionService...TEST!!!!");
-
-//   const serviceValidator = readServiceMultiValidator();
-
-//   const serviceScript = {
-//     spending: serviceValidator.spendService.script,
-//     minting: serviceValidator.mintService.script,
-//     staking: "",
-//   };
-//   // console.log("serviceScript...TEST!!!! ", serviceScript);
-//   // console.log("createSubscriptionService...TEST!!!!");
-
-//   const createServiceConfig: CreateServiceConfig = {
-//     service_fee: ADA,
-//     service_fee_qty: 10_000_000n,
-//     penalty_fee: ADA,
-//     penalty_fee_qty: 1_000_000n,
-//     interval_length: 1n,
-//     num_intervals: 12n,
-//     minimum_ada: 2_000_000n,
-//     is_active: true,
-//     scripts: serviceScript,
-//   };
-//   console.log(
-//     "Create Subscription Service EFFECT...TEST!!!!",
-//     createServiceConfig,
-//   );
-
-//   lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
-
-//   const createServiceUnSigned = Effect.runPromise(
-//     await createServiceEffect(lucid, createServiceConfig),
-//   );
-
-//   // expect(createServiceUnSigned.type).toBe("ok");
-//   // if (createServiceUnSigned.type == "ok") {
-//   //   const createServiceSigned = await createServiceUnSigned.data.sign
-//   //     .withWallet()
-//   //     .complete();
-//   //   const createServiceHash = await createServiceSigned.submit();
-//   //   console.log("TxHash: ", createServiceHash);
-//   // }
-
-//   emulator.awaitBlock(100);
-// });
-
-//   test<LucidContext>("Test 2 - Make Offer, Accept Offer", async ({
-//     lucid,
-//     users,
-//     emulator
-//   }) => {
-//     const offerScripts = {
-//       spending: Script.cborHex,
-//       staking: stakingValidator.cborHex
-//     };
-
-//     // Make Offer
-//     const makeOfferConfig: MakeOfferConfig = {
-//       offer: {
-//         [token1]: BigInt(50)
-//       },
-//       toBuy: {
-//         [token2]: BigInt(1),
-//         [token3]: BigInt(33)
-//       },
-//       scripts: offerScripts,
-//     };
-
-//     lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
-
-//     const makeOfferUnSigned = await makeOffer(lucid, makeOfferConfig);
-
-//     expect(makeOfferUnSigned.type).toBe("ok");
-//     if (makeOfferUnSigned.type == "ok") {
-//       const makeOfferSigned = await makeOfferUnSigned.data.sign.withWallet().complete();
-//       const makeOfferHash = await makeOfferSigned.submit();
-//     }
-
-//     emulator.awaitBlock(100);
-
-//     // Fetch Offer
-//     const offerConfig: FetchOfferConfig = {
-//       scripts: offerScripts
-//     };
-
-//     const offers1 = await getOfferUTxOs(lucid, offerConfig);
-
-//     // console.log("Make Offer");
-//     // console.log("Available Offers", offers1);
-//     // console.log("utxos at merchant wallet", await lucid.utxosAt(users.merchant.address));
-
-//     const acceptOfferConfig: AcceptOfferConfig = {
-//       offerOutRef: offers1[0].outRef,
-//       scripts: offerScripts
-//     };
-
-//     // Register Staking Validator's Reward Address
-//     await registerRewardAddress(lucid);
-
-//     // Invalid Accept Offer
-//     lucid.selectWallet.fromSeed(users.subscriber1.seedPhrase);
-
-//     const acceptOfferUnsigned1 = await acceptOffer(lucid, acceptOfferConfig);
-
-//     expect(acceptOfferUnsigned1.type).toBe("error");
-//     if (acceptOfferUnsigned1.type == "error"){
-//       // console.log("Invalid Accept Offer")
-//       // console.log(`Failed. Response: ${acceptOfferUnsigned1.error}`)
-//     }
-
-//     emulator.awaitBlock(100);
-
-//     // Valid Accept Offer
-//     lucid.selectWallet.fromSeed(users.subscriber2.seedPhrase);
-
-//     // fragment subscriber2 utxo to test manual coin selection
-//     const subscriber2Addr = users.subscriber2.address;
-
-//     const fragmentTx = await lucid
-//       .newTx()
-//       .pay.ToAddress(subscriber2Addr, {["lovelace"]: BigInt(10_000_000)})
-//       .pay.ToAddress(subscriber2Addr, {[token3]: BigInt(10)})
-//       .pay.ToAddress(subscriber2Addr, {[token2]: BigInt(1), [token3]: BigInt(5)})
-//       .pay.ToAddress(subscriber2Addr, {["lovelace"]: BigInt(50_000_000)})
-//       .pay.ToAddress(subscriber2Addr, {[token3]: BigInt(10), ["lovelace"]: BigInt(20_000_000)})
-//       .pay.ToAddress(subscriber2Addr, {["lovelace"]: BigInt(5_000_000)})
-//       .pay.ToAddress(subscriber2Addr, {[token3]: BigInt(10)})
-//       .complete();
-//     const fragmentTxSigned = await fragmentTx.sign.withWallet().complete();
-//     await fragmentTxSigned.submit();
-
-//     emulator.awaitBlock(100);
-
-//     const acceptOfferUnsigned2 = await acceptOffer(lucid, acceptOfferConfig);
-//     // console.log(acceptOfferUnsigned2);
-
-//     expect(acceptOfferUnsigned2.type).toBe("ok");
-//     if (acceptOfferUnsigned2.type == "ok"){
-//       const acceptOfferSigned2 = await acceptOfferUnsigned2.data.sign.withWallet().complete();
-//       const acceptOfferSignedHash2 = await acceptOfferSigned2.submit();
-//     }
-
-//     emulator.awaitBlock(100);
-
-//     // const offers2 = await getOfferUTxOs(lucid, offerConfig);
-//     // console.log("Valid Accept Offer");
-//     // console.log("Available Offers", offers2);
-//     // console.log("utxos at merchant wallet", await lucid.utxosAt(users.merchant.address));
-//     // console.log("utxos at subscriber1 wallet", await lucid.utxosAt(users.subscriber1.address));
-//     // console.log("utxos at subscriber2 wallet", await lucid.utxosAt(users.subscriber2.address));
-//     // console.log(
-//     //       "utxos at protocol wallet",
-//     //       await lucid.utxosAt(
-//     //         lucid.utils.credentialToAddress(
-//     //           lucid.utils.keyHashToCredential(PROTOCOL_PAYMENT_KEY),
-//     //           lucid.utils.keyHashToCredential(PROTOCOL_STAKE_KEY)
-//     //         )
-//     //       )
-//     //   );
-//   });

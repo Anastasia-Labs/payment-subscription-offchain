@@ -3,7 +3,6 @@ import {
   ADA,
   createService,
   CreateServiceConfig,
-  createServiceEffect,
   Emulator,
   generateEmulatorAccount,
   Lucid,
@@ -16,7 +15,7 @@ import {
 import { beforeEach, expect, test } from "vitest";
 import Script from "./compiled/plutus.json" assert { type: "json" };
 import { MintingPolicy } from "@lucid-evolution/lucid";
-import { readServiceMultiValidator } from "./compiled/validators.js";
+import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { subscribe } from "diagnostics_channel";
 
@@ -76,7 +75,7 @@ test<LucidContext>("Test 1 - Create Service", async ({
 }) => {
   console.log("createSubscriptionService...TEST!!!!");
 
-  const serviceValidator = readServiceMultiValidator();
+  const serviceValidator = readMultiValidators();
 
   const serviceScript = {
     spending: serviceValidator.spendService.script,
