@@ -17,7 +17,6 @@ export const getServiceMultiValidator = (
     type: "PlutusV2",
     script: scripts.minting,
   };
-
   const network = lucid.config().network;
   const mintServiceAddress = validatorToAddress(
     network,

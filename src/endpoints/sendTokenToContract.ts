@@ -3,20 +3,16 @@ import {
     Data,
     LucidEvolution,
     mintingPolicyToId,
-    Script,
-    SpendingValidator,
     toUnit,
     TxSignBuilder,
     UTxO,
-    validatorToRewardAddress,
 } from "@lucid-evolution/lucid";
 
 import {
     CreateServiceConfig,
     Result,
-    UpdateServiceConfig,
 } from "../core/types.js";
-import { ADA, getServiceMultiValidator, ServiceDatum } from "../core/index.js";
+import { getServiceMultiValidator, ServiceDatum } from "../core/index.js";
 import {
     assetNameLabels,
     generateUniqueAssetName,
@@ -64,6 +60,7 @@ export const sendTokenToService = async (
         interval_length: config.interval_length,
         num_intervals: config.num_intervals,
         minimum_ada: config.minimum_ada,
+        is_active:config.is_active
     };
 
     const directDatum = Data.to<ServiceDatum>(currDatum, ServiceDatum);

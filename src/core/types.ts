@@ -1,5 +1,5 @@
 import { Address, Assets, OutRef, Script, UTxO } from "@lucid-evolution/lucid";
-import { Value } from "./contract.types.js";
+import { AssetClass, Value } from "./contract.types.js";
 
 export type CborHex = string;
 export type RawHex = string;
@@ -13,10 +13,10 @@ export type Either<L, R> =
   | { type: "left"; value: L }
   | { type: "right"; value: R };
 
-export type AssetClass = {
-  symbol: string; // PolicyId
-  name: string; // TokenName
-};
+// export type AssetClass = {
+//   symbol: string; // PolicyId
+//   name: string; // TokenName
+// };
 
 export type CreateServiceConfig = {
   service_fee: AssetClass;
@@ -48,7 +48,6 @@ export type UpdateServiceConfig = {
     minting: CborHex;
     staking: CborHex;
   };
-  merchantAddr : Address
 };
 
 export type MakeServiceConfig = {
@@ -107,3 +106,5 @@ export type OfferInfo = {
   offer: Value;
   offerUTxO: UTxO;
 };
+
+

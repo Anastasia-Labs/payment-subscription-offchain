@@ -1,5 +1,5 @@
 import * as _lucid_evolution_lucid from '@lucid-evolution/lucid';
-import { Data, Script, Address, OutRef, Assets, UTxO, LucidEvolution, TxSignBuilder, TransactionError, Network } from '@lucid-evolution/lucid';
+import { Data, Address, Script, OutRef, Assets, UTxO, LucidEvolution, TxSignBuilder, TransactionError, Network } from '@lucid-evolution/lucid';
 export * from '@lucid-evolution/lucid';
 import { Effect } from 'effect';
 
@@ -41,11 +41,11 @@ declare const AddressSchema: _lucid_evolution_lucid.TObject<{
 type AddressD = Data.Static<typeof AddressSchema>;
 declare const AddressD: AddressD;
 declare const AssetClassSchema: _lucid_evolution_lucid.TObject<{
-    symbol: _lucid_evolution_lucid.TUnsafe<string>;
-    name: _lucid_evolution_lucid.TUnsafe<string>;
+    policyId: _lucid_evolution_lucid.TUnsafe<string>;
+    assetName: _lucid_evolution_lucid.TUnsafe<string>;
 }>;
-type AssetClassD = Data.Static<typeof AssetClassSchema>;
-declare const AssetClassD: AssetClassD;
+type AssetClass = Data.Static<typeof AssetClassSchema>;
+declare const AssetClass: AssetClass;
 declare const ValueSchema: _lucid_evolution_lucid.TUnsafe<Map<string, Map<string, bigint>>>;
 type Value = Data.Static<typeof ValueSchema>;
 declare const Value: Value;
@@ -65,25 +65,22 @@ type MintServiceRedeemer = Data.Static<typeof MintAccountSchema>;
 declare const MintServiceRedeemer: MintServiceRedeemer;
 declare const ServiceDatumSchema: _lucid_evolution_lucid.TObject<{
     service_fee: _lucid_evolution_lucid.TObject<{
-        symbol: _lucid_evolution_lucid.TUnsafe<string>;
-        name: _lucid_evolution_lucid.TUnsafe<string>;
+        policyId: _lucid_evolution_lucid.TUnsafe<string>;
+        assetName: _lucid_evolution_lucid.TUnsafe<string>;
     }>;
     service_fee_qty: _lucid_evolution_lucid.TUnsafe<bigint>;
     penalty_fee: _lucid_evolution_lucid.TObject<{
-        symbol: _lucid_evolution_lucid.TUnsafe<string>;
-        name: _lucid_evolution_lucid.TUnsafe<string>;
+        policyId: _lucid_evolution_lucid.TUnsafe<string>;
+        assetName: _lucid_evolution_lucid.TUnsafe<string>;
     }>;
     penalty_fee_qty: _lucid_evolution_lucid.TUnsafe<bigint>;
     interval_length: _lucid_evolution_lucid.TUnsafe<bigint>;
     num_intervals: _lucid_evolution_lucid.TUnsafe<bigint>;
     minimum_ada: _lucid_evolution_lucid.TUnsafe<bigint>;
+    is_active: _lucid_evolution_lucid.TUnsafe<boolean>;
 }>;
 type ServiceDatum = Data.Static<typeof ServiceDatumSchema>;
 declare const ServiceDatum: ServiceDatum;
-declare const ADA: {
-    symbol: string;
-    name: string;
-};
 
 type CborHex = string;
 type RawHex = string;
@@ -101,10 +98,6 @@ type Either<L, R> = {
 } | {
     type: "right";
     value: R;
-};
-type AssetClass = {
-    symbol: string;
-    name: string;
 };
 type CreateServiceConfig = {
     service_fee: AssetClass;
@@ -135,6 +128,7 @@ type UpdateServiceConfig = {
         minting: CborHex;
         staking: CborHex;
     };
+    merchantAddr: Address;
 };
 type MakeServiceConfig = {
     service_fee: AssetClass;
@@ -247,4 +241,4 @@ declare function sumUtxoAssets(utxos: UTxO[]): Assets;
  */
 declare function remove(a: Assets, b: Assets): Assets;
 
-export { ADA, AcceptOfferConfig, AddressD, AddressSchema, AssetClass, AssetClassD, AssetClassSchema, CancelOfferConfig, CborHex, CreateServiceConfig, CreateServiceRedeemer, CreateServiceSchema, CredentialD, CredentialSchema, Either, MakeServiceConfig, MintAccountSchema, MintServiceRedeemer, ONE_HOUR_MS, ONE_YEAR_MS, OfferInfo, OfferValidators, OutputReference, OutputReferenceSchema, POSIXTime, PROTOCOL_FEE, PROTOCOL_PAYMENT_KEY, PROTOCOL_STAKE_KEY, RawHex, ReadableUTxO, Result, ServiceDatum, ServiceDatumSchema, ServiceMultiValidator, TIME_TOLERANCE_MS, TWENTY_FOUR_HOURS_MS, TWO_YEARS_MS, UpdateServiceConfig, Value, ValueSchema, chunkArray, createService, createServiceEffect, divCeil, fromAddress, fromAddressToData, fromAssets, generateAccountSeedPhrase, getInputUtxoIndices, getServiceMultiValidator, ok, parseSafeDatum, parseUTxOsAtScript, remove, replacer, selectUtxos, sendTokenToService, sortByOutRefWithIndex, sumUtxoAssets, toAddress, toAssets, toCBORHex, union, updateService, utxosAtScript };
+export { AcceptOfferConfig, AddressD, AddressSchema, AssetClass, AssetClassSchema, CancelOfferConfig, CborHex, CreateServiceConfig, CreateServiceRedeemer, CreateServiceSchema, CredentialD, CredentialSchema, Either, MakeServiceConfig, MintAccountSchema, MintServiceRedeemer, ONE_HOUR_MS, ONE_YEAR_MS, OfferInfo, OfferValidators, OutputReference, OutputReferenceSchema, POSIXTime, PROTOCOL_FEE, PROTOCOL_PAYMENT_KEY, PROTOCOL_STAKE_KEY, RawHex, ReadableUTxO, Result, ServiceDatum, ServiceDatumSchema, ServiceMultiValidator, TIME_TOLERANCE_MS, TWENTY_FOUR_HOURS_MS, TWO_YEARS_MS, UpdateServiceConfig, Value, ValueSchema, chunkArray, createService, createServiceEffect, divCeil, fromAddress, fromAddressToData, fromAssets, generateAccountSeedPhrase, getInputUtxoIndices, getServiceMultiValidator, ok, parseSafeDatum, parseUTxOsAtScript, remove, replacer, selectUtxos, sendTokenToService, sortByOutRefWithIndex, sumUtxoAssets, toAddress, toAssets, toCBORHex, union, updateService, utxosAtScript };

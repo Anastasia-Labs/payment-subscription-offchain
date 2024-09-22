@@ -1,13 +1,4 @@
-import { Constr, Data, OutRef } from "@lucid-evolution/lucid";
-import { AssetClass } from "./types.js";
-
-export const OutputReferenceSchema = Data.Object({
-    txHash: Data.Object({ hash: Data.Bytes({ minLength: 32, maxLength: 32 }) }),
-    outputIndex: Data.Integer(),
-});
-export type OutputReference = Data.Static<typeof OutputReferenceSchema>;
-export const OutputReference =
-    OutputReferenceSchema as unknown as OutputReference;
+import { Data } from "@lucid-evolution/lucid";
 
 export const CredentialSchema = Data.Enum([
     Data.Object({
@@ -46,17 +37,13 @@ export type AddressD = Data.Static<typeof AddressSchema>;
 export const AddressD = AddressSchema as unknown as AddressD;
 
 //NOTE: liqwid-plutarch-extra AssetClass version, not PlutusLedgerApi.V1.Value
-export const AssetClassSchema = Data.Object(
-    {
-        symbol: Data.Bytes(),
-        name: Data.Bytes(),
-    },
-    { hasConstr: false },
-);
-export type AssetClassD = Data.Static<typeof AssetClassSchema>;
-export const AssetClassD = AssetClassSchema as unknown as AssetClassD;
+export const AssetClassSchema = Data.Object({
+    policyId: Data.Bytes(),
+    assetName: Data.Bytes(),
+});
 
-// List [B "test",B "tn"]
+export type AssetClass = Data.Static<typeof AssetClassSchema>;
+export const AssetClass = AssetClassSchema as unknown as AssetClass;
 
 export const ValueSchema = Data.Map(
     Data.Bytes(),
@@ -66,6 +53,16 @@ export type Value = Data.Static<typeof ValueSchema>;
 export const Value = ValueSchema as unknown as Value;
 
 /// Redeemers
+
+export const OutputReferenceSchema = Data.Object({
+    txHash: Data.Object({ hash: Data.Bytes({ minLength: 32, maxLength: 32 }) }),
+    outputIndex: Data.Integer(),
+});
+export type OutputReference = Data.Static<typeof OutputReferenceSchema>;
+export const OutputReference =
+    OutputReferenceSchema as unknown as OutputReference;
+
+
 export const CreateServiceSchema = Data.Object({
     output_reference: OutputReferenceSchema,
     input_index: Data.Integer(),
@@ -75,14 +72,14 @@ export type CreateServiceRedeemer = Data.Static<typeof CreateServiceSchema>;
 export const CreateServiceRedeemer =
     CreateServiceSchema as unknown as CreateServiceRedeemer;
 
-export const MintAccountSchema = Data.Enum([
+export const SpendServiceSchema = Data.Enum([
     Data.Literal("UpdateService"),
     Data.Literal("RemoveService"),
 ]);
 
-export type MintServiceRedeemer = Data.Static<typeof MintAccountSchema>;
-export const MintServiceRedeemer =
-    MintAccountSchema as unknown as MintServiceRedeemer;
+export type SpendServiceRedeemer = Data.Static<typeof SpendServiceSchema>;
+export const SpendServiceRedeemer =
+SpendServiceSchema as unknown as SpendServiceRedeemer;
 
 // const deleteService: MintServiceRedeemer = "DeleteService";
 
@@ -97,12 +94,8 @@ export const ServiceDatumSchema = Data.Object({
     interval_length: Data.Integer(),
     num_intervals: Data.Integer(),
     minimum_ada: Data.Integer(),
+    is_active:Data.Boolean()
 });
 
 export type ServiceDatum = Data.Static<typeof ServiceDatumSchema>;
 export const ServiceDatum = ServiceDatumSchema as unknown as ServiceDatum;
-
-export const ADA = {
-    symbol: "",
-    name: "",
-};
