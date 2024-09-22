@@ -43,20 +43,35 @@ export type UpdateServiceConfig = {
     minting: CborHex;
     staking: CborHex;
   };
-  merchantAddr : Address
 };
 
-export type MakeServiceConfig = {
+// export type MakeServiceConfig = {
+//   service_fee: AssetClassD;
+//   service_fee_qty: BigInt;
+//   penalty_fee: AssetClassD;
+//   penalty_fee_qty: BigInt;
+//   interval_length: BigInt;
+//   num_intervals: BigInt;
+//   minimum_ada: BigInt;
+//   is_active: boolean;
+//   scripts: {
+//     minting: CborHex;
+//   };
+// };
+
+export type CreateAccountConfig = {
   service_fee: AssetClassD;
-  service_fee_qty: BigInt;
+  service_fee_qty: bigint;
   penalty_fee: AssetClassD;
-  penalty_fee_qty: BigInt;
-  interval_length: BigInt;
-  num_intervals: BigInt;
-  minimum_ada: BigInt;
+  penalty_fee_qty: bigint;
+  interval_length: bigint;
+  num_intervals: bigint;
+  minimum_ada: bigint;
   is_active: boolean;
   scripts: {
+    spending: CborHex;
     minting: CborHex;
+    staking: CborHex;
   };
 };
 

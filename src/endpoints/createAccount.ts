@@ -34,7 +34,7 @@ import {
 import { Effect } from "effect";
 import { ADA } from "../core/constants.js";
 
-const createServiceTokens = (utxo: UTxO) => {
+const createAccountTokens = (utxo: UTxO) => {
   const refTokenName = generateUniqueAssetName(utxo, assetNameLabels.prefix100);
   const userTokenName = generateUniqueAssetName(
     utxo,
@@ -43,7 +43,7 @@ const createServiceTokens = (utxo: UTxO) => {
   return { refTokenName, userTokenName };
 };
 
-export const createService = async (
+export const createAccount = async (
   lucid: LucidEvolution,
   config: CreateServiceConfig,
 ): Promise<Result<TxSignBuilder>> => {
@@ -67,7 +67,7 @@ export const createService = async (
   // Selecting a utxo containing atleast 5 ADA to cover tx fees and min ADA
   // Note: To avoid tx balancing errors, the utxo should only contain lovelaces
   // const selectedUTxOs = selectUTxOs(merchantUTxOs, { ["lovelace"]: 5000000n });
-  const { refTokenName, userTokenName } = createServiceTokens(merchantUTxOs[0]);
+  const { refTokenName, userTokenName } = createAccountTokens(merchantUTxOs[0]);
   console.log("refTokenName: ", refTokenName);
   console.log("userTokenName: ", userTokenName);
 
@@ -205,7 +205,7 @@ export const createServiceEffect = async (
     const selectedUTxOs = selectUTxOs(merchantUTxOs, {
       ["lovelace"]: 5000000n,
     });
-    const { refTokenName, userTokenName } = createServiceTokens(
+    const { refTokenName, userTokenName } = createAccountTokens(
       selectedUTxOs[0],
     );
 

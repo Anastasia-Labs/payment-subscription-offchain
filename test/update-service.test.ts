@@ -13,6 +13,7 @@ import {
 import { beforeEach, expect, test } from "vitest";
 import { mintingPolicyToId, validatorToAddress } from "@lucid-evolution/lucid";
 import { readServiceMultiValidator } from "./compiled/validators.js";
+import { Effect } from "effect";
 
 type LucidContext = {
   lucid: LucidEvolution;
@@ -107,7 +108,6 @@ test<LucidContext>("Test 1 - Update Service", async ({
 
     //console.log("TxHash: ", sendTokenHash);
     console.log("Merchant utxos", await lucid.utxosAt(users.merchant.address));
-    console.log("Validator utxos", await lucid.utxosAt(valAddress));
   }
   emulator.awaitBlock(100);
 
@@ -115,11 +115,12 @@ test<LucidContext>("Test 1 - Update Service", async ({
   console.log("merchantAddress: After: ", users.merchant.address);
   console.log("merchantUTxO: After:", merchantUTxOAfter);
 
-  //   const serviceScriptAddress = validatorToAddress(
-  //     "Custom",
-  //     serviceValidator.spendService,
-  //   );
-  const serviceUTxO = await lucid.utxosAt(valAddress);
+  const serviceScriptAddress = validatorToAddress(
+    "Custom",
+    serviceValidator.spendService,
+  );
+  console.log("Validator utxos", await lucid.utxosAt(serviceScriptAddress));
+  const serviceUTxO = await lucid.utxosAt(serviceScriptAddress);
 
   //   console.log("Validator: Address: ", serviceScriptAddress);
   //   console.log("Service Validator UTxO: AFTER>>>>", serviceUTxO);
@@ -131,33 +132,30 @@ test<LucidContext>("Test 1 - Update Service", async ({
   );
 
   const updateServiceConfig: UpdateServiceConfig = {
-    new_service_fee: {
-      policyId: "",
-      assetName: "",
-    },
+    new_service_fee: ADA,
     new_service_fee_qty: 9_500_000n,
-    new_penalty_fee: {
-      policyId: "",
-      assetName: "",
-    },
+    new_penalty_fee: ADA,
     new_penalty_fee_qty: 1_000_000n,
     new_interval_length: 1n,
     new_num_intervals: 12n,
     new_minimum_ada: 2_000_000n,
     is_active: true,
     scripts: serviceScript,
-    merchantAddr: merchantAddr,
   };
 
   lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
-  const updateServiceUnSigned = await updateService(lucid, updateServiceConfig);
-  expect(updateServiceUnSigned.type).toBe("ok");
-  if (updateServiceUnSigned.type == "ok") {
-    const createServiceSigned = await updateServiceUnSigned.data.sign
-      .withWallet()
+
+  try {
+    const updateServiceResult = await Effect.runPromise(
+      updateService(lucid, updateServiceConfig),
+    );
+    const updateServiceSigned = await updateServiceResult.sign.withWallet()
       .complete();
-    const createServiceHash = await createServiceSigned.submit();
-    console.log("TxHash: ", createServiceHash);
+    const updateServiceHash = await updateServiceSigned.submit();
+    console.log("TxHash: ", updateServiceHash);
+  } catch (error) {
+    console.error("Error updating service:", error);
+    throw error; // or handle it as appropriate for your test
   }
   emulator.awaitBlock(100);
 
