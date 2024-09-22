@@ -81,15 +81,16 @@ export const updateService = async (
 
     const directDatum = Data.to<ServiceDatum>(updatedDatum, ServiceDatum);
 
-    const updateService = Data.to<MintServiceRedeemer>(
-        "UpdateService",
-        MintServiceRedeemer,
-    );
+    // const updateService = Data.to<MintServiceRedeemer>(
+    //     "UpdateService",
+    //     MintServiceRedeemer,
+    // );
 
     const wrappedRedeemer = Data.to(new Constr(1, [new Constr(0, [])]));
 
-    console.log("Redeemer updateService: ", updateService);
+    console.log("Redeemer updateService: ", wrappedRedeemer);
     console.log("Datum serviceDatum: ", directDatum);
+    console.log("Datum service_fee_qty: ", config.new_service_fee_qty);
 
     try {
         const tx = await lucid

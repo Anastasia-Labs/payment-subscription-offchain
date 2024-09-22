@@ -33,11 +33,6 @@ const userNft = toUnit(
   "000de1409e6291970cb44dd94008c79bcaf9d86f18b4b49ba5b2a04781db7199",
 );
 
-// const token3 = toUnit(
-//   "2c04fa26b36a376440b0615a7cdf1a0c2df061df89c8c055e2650505",
-//   "63425443",
-// );
-
 // INITIALIZE EMULATOR + ACCOUNTS
 beforeEach<LucidContext>(async (context) => {
   context.users = {
@@ -79,15 +74,9 @@ test<LucidContext>("Test 1 - Update Service", async ({
   };
 
   const createServiceConfig: CreateServiceConfig = {
-    service_fee: {
-      policyId: "",
-      assetName: "",
-    },
+    service_fee: ADA,
     service_fee_qty: 10_000_000n,
-    penalty_fee: {
-      policyId: "",
-      assetName: "",
-    },
+    penalty_fee: ADA,
     penalty_fee_qty: 1_000_000n,
     interval_length: 1n,
     num_intervals: 12n,
@@ -120,7 +109,6 @@ test<LucidContext>("Test 1 - Update Service", async ({
   }
   emulator.awaitBlock(100);
 
-  // lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
   const merchantUTxOAfter = await lucid.utxosAt(users.merchant.address);
   console.log("merchantAddress: After: ", users.merchant.address);
   console.log("merchantUTxO: After:", merchantUTxOAfter);
@@ -160,18 +148,17 @@ test<LucidContext>("Test 1 - Update Service", async ({
 
   lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
   const updateServiceUnSigned = await updateService(lucid, updateServiceConfig);
-  // expect(updateServiceUnSigned.type).toBe("ok");
-  // if (updateServiceUnSigned.type == "ok") {
-  //   const createServiceSigned = await updateServiceUnSigned.data.sign
-  //     .withWallet()
-  //     .complete();
-  //   const createServiceHash = await createServiceSigned.submit();
-  //   console.log("TxHash: ", createServiceHash);
-  // }
+  expect(updateServiceUnSigned.type).toBe("ok");
+  if (updateServiceUnSigned.type == "ok") {
+    const createServiceSigned = await updateServiceUnSigned.data.sign
+      .withWallet()
+      .complete();
+    const createServiceHash = await createServiceSigned.submit();
+    console.log("TxHash: ", createServiceHash);
+  }
   emulator.awaitBlock(100);
 
   const updatedMerchantUTxO = await lucid.utxosAt(users.merchant.address);
-  console.log("merchantAddress: After: ", users.merchant.address);
   console.log("updatedMerchantUTxO: After:", updatedMerchantUTxO);
 
   const scriptUTxOs = await lucid.utxosAt(serviceScriptAddress);
@@ -179,53 +166,4 @@ test<LucidContext>("Test 1 - Update Service", async ({
   console.log("Updated Service Validator: UTxOs", scriptUTxOs);
 
   emulator.awaitBlock(100);
-
-  // // Fetch Offer
-  // const offerConfig: FetchOfferConfig = {
-  //   scripts: offerScripts
-  // };
-
-  // const offers1 = await getOfferUTxOs(lucid, offerConfig);
-
-  // console.log("Make Offer");
-  // console.log("Available Offers", offers1);
-  // console.log("utxos at merchant wallet", await lucid.utxosAt(users.merchant.address));
-
-  // const acceptOfferConfig: AcceptOfferConfig = {
-  //   offerOutRef: offers1[0].outRef,
-  //   scripts: offerScripts
-  // };
-
-  // // Register Staking Validator's Reward Address
-  // await registerRewardAddress(lucid);
-
-  // // Accept Offer
-  // lucid.selectWallet.fromSeed(users.subscriber1.seedPhrase);
-
-  // const acceptOfferUnsigned1 = await acceptOffer(lucid, acceptOfferConfig);
-
-  // expect(acceptOfferUnsigned1.type).toBe("ok");
-  // if (acceptOfferUnsigned1.type == "ok"){
-  //   const acceptOfferSigned1 = await acceptOfferUnsigned1.data
-  //   .sign.withWallet()
-  //   .complete();
-  //   const acceptOfferSignedHash1 = await acceptOfferSigned1.submit();
-  // }
-
-  // emulator.awaitBlock(100);
-
-  // const offers2 = await getOfferUTxOs(lucid, offerConfig);
-  // console.log("Accept Offer");
-  // console.log("Available Offers", JSON.stringify(offers2, replacer));
-  // console.log("utxos at merchant wallet", await lucid.utxosAt(users.merchant.address));
-  // console.log("utxos at subscriber1 wallet", await lucid.utxosAt(users.subscriber1.address));
-  // console.log(
-  //       "utxos at protocol wallet",
-  //       await lucid.utxosAt(
-  //         lucid.utils.credentialToAddress(
-  //           lucid.utils.keyHashToCredential(PROTOCOL_PAYMENT_KEY),
-  //           lucid.utils.keyHashToCredential(PROTOCOL_STAKE_KEY)
-  //         )
-  //       )
-  //     );
 });

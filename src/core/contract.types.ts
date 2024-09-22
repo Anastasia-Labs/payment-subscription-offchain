@@ -51,7 +51,7 @@ export const AssetClassSchema = Data.Object(
         policyId: Data.Bytes(),
         assetName: Data.Bytes(),
     },
-    { hasConstr: false },
+    // { hasConstr: false },
 );
 export type AssetClassD = Data.Static<typeof AssetClassSchema>;
 export const AssetClassD = AssetClassSchema as unknown as AssetClassD;
