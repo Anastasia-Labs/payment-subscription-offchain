@@ -89,7 +89,7 @@ test<LucidContext>("Test 1 - Update Service", async ({
 
   const merchantUTxO = await lucid.utxosAt(users.merchant.address);
   console.log("merchantAddress: ", users.merchant.address);
-  console.log("merchantUTxO: ", merchantUTxO);
+  console.log("merchantUTxOs before transaction: ", merchantUTxO);
 
   const sendTokenUnsigned = await sendTokenToService(
     lucid,
@@ -103,9 +103,11 @@ test<LucidContext>("Test 1 - Update Service", async ({
       .complete();
     const sendTokenHash = await sendTokenSigned.submit();
     emulator.awaitBlock(100);
-    console.log("sendTokenSigned: ", sendTokenSigned.toJSON());
+    //console.log("sendTokenSigned: ", sendTokenSigned.toJSON());
 
-    console.log("TxHash: ", sendTokenHash);
+    //console.log("TxHash: ", sendTokenHash);
+    console.log("Merchant utxos", await lucid.utxosAt(users.merchant.address));
+    console.log("Validator utxos", await lucid.utxosAt(valAddress));
   }
   emulator.awaitBlock(100);
 
@@ -113,14 +115,14 @@ test<LucidContext>("Test 1 - Update Service", async ({
   console.log("merchantAddress: After: ", users.merchant.address);
   console.log("merchantUTxO: After:", merchantUTxOAfter);
 
-  const serviceScriptAddress = validatorToAddress(
-    "Custom",
-    serviceValidator.spendService,
-  );
-  const serviceUTxO = await lucid.utxosAt(serviceScriptAddress);
+  //   const serviceScriptAddress = validatorToAddress(
+  //     "Custom",
+  //     serviceValidator.spendService,
+  //   );
+  const serviceUTxO = await lucid.utxosAt(valAddress);
 
-  console.log("Validator: Address: ", serviceScriptAddress);
-  console.log("Service Validator UTxO: AFTER>>>>", serviceUTxO);
+  //   console.log("Validator: Address: ", serviceScriptAddress);
+  //   console.log("Service Validator UTxO: AFTER>>>>", serviceUTxO);
 
   emulator.awaitBlock(100);
   console.log(
@@ -144,6 +146,7 @@ test<LucidContext>("Test 1 - Update Service", async ({
     new_minimum_ada: 2_000_000n,
     is_active: true,
     scripts: serviceScript,
+    merchantAddr: merchantAddr,
   };
 
   lucid.selectWallet.fromSeed(users.merchant.seedPhrase);

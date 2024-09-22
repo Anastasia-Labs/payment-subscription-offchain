@@ -43,6 +43,7 @@ export type UpdateServiceConfig = {
     minting: CborHex;
     staking: CborHex;
   };
+  merchantAddr : Address
 };
 
 export type MakeServiceConfig = {

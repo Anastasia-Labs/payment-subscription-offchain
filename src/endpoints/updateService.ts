@@ -122,7 +122,7 @@ export const updateService = async (
         //   )
         //   .complete();
 
-        console.log("data: ", tx.toJSON());
+        //console.log("data: ", tx.toJSON());
         return { type: "ok", data: tx };
     } catch (error) {
         console.log("ERROR: ", error);
