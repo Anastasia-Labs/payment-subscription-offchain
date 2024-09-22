@@ -56,6 +56,17 @@ export type CreateAccountConfig = {
   };
 };
 
+export type UpdateAccountConfig = {
+  new_email: string;
+  new_phone: string;
+  account_created: bigint;
+  scripts: {
+    spending: CborHex;
+    minting: CborHex;
+    staking: CborHex;
+  };
+};
+
 export type MultiValidator = {
   spendValidator: Script;
   spendValAddress: Address;

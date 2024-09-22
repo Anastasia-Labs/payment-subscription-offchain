@@ -1,6 +1,7 @@
 import {
     Address,
     Data,
+    fromText,
     LucidEvolution,
     mintingPolicyToId,
     Script,
@@ -12,17 +13,23 @@ import {
 } from "@lucid-evolution/lucid";
 
 import {
+    CreateAccountConfig,
     CreateServiceConfig,
     Result,
     UpdateServiceConfig,
 } from "../core/types.js";
-import { ADA, getMultiValidator, ServiceDatum } from "../core/index.js";
+import {
+    AccountDatum,
+    ADA,
+    getMultiValidator,
+    ServiceDatum,
+} from "../core/index.js";
 import {
     assetNameLabels,
     generateUniqueAssetName,
 } from "../core/utils/assets.js";
 
-const createServiceTokens = (utxo: UTxO) => {
+const createUniqueTokens = (utxo: UTxO) => {
     const refTokenName = generateUniqueAssetName(
         utxo,
         assetNameLabels.prefix100,
@@ -40,7 +47,7 @@ export const sendTokenToService = async (
 ): Promise<Result<TxSignBuilder>> => {
     console.log("sendTokenToService...");
     const validators = getMultiValidator(lucid, config.scripts);
-    const servicePolicyId = mintingPolicyToId(validators.mintValidator);
+    const accountPolicyId = mintingPolicyToId(validators.mintValidator);
     const merchantAddress: Address = await lucid.wallet().address();
     const merchantUTxOs = await lucid.utxosAt(merchantAddress);
 
@@ -48,7 +55,7 @@ export const sendTokenToService = async (
         validators.spendValAddress,
     );
 
-    const { refTokenName, userTokenName } = createServiceTokens(
+    const { refTokenName, userTokenName } = createUniqueTokens(
         merchantUTxOs[0],
     );
     console.log(
@@ -70,11 +77,11 @@ export const sendTokenToService = async (
     const directDatum = Data.to<ServiceDatum>(currDatum, ServiceDatum);
 
     const refToken = toUnit(
-        servicePolicyId,
+        accountPolicyId,
         refTokenName,
     );
 
-    console.log("PolicyId: ", servicePolicyId);
+    console.log("PolicyId: ", accountPolicyId);
     console.log("refTokenName: ", refTokenName);
     console.log("userTokenName: ", userTokenName);
 
@@ -101,11 +108,11 @@ export const sendTokenToService = async (
 
 export const sendTokenToAccount = async (
     lucid: LucidEvolution,
-    config: CreateServiceConfig,
+    config: CreateAccountConfig,
 ): Promise<Result<TxSignBuilder>> => {
-    console.log("sendTokenToService...");
+    console.log("sendTokenToAccount...");
     const validators = getMultiValidator(lucid, config.scripts);
-    const servicePolicyId = mintingPolicyToId(validators.mintValidator);
+    const accountPolicyId = mintingPolicyToId(validators.mintValidator);
     const merchantAddress: Address = await lucid.wallet().address();
     const merchantUTxOs = await lucid.utxosAt(merchantAddress);
 
@@ -113,33 +120,28 @@ export const sendTokenToAccount = async (
         validators.spendValAddress,
     );
 
-    const { refTokenName, userTokenName } = createServiceTokens(
+    const { refTokenName, userTokenName } = createUniqueTokens(
         merchantUTxOs[0],
     );
     console.log(
-        "Service Validator Address: BEFORE>>>",
+        "Account Validator Address: BEFORE>>>",
         validators.spendValAddress,
     );
-    console.log("Service Validator UTxO: BEFORE>>>", contractUTxOs);
-    const currDatum: ServiceDatum = {
-        service_fee: config.service_fee,
-        service_fee_qty: config.service_fee_qty,
-        penalty_fee: config.penalty_fee,
-        penalty_fee_qty: config.penalty_fee_qty,
-        interval_length: config.interval_length,
-        num_intervals: config.num_intervals,
-        minimum_ada: config.minimum_ada,
-        is_active: config.is_active,
+    console.log("Account Validator UTxO: BEFORE>>>", contractUTxOs);
+    const currDatum: AccountDatum = {
+        email: fromText(config.email),
+        phone: fromText(config.phone),
+        account_created: config.account_created,
     };
 
-    const directDatum = Data.to<ServiceDatum>(currDatum, ServiceDatum);
+    const directDatum = Data.to<AccountDatum>(currDatum, AccountDatum);
 
     const refToken = toUnit(
-        servicePolicyId,
+        accountPolicyId,
         refTokenName,
     );
 
-    console.log("PolicyId: ", servicePolicyId);
+    console.log("PolicyId: ", accountPolicyId);
     console.log("refTokenName: ", refTokenName);
     console.log("userTokenName: ", userTokenName);
 
