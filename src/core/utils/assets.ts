@@ -16,13 +16,15 @@ const generateUniqueAssetName = (utxo: UTxO, prefix: string): string => {
 
     // prefix the txid hash with the index
     const indexByte = new Uint8Array([utxo.outputIndex]);
-    const prependIndex = concatBytes(txIdHash, indexByte);
+    const prependIndex = concatBytes(indexByte,txIdHash);
 
     // concat the prefix
     const prependPrefix = concatBytes(hexToBytes(prefix), prependIndex);
 
     // slice off the first 32 bytes and convert to hex
+    //return bytesToHex(prependPrefix.slice(0, 31));
     return bytesToHex(prependPrefix.slice(0, 32));
 };
 
 export { assetNameLabels, generateUniqueAssetName };
+

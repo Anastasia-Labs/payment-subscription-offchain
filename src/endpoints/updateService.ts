@@ -65,7 +65,7 @@ export const updateService = async (
         interval_length: config.new_interval_length,
         num_intervals: config.new_num_intervals,
         minimum_ada: config.new_minimum_ada,
-        is_active : config.is_active
+        is_active : config.is_active,
     };
 
     const updatedDatum = Data.to<ServiceDatum>(updatedDatumConfig, ServiceDatum);

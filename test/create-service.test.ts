@@ -5,6 +5,7 @@ import {
   generateEmulatorAccount,
   Lucid,
   LucidEvolution,
+  validatorToAddress,
 } from "../src/index.js";
 import { beforeEach, expect, test } from "vitest";
 import { readServiceMultiValidator } from "./compiled/validators.js";
@@ -58,23 +59,6 @@ beforeEach<LucidContext>(async (context) => {
   context.lucid = await Lucid(context.emulator, "Custom");
 });
 
-//   async function createSubscriptionService(lucid: LucidEvolution): Promise<void> {
-// const stakingVal : MintingPolicy = {
-//   type: "PlutusV2",
-//   script: Script.validators[0].compiledCode
-// }
-
-//     console.log("createSubscriptionService...")
-
-//     const rewardAddress = validatorToRewardAddress("Custom", stakingVal);
-
-//     const tx = await lucid
-//       .newTx()
-//       .registerStake(rewardAddress)
-//       .complete();
-//     const signedTx = await tx.sign.withWallet().complete();
-//     await signedTx.submit();
-//   }
 
 test<LucidContext>("Test 1 - Create Service", async ({
   lucid,
@@ -90,6 +74,8 @@ test<LucidContext>("Test 1 - Create Service", async ({
     minting: serviceValidator.mintService.script,
     staking: "",
   };
+  
+  const valAddress = validatorToAddress ("Custom",serviceValidator.spendService);
   // console.log("serviceScript...TEST!!!! ", serviceScript);
   // console.log("createSubscriptionService...TEST!!!!");
 
@@ -113,7 +99,19 @@ test<LucidContext>("Test 1 - Create Service", async ({
   // console.log("Create Subscription Service...TEST!!!!", createServiceConfig);
 
   lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
+ 
+  const tx = await lucid
+  .newTx()
+  .pay.ToAddress(users.merchant.address, {
+    lovelace : 20_000_000n,
+  })   
+  //.attach.MintingPolicy(validators.mintServiceValidator)
+  .complete();
 
+  const trialtxUnsigned = await tx.sign.withWallet().complete();
+  const txHash = (await trialtxUnsigned).submit();
+
+  emulator.awaitBlock(50);
   const createServiceUnSigned = await createService(lucid, createServiceConfig);
   emulator.awaitBlock(50);
   //const scriptUTxOs = await lucid.utxosAt(serviceValidator.mintService.script);
@@ -126,9 +124,10 @@ test<LucidContext>("Test 1 - Create Service", async ({
     const createServiceHash = await createServiceSigned.submit();
     //console.log("TxHash: ", createServiceHash);
   }
+  emulator.awaitBlock(50);
   const merchantUTxO = await lucid.utxosAt(users.merchant.address);
-  console.log("Merchant Utxos: ", merchantUTxO);
-  console.log("Vlidator utxos",await lucid.utxosAt(serviceValidator.spendService.script));
+  console.log("Merchant Utxos after minting: ", merchantUTxO);
+  console.log("Vlidator utxos after minting:", await lucid.utxosAt(valAddress));
   emulator.awaitBlock(100);
 
 });

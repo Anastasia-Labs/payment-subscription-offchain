@@ -1,4 +1,5 @@
 import {
+  createService,
   CreateServiceConfig,
   Emulator,
   generateEmulatorAccount,
@@ -103,7 +104,7 @@ test<LucidContext>("Test 1 - Update Service", async ({
   console.log("merchantAddress: ", users.merchant.address);
   console.log("merchantUTxOs before transaction: ", merchantUTxO);
 
-  const sendTokenUnsigned = await sendTokenToService(
+  const sendTokenUnsigned = await createService(
     lucid,
     createServiceConfig,
   );
@@ -138,7 +139,7 @@ test<LucidContext>("Test 1 - Update Service", async ({
     new_num_intervals: 12n,
     new_minimum_ada: 2_000_000n,
     is_active: true,
-    scripts: serviceScript
+    scripts: serviceScript,
   };
 
    lucid.selectWallet.fromSeed(users.merchant.seedPhrase);

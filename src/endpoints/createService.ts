@@ -1,9 +1,11 @@
 import {
   Address,
-  Constr,
+  Assets,
   Data,
+  fromHex,
   LucidEvolution,
   mintingPolicyToId,
+  toHex,
   toUnit,
   TxSignBuilder,
   UTxO,
@@ -16,10 +18,7 @@ import {
   CreateServiceRedeemer,
   ServiceDatum,
 } from "../core/contract.types.js";
-import {
-  assetNameLabels,
-  generateUniqueAssetName,
-} from "../core/utils/assets.js";
+import { assetNameLabels, generateUniqueAssetName } from "../core/utils/assets.js";
 
 const createServiceTokens = (utxo: UTxO) => {
   const refTokenName = generateUniqueAssetName
@@ -38,7 +37,9 @@ export const createService = async (
 ): Promise<Result<TxSignBuilder>> => {
   const merchantAddress: Address = await lucid.wallet().address();
 
+  //const validators = getServiceMultiValidator(lucid, config.scripts);
   const validators = getServiceMultiValidator(lucid, config.scripts);
+
   const servicePolicyId = mintingPolicyToId(validators.mintServiceValidator);
 
   console.log("servicePolicyId: ", servicePolicyId);
@@ -50,26 +51,40 @@ export const createService = async (
   }
 
   const { refTokenName, userTokenName } = createServiceTokens(merchantUTxOs[0]);
-  console.log("refTokenName: ", refTokenName);
-  console.log("userTokenName: ", userTokenName);
 
-  const userNft = toUnit(servicePolicyId,userTokenName);
-  const refNft = toUnit(servicePolicyId,refTokenName);
+  
+console.log("refTokenName: ", refTokenName);
+
+ const refNFT = toUnit(
+    servicePolicyId,
+    refTokenName, 
+  );
+  
+const userNFT = toUnit(
+    servicePolicyId,
+    userTokenName, 
+   
+);
+  // const userNft = toUnit(servicePolicyId,userTokenName);
+  // const refNft = toUnit(servicePolicyId,refTokenName);
+   console.log("USer nft", userNFT);
+   console.log("REfere nft", refNFT);
+    const mintingAssets: Assets = {
+    [refNFT]: 1n,
+    [userNFT]: 1n,
+  };
 
   const redeemer : CreateServiceRedeemer ={
-    output_reference: {
-      txHash: {
-          hash: merchantUTxOs[0].txHash,
-      },
-      outputIndex: BigInt(merchantUTxOs[0].outputIndex)
-  },
-  input_index: 0n
-  }
+      output_reference: {
+        txHash: {
+            hash: merchantUTxOs[0].txHash,
+        },
+        outputIndex: BigInt(merchantUTxOs[0].outputIndex)
+    },
+    input_index: 0n
+    };
 
   const redeemerData = Data.to(redeemer,CreateServiceRedeemer);
-
-  const wrappedRedeemer =  Data.to(new Constr(0, []));
-  console.log("Wrapped Redeemer",wrappedRedeemer);
 
   const currDatum: ServiceDatum = {
     service_fee: {
@@ -92,22 +107,23 @@ export const createService = async (
 
   console.log("merchantUTxOs :: ", merchantUTxOs);
 
+
   try {
     const tx = await lucid
       .newTx()
-      .mintAssets({[userNft]:1n,[refNft]:1n},wrappedRedeemer)
+      .collectFrom(merchantUTxOs)
+      .mintAssets({[userNFT]:1n,[refNFT]:1n},redeemerData)
+      .pay.ToAddress(merchantAddress, {
+        lovelace :1_000_000n,
+        [userNFT]: 1n
+      }) 
       .pay.ToContract(validators.spendServiceValAddress,{
         kind: "inline",
         value: directDatum,
       }, {
-        lovelace: 1_000_000n,
-        [refNft]: 1n,
+        lovelace :1_000_000n,
+        [refNFT]: 1n,
       })
-      
-      .pay.ToAddress(merchantAddress, {
-        [userNft]: 1n,
-      })
-      
       .attach.MintingPolicy(validators.mintServiceValidator)
       .complete();
 
