@@ -38,7 +38,7 @@ export const createAccount = (
   config: CreateAccountConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
   Effect.gen(function* () { // return type ,
-    const merchantAddress: Address = yield* Effect.promise(() =>
+    const subscriberAddress: Address = yield* Effect.promise(() =>
       lucid.wallet().address()
     );
     const validators = getMultiValidator(lucid, config.scripts);
@@ -46,22 +46,22 @@ export const createAccount = (
 
     console.log("servicePolicyId: ", servicePolicyId);
 
-    const merchantUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(merchantAddress)
+    const subscriberUTxOs = yield* Effect.promise(() =>
+      lucid.utxosAt(subscriberAddress)
     ); // const contractUTxOs = await lucid.utxosAt(validators.mintServiceValAddress);
     // const mintUtxoScriptRef = contractUTxOs.find((utxo) =>
     //   utxo.scriptRef ?? null
     // );
 
-    if (!merchantUTxOs || !merchantUTxOs.length) {
-      console.error("No UTxO found at user address: " + merchantAddress);
+    if (!subscriberUTxOs || !subscriberUTxOs.length) {
+      console.error("No UTxO found at user address: " + subscriberAddress);
     }
 
     // Selecting a utxo containing atleast 5 ADA to cover tx fees and min ADA
     // Note: To avoid tx balancing errors, the utxo should only contain lovelaces
-    // const selectedUTxOs = selectUTxOs(merchantUTxOs, { ["lovelace"]: 5000000n });
+    // const selectedUTxOs = selectUTxOs(subscriberUTxOs, { ["lovelace"]: 5000000n });
     const { refTokenName, userTokenName } = createAccountTokens(
-      merchantUTxOs[0],
+      subscriberUTxOs[0],
     );
     console.log("refTokenName: ", refTokenName);
     console.log("userTokenName: ", userTokenName);
@@ -72,24 +72,24 @@ export const createAccount = (
     //   makeRedeemer: (inputIndices: bigint[]) => {
     //     const redeemer: CreateServiceRedeemer = {
     //       output_reference: {
-    //         txHash: { hash: merchantUTxOs[0].txHash },
-    //         outputIndex: BigInt(merchantUTxOs[0].outputIndex),
+    //         txHash: { hash: subscriberUTxOs[0].txHash },
+    //         outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
     //       },
     //       input_index: inputIndices[0],
     //     };
     //     return Data.to(redeemer, CreateServiceRedeemer);
     //   },
-    //   inputs: [merchantUTxOs[0]],
+    //   inputs: [subscriberUTxOs[0]],
     // };
 
     const redeemer: CreateAccountRedeemer = {
       output_reference: {
         txHash: {
-          hash: merchantUTxOs[0].txHash,
+          hash: subscriberUTxOs[0].txHash,
         },
-        outputIndex: BigInt(merchantUTxOs[0].outputIndex),
+        outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
       },
-      input_index: BigInt(merchantUTxOs[0].outputIndex),
+      input_index: BigInt(subscriberUTxOs[0].outputIndex),
     };
     const redeemerData = Data.to(redeemer, CreateServiceRedeemer);
 
@@ -105,7 +105,7 @@ export const createAccount = (
 
     const directDatum = Data.to<AccountDatum>(currDatum, AccountDatum);
 
-    console.log("merchantUTxOs :: ", merchantUTxOs);
+    console.log("subscriberUTxOs :: ", subscriberUTxOs);
 
     const refToken = toUnit(
       servicePolicyId,
@@ -114,7 +114,7 @@ export const createAccount = (
 
     const userToken = toUnit(
       servicePolicyId,
-      refTokenName,
+      userTokenName,
     );
 
     const mintingAssets: Assets = {
@@ -124,12 +124,13 @@ export const createAccount = (
 
     const tx = yield* lucid
       .newTx()
-      .collectFrom(merchantUTxOs)
+      .collectFrom(subscriberUTxOs)
       .mintAssets(
         mintingAssets,
         redeemerData,
       )
-      .pay.ToAddress(merchantAddress, {
+      .attach.MintingPolicy(validators.mintValidator)
+      .pay.ToAddress(subscriberAddress, {
         lovelace: 1_000_000n,
         [`${servicePolicyId}${userTokenName}`]: 1n,
       })
@@ -141,7 +142,6 @@ export const createAccount = (
         [`${servicePolicyId}${refTokenName}`]: 1n,
       })
       .validTo(Date.now() + 900000)
-      .attach.MintingPolicy(validators.mintValidator)
       .completeProgram();
 
     return tx;

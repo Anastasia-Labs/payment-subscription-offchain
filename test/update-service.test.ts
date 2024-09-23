@@ -26,12 +26,12 @@ const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
 
 const refNft = toUnit(
   servicePolicyId,
-  "000643b09e6291970cb44dd94008c79bcaf9d86f18b4b49ba5b2a04781db7199",
+  "000643b09e6291970cb44dd94008c79bcaf9d86f18b4b49ba5b2a04781db71",
 );
 
 const userNft = toUnit(
   servicePolicyId,
-  "000de1409e6291970cb44dd94008c79bcaf9d86f18b4b49ba5b2a04781db7199",
+  "000de1409e6291970cb44dd94008c79bcaf9d86f18b4b49ba5b2a04781db71",
 );
 
 // INITIALIZE EMULATOR + ACCOUNTS

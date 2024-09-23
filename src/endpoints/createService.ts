@@ -72,20 +72,20 @@ export const createService = async (
   console.log("userTokenName: ", userTokenName);
 
   // Create the redeemer
-  // const rdmrBuilderMint: RedeemerBuilder = {
-  //   kind: "selected",
-  //   makeRedeemer: (inputIndices: bigint[]) => {
-  //     const redeemer: CreateServiceRedeemer = {
-  //       output_reference: {
-  //         txHash: { hash: merchantUTxOs[0].txHash },
-  //         outputIndex: BigInt(merchantUTxOs[0].outputIndex),
-  //       },
-  //       input_index: inputIndices[0],
-  //     };
-  //     return Data.to(redeemer, CreateServiceRedeemer);
-  //   },
-  //   inputs: [merchantUTxOs[0]],
-  // };
+  const rdmrBuilderMint: RedeemerBuilder = {
+    kind: "selected",
+    makeRedeemer: (inputIndices: bigint[]) => {
+      const redeemer: CreateServiceRedeemer = {
+        output_reference: {
+          txHash: { hash: merchantUTxOs[0].txHash },
+          outputIndex: BigInt(merchantUTxOs[0].outputIndex),
+        },
+        input_index: inputIndices[0],
+      };
+      return Data.to(redeemer, CreateServiceRedeemer);
+    },
+    inputs: [merchantUTxOs[0]],
+  };
 
   const redeemer: CreateServiceRedeemer = {
     output_reference: {
@@ -122,7 +122,7 @@ export const createService = async (
 
   const userToken = toUnit(
     servicePolicyId,
-    refTokenName,
+    userTokenName,
   );
 
   const mintingAssets: Assets = {

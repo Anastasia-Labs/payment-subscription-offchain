@@ -151,7 +151,7 @@ export const sendTokenToAccount = async (
             .pay.ToContract(
                 validators.spendValAddress,
                 { kind: "inline", value: directDatum },
-                { lovelace: 5_000_000n, [refToken]: 1n },
+                { lovelace: 3_000_000n, [refToken]: 1n },
                 validators.spendValidator,
             )
             .complete();

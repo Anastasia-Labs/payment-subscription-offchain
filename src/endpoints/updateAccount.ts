@@ -22,7 +22,7 @@ export const updateAccount = (
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
     Effect.gen(function* () { // return type ,
         console.log("updateAccount..........: ");
-        const merchantAddress: Address = yield* Effect.promise(() =>
+        const subscriberAddress: Address = yield* Effect.promise(() =>
             lucid.wallet().address()
         );
 
@@ -31,12 +31,14 @@ export const updateAccount = (
             validators.mintValidator,
         );
 
-        const merchantUTxOs = yield* Effect.promise(() =>
-            lucid.utxosAt(merchantAddress)
+        const subscriberUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(subscriberAddress)
         );
 
-        if (!merchantUTxOs || !merchantUTxOs.length) {
-            console.error("No UTxO found at user address: " + merchantAddress);
+        if (!subscriberUTxOs || !subscriberUTxOs.length) {
+            console.error(
+                "No UTxO found at user address: " + subscriberAddress,
+            );
         }
 
         const refToken = toUnit(
@@ -56,9 +58,9 @@ export const updateAccount = (
             )
         );
 
-        const merchantUTxO = yield* Effect.promise(() =>
+        const subscriberUTxO = yield* Effect.promise(() =>
             lucid.utxosAtWithUnit(
-                merchantAddress,
+                subscriberAddress,
                 userNft,
             )
         );
@@ -84,9 +86,9 @@ export const updateAccount = (
 
         const tx = yield* lucid
             .newTx()
-            .collectFrom(merchantUTxO)
+            .collectFrom(subscriberUTxO)
             .collectFrom(AccountUTxO, wrappedRedeemer)
-            .pay.ToAddress(merchantAddress, {
+            .pay.ToAddress(subscriberAddress, {
                 lovelace: 3_000_000n,
                 [userNft]: 1n,
             })

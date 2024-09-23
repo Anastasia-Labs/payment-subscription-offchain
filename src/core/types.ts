@@ -67,6 +67,17 @@ export type UpdateAccountConfig = {
   };
 };
 
+export type RemoveAccountConfig = {
+  email: string;
+  phone: string;
+  account_created: bigint;
+  scripts: {
+    spending: CborHex;
+    minting: CborHex;
+    staking: CborHex;
+  };
+};
+
 export type MultiValidator = {
   spendValidator: Script;
   spendValAddress: Address;

@@ -9,6 +9,7 @@ import {
   LucidEvolution,
   ServiceDatum,
   toUnit,
+  validatorToAddress,
   validatorToRewardAddress,
   WithdrawalValidator,
 } from "../src/index.js";
@@ -98,8 +99,15 @@ test<LucidContext>("Test 1 - Create Service", async ({
   lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
 
   const createServiceUnSigned = await createService(lucid, createServiceConfig);
-  const scriptUTxOs = await lucid.utxosAt(serviceValidator.mintService.script);
-  console.log("Service Validator: ", scriptUTxOs);
+  // emulator.awaitBlock(100);
+
+  const serviceAddress = validatorToAddress(
+    "Custom",
+    serviceValidator.mintService,
+  );
+
+  const scriptUTxOs = await lucid.utxosAt(serviceAddress);
+  console.log("Service Validator mint Address: ", serviceAddress);
   expect(createServiceUnSigned.type).toBe("ok");
   if (createServiceUnSigned.type == "ok") {
     const createServiceSigned = await createServiceUnSigned.data.sign
@@ -108,8 +116,10 @@ test<LucidContext>("Test 1 - Create Service", async ({
     const createServiceHash = await createServiceSigned.submit();
     console.log("TxHash: ", createServiceHash);
   }
+  emulator.awaitBlock(100);
   const merchantUTxO = await lucid.utxosAt(users.merchant.address);
   console.log("walletUTxO: ", merchantUTxO);
+  console.log("Service Validator: ", scriptUTxOs);
   emulator.awaitBlock(100);
 
   // // Fetch Offer
