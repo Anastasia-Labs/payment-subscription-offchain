@@ -1,4 +1,11 @@
-import { Address, Assets, OutRef, Script, UTxO } from "@lucid-evolution/lucid";
+import {
+  Address,
+  Assets,
+  OutRef,
+  Script,
+  Unit,
+  UTxO,
+} from "@lucid-evolution/lucid";
 import { AssetClassD, Value } from "./contract.types.js";
 
 export type CborHex = string;
@@ -38,6 +45,8 @@ export type UpdateServiceConfig = {
   new_num_intervals: bigint;
   new_minimum_ada: bigint;
   is_active: boolean;
+  user_token: Unit;
+  ref_token: Unit;
   scripts: {
     spending: CborHex;
     minting: CborHex;

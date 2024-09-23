@@ -1,19 +1,23 @@
 import {
   ADA,
+  createService,
   CreateServiceConfig,
   Emulator,
   generateEmulatorAccount,
   Lucid,
   LucidEvolution,
-  sendTokenToService,
-  toUnit,
   updateService,
   UpdateServiceConfig,
 } from "../src/index.js";
-import { beforeEach, expect, test } from "vitest";
-import { mintingPolicyToId, validatorToAddress } from "@lucid-evolution/lucid";
+import { beforeEach, test } from "vitest";
+import {
+  mintingPolicyToId,
+  toUnit,
+  validatorToAddress,
+} from "@lucid-evolution/lucid";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
+import { findCip68TokenNames } from "../src/core/utils/assets.js";
 
 type LucidContext = {
   lucid: LucidEvolution;
@@ -24,38 +28,16 @@ type LucidContext = {
 const serviceValidator = readMultiValidators();
 const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
 
-const refNft = toUnit(
-  servicePolicyId,
-  "000643b09e6291970cb44dd94008c79bcaf9d86f18b4b49ba5b2a04781db71",
-);
-
-const userNft = toUnit(
-  servicePolicyId,
-  "000de1409e6291970cb44dd94008c79bcaf9d86f18b4b49ba5b2a04781db71",
-);
-
 // INITIALIZE EMULATOR + ACCOUNTS
 beforeEach<LucidContext>(async (context) => {
   context.users = {
     merchant: await generateEmulatorAccount({
       lovelace: BigInt(100_000_000),
-      [refNft]: BigInt(1),
-      [userNft]: BigInt(1),
-    }),
-    subscriber1: await generateEmulatorAccount({
-      lovelace: BigInt(100_000_000),
-    }),
-    subscriber2: await generateEmulatorAccount({
-      lovelace: BigInt(100_000_000),
-      // [token2]: BigInt(1),
-      // [token3]: BigInt(100),
     }),
   };
 
   context.emulator = new Emulator([
     context.users.merchant,
-    context.users.subscriber1,
-    context.users.subscriber2,
   ]);
 
   context.lucid = await Lucid(context.emulator, "Custom");
@@ -92,28 +74,22 @@ test<LucidContext>("Test 1 - Update Service", async ({
   console.log("merchantAddress: ", users.merchant.address);
   console.log("merchantUTxOs before transaction: ", merchantUTxO);
 
-  const sendTokenUnsigned = await sendTokenToService(
-    lucid,
-    createServiceConfig,
-  );
-
-  expect(sendTokenUnsigned.type).toBe("ok");
-  if (sendTokenUnsigned.type == "ok") {
-    const sendTokenSigned = await sendTokenUnsigned.data.sign
-      .withWallet()
+  try {
+    const createServiceUnSigned = await Effect.runPromise(
+      createService(lucid, createServiceConfig),
+    );
+    const createServiceSigned = await createServiceUnSigned.sign.withWallet()
       .complete();
-    const sendTokenHash = await sendTokenSigned.submit();
-    emulator.awaitBlock(100);
-    //console.log("sendTokenSigned: ", sendTokenSigned.toJSON());
-
-    //console.log("TxHash: ", sendTokenHash);
-    console.log("Merchant utxos", await lucid.utxosAt(users.merchant.address));
+    const createServiceHash = await createServiceSigned.submit();
+    console.log("TxHash: ", createServiceHash);
+  } catch (error) {
+    console.error("Error updating service:", error);
+    throw error; // or handle it as appropriate for your test
   }
   emulator.awaitBlock(100);
-
-  const merchantUTxOAfter = await lucid.utxosAt(users.merchant.address);
+  const merchantUTxOs = await lucid.utxosAt(users.merchant.address);
   console.log("merchantAddress: After: ", users.merchant.address);
-  console.log("merchantUTxO: After:", merchantUTxOAfter);
+  console.log("merchantUTxO: After:", merchantUTxOs);
 
   const serviceScriptAddress = validatorToAddress(
     "Custom",
@@ -122,13 +98,26 @@ test<LucidContext>("Test 1 - Update Service", async ({
   console.log("Validator utxos", await lucid.utxosAt(serviceScriptAddress));
   const serviceUTxO = await lucid.utxosAt(serviceScriptAddress);
 
-  //   console.log("Validator: Address: ", serviceScriptAddress);
-  //   console.log("Service Validator UTxO: AFTER>>>>", serviceUTxO);
-
   emulator.awaitBlock(100);
   console.log(
     "UPDATING///////////////////////////>>>>>>>>>>>>>>>>>>",
     serviceUTxO,
+  );
+
+  // Find the token names
+  const { refTokenName, userTokenName } = findCip68TokenNames([
+    ...serviceUTxO,
+    ...merchantUTxOs,
+  ], servicePolicyId);
+
+  const refNft = toUnit(
+    servicePolicyId,
+    refTokenName,
+  );
+
+  const userNft = toUnit(
+    servicePolicyId,
+    userTokenName,
   );
 
   const updateServiceConfig: UpdateServiceConfig = {
@@ -140,6 +129,8 @@ test<LucidContext>("Test 1 - Update Service", async ({
     new_num_intervals: 12n,
     new_minimum_ada: 2_000_000n,
     is_active: true,
+    user_token: userNft,
+    ref_token: refNft,
     scripts: serviceScript,
   };
 

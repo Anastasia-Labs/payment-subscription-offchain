@@ -69,6 +69,7 @@ test<LucidContext>("Test 1 - Create Service", async ({
     const createServiceSigned = await createServiceUnSigned.sign.withWallet()
       .complete();
     const createServiceHash = await createServiceSigned.submit();
+    console.log("createServiceSigned: ", createServiceSigned.toJSON());
     console.log("TxHash: ", createServiceHash);
   } catch (error) {
     console.error("Error updating service:", error);

@@ -24,4 +24,34 @@ const generateUniqueAssetName = (utxo: UTxO, prefix: string): string => {
     return bytesToHex(prependPrefix.slice(0, 32));
 };
 
-export { assetNameLabels, generateUniqueAssetName };
+const findCip68TokenNames = (
+    utxos: UTxO[],
+    policyId: string,
+): { refTokenName: string; userTokenName: string } => {
+    let refTokenName, userTokenName;
+
+    for (const utxo of utxos) {
+        for (const assetName in utxo.assets) {
+            if (assetName.startsWith(policyId)) {
+                const tokenName = assetName.slice(policyId.length);
+                if (tokenName.startsWith(assetNameLabels.prefix100)) {
+                    refTokenName = tokenName;
+                } else if (tokenName.startsWith(assetNameLabels.prefix222)) {
+                    userTokenName = tokenName;
+                }
+            }
+        }
+        if (refTokenName && userTokenName) break;
+    }
+
+    if (!refTokenName || !userTokenName) {
+        throw new Error("Failed to find both reference and user token names");
+    }
+
+    console.log("refTokenName: ", refTokenName);
+    console.log("userTokenName: ", userTokenName);
+
+    return { refTokenName, userTokenName };
+};
+
+export { assetNameLabels, findCip68TokenNames, generateUniqueAssetName };

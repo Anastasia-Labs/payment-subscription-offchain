@@ -3,12 +3,8 @@ import {
     Constr,
     Data,
     LucidEvolution,
-    mintingPolicyToId,
-    SpendingValidator,
-    toUnit,
     TransactionError,
     TxSignBuilder,
-    validatorToAddress,
 } from "@lucid-evolution/lucid";
 import { getMultiValidator } from "../core/utils/index.js";
 import { Result, UpdateServiceConfig } from "../core/types.js";
@@ -24,55 +20,28 @@ export const updateService = (
         const merchantAddress: Address = yield* Effect.promise(() =>
             lucid.wallet().address()
         );
-
-        // const validators = getMultiValidator(lucid, config.scripts);
-        const spendValidator: SpendingValidator = {
-            type: "PlutusV2",
-            script: config.scripts.spending,
-        };
         const validators = getMultiValidator(lucid, config.scripts);
-        const servicePolicyId = mintingPolicyToId(
-            validators.mintValidator,
-        );
-
-        const spendServiceValidatorAddress = validatorToAddress(
-            lucid.config().network,
-            spendValidator,
-        );
+        const serviceValAddress = validators.spendValAddress;
 
         const merchantUTxOs = yield* Effect.promise(() =>
             lucid.utxosAt(merchantAddress)
         );
-        // const contractUTxOs = await lucid.utxosAt(validators.mintServiceValAddress);
-        // const mintUtxoScriptRef = contractUTxOs.find((utxo) =>
-        //   utxo.scriptRef ?? null
-        // );
 
         if (!merchantUTxOs || !merchantUTxOs.length) {
             console.error("No UTxO found at user address: " + merchantAddress);
         }
 
-        const refToken = toUnit(
-            servicePolicyId,
-            "000643b09e6291970cb44dd94008c79bcaf9d86f18b4b49ba5b2a04781db7199",
-        );
-
-        const userNft = toUnit(
-            servicePolicyId,
-            "000de1409e6291970cb44dd94008c79bcaf9d86f18b4b49ba5b2a04781db7199",
-        );
-
         const serviceUTxO = yield* Effect.promise(() =>
             lucid.utxosAtWithUnit(
-                spendServiceValidatorAddress,
-                refToken,
+                serviceValAddress,
+                config.ref_token,
             )
         );
 
         const merchantUTxO = yield* Effect.promise(() =>
             lucid.utxosAtWithUnit(
                 merchantAddress,
-                userNft,
+                config.user_token,
             )
         );
 
@@ -94,11 +63,6 @@ export const updateService = (
 
         const directDatum = Data.to<ServiceDatum>(updatedDatum, ServiceDatum);
 
-        // const updateService = Data.to<MintServiceRedeemer>(
-        //     "UpdateService",
-        //     MintServiceRedeemer,
-        // );
-
         const wrappedRedeemer = Data.to(new Constr(1, [new Constr(0, [])]));
 
         console.log("Redeemer updateService: ", wrappedRedeemer);
@@ -111,30 +75,17 @@ export const updateService = (
             .collectFrom(serviceUTxO, wrappedRedeemer)
             .pay.ToAddress(merchantAddress, {
                 lovelace: 3_000_000n,
-                [userNft]: 1n,
+                [config.user_token]: 1n,
             })
-            .pay.ToContract(spendServiceValidatorAddress, {
+            .pay.ToContract(serviceValAddress, {
                 kind: "inline",
                 value: directDatum,
             }, {
                 lovelace: 3_000_000n,
-                [refToken]: 1n,
+                [config.ref_token]: 1n,
             })
-            .attach.SpendingValidator(spendValidator)
+            .attach.SpendingValidator(validators.spendValidator)
             .completeProgram();
-        // .complete({
-        //   coinSelection: false, // Setting to false to avoid using distributor funds
-        // });
-        // const tx = await lucid
-        //   .newTx()
-        // .collectFrom(feeUTxOs)
-        //   .pay.ToContract(
-        //     validators.mintServiceValAddress,
-        // { kind: "inline", value: directDatum },
-        //   )
-        //   .complete();
 
-        //console.log("data: ", tx.toJSON());
-        // return { type: "ok", data: tx };
         return tx;
     });
