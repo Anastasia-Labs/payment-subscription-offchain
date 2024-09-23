@@ -25,11 +25,8 @@ export const updateAccount = (
         const subscriberAddress: Address = yield* Effect.promise(() =>
             lucid.wallet().address()
         );
-
         const validators = getMultiValidator(lucid, config.scripts);
-        const AccountPolicyId = mintingPolicyToId(
-            validators.mintValidator,
-        );
+        const accountValAddress = validators.spendValAddress;
 
         const subscriberUTxOs = yield* Effect.promise(() =>
             lucid.utxosAt(subscriberAddress)
@@ -41,27 +38,17 @@ export const updateAccount = (
             );
         }
 
-        const refToken = toUnit(
-            AccountPolicyId,
-            "000643b09e6291970cb44dd94008c79bcaf9d86f18b4b49ba5b2a04781db7199",
-        );
-
-        const userNft = toUnit(
-            AccountPolicyId,
-            "000de1409e6291970cb44dd94008c79bcaf9d86f18b4b49ba5b2a04781db7199",
-        );
-
         const AccountUTxO = yield* Effect.promise(() =>
             lucid.utxosAtWithUnit(
                 validators.spendValAddress,
-                refToken,
+                config.ref_token,
             )
         );
 
         const subscriberUTxO = yield* Effect.promise(() =>
             lucid.utxosAtWithUnit(
                 subscriberAddress,
-                userNft,
+                config.user_token,
             )
         );
 
@@ -90,14 +77,14 @@ export const updateAccount = (
             .collectFrom(AccountUTxO, wrappedRedeemer)
             .pay.ToAddress(subscriberAddress, {
                 lovelace: 3_000_000n,
-                [userNft]: 1n,
+                [config.user_token]: 1n,
             })
             .pay.ToContract(validators.spendValAddress, {
                 kind: "inline",
                 value: directDatum,
             }, {
                 lovelace: 3_000_000n,
-                [refToken]: 1n,
+                [config.ref_token]: 1n,
             })
             .attach.SpendingValidator(validators.spendValidator)
             .completeProgram();

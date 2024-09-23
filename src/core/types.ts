@@ -69,6 +69,8 @@ export type UpdateAccountConfig = {
   new_email: string;
   new_phone: string;
   account_created: bigint;
+  user_token: Unit;
+  ref_token: Unit;
   scripts: {
     spending: CborHex;
     minting: CborHex;

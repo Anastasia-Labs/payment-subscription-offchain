@@ -84,7 +84,7 @@ test<LucidContext>("Test 1 - Update Service", async ({
     console.log("TxHash: ", createServiceHash);
   } catch (error) {
     console.error("Error updating service:", error);
-    throw error; // or handle it as appropriate for your test
+    throw error;
   }
   emulator.awaitBlock(100);
   const merchantUTxOs = await lucid.utxosAt(users.merchant.address);
