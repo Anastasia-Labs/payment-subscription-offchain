@@ -54,4 +54,21 @@ const findCip68TokenNames = (
     return { refTokenName, userTokenName };
 };
 
-export { assetNameLabels, findCip68TokenNames, generateUniqueAssetName };
+const createCip68TokenNames = (utxo: UTxO) => {
+    const refTokenName = generateUniqueAssetName(
+        utxo,
+        assetNameLabels.prefix100,
+    );
+    const userTokenName = generateUniqueAssetName(
+        utxo,
+        assetNameLabels.prefix222,
+    );
+    return { refTokenName, userTokenName };
+};
+
+export {
+    assetNameLabels,
+    createCip68TokenNames,
+    findCip68TokenNames,
+    generateUniqueAssetName,
+};

@@ -1,37 +1,20 @@
 import {
   Address,
   Assets,
-  Constr,
   Data,
   fromText,
   LucidEvolution,
   mintingPolicyToId,
+  selectUTxOs,
   toUnit,
   TransactionError,
   TxSignBuilder,
-  UTxO,
 } from "@lucid-evolution/lucid";
 import { getMultiValidator } from "../core/utils/index.js";
 import { CreateAccountConfig } from "../core/types.js";
-import {
-  AccountDatum,
-  CreateAccountRedeemer,
-  CreateServiceRedeemer,
-} from "../core/contract.types.js";
-import {
-  assetNameLabels,
-  generateUniqueAssetName,
-} from "../core/utils/assets.js";
+import { AccountDatum, CreateAccountRedeemer } from "../core/contract.types.js";
+import { createCip68TokenNames } from "../core/utils/assets.js";
 import { Effect } from "effect";
-
-const createAccountTokens = (utxo: UTxO) => {
-  const refTokenName = generateUniqueAssetName(utxo, assetNameLabels.prefix100);
-  const userTokenName = generateUniqueAssetName(
-    utxo,
-    assetNameLabels.prefix222,
-  );
-  return { refTokenName, userTokenName };
-};
 
 export const createAccount = (
   lucid: LucidEvolution,
@@ -42,16 +25,13 @@ export const createAccount = (
       lucid.wallet().address()
     );
     const validators = getMultiValidator(lucid, config.scripts);
-    const servicePolicyId = mintingPolicyToId(validators.mintValidator);
+    const accountPolicyId = mintingPolicyToId(validators.mintValidator);
 
-    console.log("servicePolicyId: ", servicePolicyId);
+    console.log("accountPolicyId: ", accountPolicyId);
 
     const subscriberUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(subscriberAddress)
-    ); // const contractUTxOs = await lucid.utxosAt(validators.mintServiceValAddress);
-    // const mintUtxoScriptRef = contractUTxOs.find((utxo) =>
-    //   utxo.scriptRef ?? null
-    // );
+    );
 
     if (!subscriberUTxOs || !subscriberUTxOs.length) {
       console.error("No UTxO found at user address: " + subscriberAddress);
@@ -59,9 +39,11 @@ export const createAccount = (
 
     // Selecting a utxo containing atleast 5 ADA to cover tx fees and min ADA
     // Note: To avoid tx balancing errors, the utxo should only contain lovelaces
-    // const selectedUTxOs = selectUTxOs(subscriberUTxOs, { ["lovelace"]: 5000000n });
-    const { refTokenName, userTokenName } = createAccountTokens(
-      subscriberUTxOs[0],
+    const selectedUTxOs = selectUTxOs(subscriberUTxOs, {
+      ["lovelace"]: 5000000n,
+    });
+    const { refTokenName, userTokenName } = createCip68TokenNames(
+      selectedUTxOs[0],
     );
     console.log("refTokenName: ", refTokenName);
     console.log("userTokenName: ", userTokenName);
@@ -70,14 +52,14 @@ export const createAccount = (
     // const rdmrBuilderMint: RedeemerBuilder = {
     //   kind: "selected",
     //   makeRedeemer: (inputIndices: bigint[]) => {
-    //     const redeemer: CreateServiceRedeemer = {
+    //     const redeemer: CreateaccountRedeemer = {
     //       output_reference: {
     //         txHash: { hash: subscriberUTxOs[0].txHash },
     //         outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
     //       },
     //       input_index: inputIndices[0],
     //     };
-    //     return Data.to(redeemer, CreateServiceRedeemer);
+    //     return Data.to(redeemer, CreateaccountRedeemer);
     //   },
     //   inputs: [subscriberUTxOs[0]],
     // };
@@ -91,11 +73,7 @@ export const createAccount = (
       },
       input_index: BigInt(subscriberUTxOs[0].outputIndex),
     };
-    const redeemerData = Data.to(redeemer, CreateServiceRedeemer);
-
-    const accountRedeemer = Data.to(
-      new Constr(0, [redeemerData]),
-    );
+    const redeemerData = Data.to(redeemer, CreateAccountRedeemer);
 
     const currDatum: AccountDatum = {
       email: fromText(config.email),
@@ -108,12 +86,12 @@ export const createAccount = (
     console.log("subscriberUTxOs :: ", subscriberUTxOs);
 
     const refToken = toUnit(
-      servicePolicyId,
+      accountPolicyId,
       refTokenName,
     );
 
     const userToken = toUnit(
-      servicePolicyId,
+      accountPolicyId,
       userTokenName,
     );
 
@@ -124,24 +102,21 @@ export const createAccount = (
 
     const tx = yield* lucid
       .newTx()
-      .collectFrom(subscriberUTxOs)
+      .collectFrom(selectedUTxOs)
       .mintAssets(
         mintingAssets,
         redeemerData,
       )
-      .attach.MintingPolicy(validators.mintValidator)
       .pay.ToAddress(subscriberAddress, {
-        lovelace: 1_000_000n,
-        [`${servicePolicyId}${userTokenName}`]: 1n,
+        [userToken]: 1n,
       })
       .pay.ToContract(validators.mintValAddress, {
         kind: "inline",
         value: directDatum,
       }, {
-        lovelace: 1_000_000n,
-        [`${servicePolicyId}${refTokenName}`]: 1n,
+        [refToken]: 1n,
       })
-      .validTo(Date.now() + 900000)
+      .attach.MintingPolicy(validators.mintValidator)
       .completeProgram();
 
     return tx;

@@ -7,7 +7,7 @@ import {
     TxSignBuilder,
 } from "@lucid-evolution/lucid";
 import { getMultiValidator } from "../core/utils/index.js";
-import { Result, UpdateServiceConfig } from "../core/types.js";
+import { UpdateServiceConfig } from "../core/types.js";
 import { ServiceDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
 

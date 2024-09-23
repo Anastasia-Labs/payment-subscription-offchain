@@ -9,26 +9,13 @@ import {
   toUnit,
   TransactionError,
   TxSignBuilder,
-  UTxO,
 } from "@lucid-evolution/lucid";
 import { getMultiValidator } from "../core/utils/index.js";
 import { CreateServiceConfig, Result } from "../core/types.js";
 import { CreateServiceRedeemer, ServiceDatum } from "../core/contract.types.js";
-import {
-  assetNameLabels,
-  generateUniqueAssetName,
-} from "../core/utils/assets.js";
+import { createCip68TokenNames } from "../core/utils/assets.js";
 import { Effect } from "effect";
 import { ADA } from "../core/constants.js";
-
-const createServiceTokens = (utxo: UTxO) => {
-  const refTokenName = generateUniqueAssetName(utxo, assetNameLabels.prefix100);
-  const userTokenName = generateUniqueAssetName(
-    utxo,
-    assetNameLabels.prefix222,
-  );
-  return { refTokenName, userTokenName };
-};
 
 export const createService = (
   lucid: LucidEvolution,
@@ -57,27 +44,27 @@ export const createService = (
     const selectedUTxOs = selectUTxOs(merchantUTxOs, {
       ["lovelace"]: 5000000n,
     });
-    const { refTokenName, userTokenName } = createServiceTokens(
+    const { refTokenName, userTokenName } = createCip68TokenNames(
       selectedUTxOs[0],
     );
     console.log("refTokenName: ", refTokenName);
     console.log("userTokenName: ", userTokenName);
 
     // Create the redeemer
-    const rdmrBuilderMint: RedeemerBuilder = {
-      kind: "selected",
-      makeRedeemer: (inputIndices: bigint[]) => {
-        const redeemer: CreateServiceRedeemer = {
-          output_reference: {
-            txHash: { hash: selectedUTxOs[0].txHash },
-            outputIndex: BigInt(selectedUTxOs[0].outputIndex),
-          },
-          input_index: inputIndices[0],
-        };
-        return Data.to(redeemer, CreateServiceRedeemer);
-      },
-      inputs: [selectedUTxOs[0]],
-    };
+    // const rdmrBuilderMint: RedeemerBuilder = {
+    //   kind: "selected",
+    //   makeRedeemer: (inputIndices: bigint[]) => {
+    //     const redeemer: CreateServiceRedeemer = {
+    //       output_reference: {
+    //         txHash: { hash: selectedUTxOs[0].txHash },
+    //         outputIndex: BigInt(selectedUTxOs[0].outputIndex),
+    //       },
+    //       input_index: inputIndices[0],
+    //     };
+    //     return Data.to(redeemer, CreateServiceRedeemer);
+    //   },
+    //   inputs: [selectedUTxOs[0]],
+    // };
 
     const redeemer: CreateServiceRedeemer = {
       output_reference: {
@@ -128,15 +115,13 @@ export const createService = (
         redeemerData,
       )
       .pay.ToAddress(merchantAddress, {
-        lovelace: 1_000_000n,
-        [`${servicePolicyId}${userTokenName}`]: 1n,
+        [userToken]: 1n,
       })
       .pay.ToContract(validators.mintValAddress, {
         kind: "inline",
         value: directDatum,
       }, {
-        lovelace: 1_000_000n,
-        [`${servicePolicyId}${refTokenName}`]: 1n,
+        [refToken]: 1n,
       })
       .attach.MintingPolicy(validators.mintValidator)
       .completeProgram();
