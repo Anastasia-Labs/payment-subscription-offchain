@@ -127,3 +127,52 @@ export const AccountDatumSchema = Data.Object({
 
 export type AccountDatum = Data.Static<typeof AccountDatumSchema>;
 export const AccountDatum = AccountDatumSchema as unknown as AccountDatum;
+
+// pub type MintPayment {
+//     InitSubscripton { output_reference: OutputReference, input_index: Int }
+//     TerminateSubscription
+//   }
+
+export const MintPaymentSchema = Data.Enum([
+    
+    Data.Object({ InitSubscripton: Data.Object({ output_reference: OutputReferenceSchema, input_index: Data.Integer() }) }),
+    Data.Literal("TerminateSubscription"),
+  ]);
+
+export type MintPayment = Data.Static<typeof MintPaymentSchema>;
+export const MintPayment = MintPaymentSchema as unknown as MintPayment;
+
+// pub type PaymentDatum {
+//     service_nft_tn: AssetName,
+//     account_nft_tn: AssetName,
+//     subscription_fee: AssetClass,
+//     total_subscription_fee: Int,
+//     subscription_start: Int,
+//     subscription_end: Int,
+//     interval_length: Int,
+//     interval_amount: Int,
+//     num_intervals: Int,
+//     last_claimed: Int,
+//     penalty_fee: AssetClass,
+//     penalty_fee_qty: Int,
+//     minimum_ada: Int,
+//   }
+
+  export const PaymentDatumSchema = Data.Object({
+    service_nft_tn: Data.Bytes(), //AssetName,
+    account_nft_tn: Data.Bytes(),
+    subscription_fee: AssetClassSchema,
+    total_subscription_fee: Data.Integer(),
+    subscription_start: Data.Integer(),
+    subscription_end: Data.Integer(),
+    interval_length: Data.Integer(),
+    interval_amount: Data.Integer(),
+    num_intervals: Data.Integer(),
+    last_claimed: Data.Integer(),
+    penalty_fee: AssetClassSchema,
+    penalty_fee_qty: Data.Integer(),
+    minimum_ada: Data.Integer(),
+});
+
+export type PaymentDatum = Data.Static<typeof PaymentDatumSchema>;
+export const PaymentDatum = PaymentDatumSchema as unknown as PaymentDatum;

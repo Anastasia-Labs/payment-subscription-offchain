@@ -54,6 +54,24 @@ export type UpdateServiceConfig = {
   };
 };
 
+export type RemoveServiceConfig = {
+  service_fee: AssetClassD,
+  service_fee_qty: bigint,
+  penalty_fee: AssetClassD,
+  penalty_fee_qty: bigint,
+  interval_length: bigint,
+  num_intervals: bigint,
+  minimum_ada: bigint,
+  is_active: boolean,
+  user_token: Unit,
+  ref_token: Unit,
+  scripts: {
+    spending: CborHex;
+    minting: CborHex;
+    staking: CborHex;
+  }
+};
+
 export type CreateAccountConfig = {
   email: string;
   phone: string;
@@ -84,6 +102,27 @@ export type RemoveAccountConfig = {
   account_created: bigint;
   user_token: Unit;
   ref_token: Unit;
+  scripts: {
+    spending: CborHex;
+    minting: CborHex;
+    staking: CborHex;
+  };
+};
+
+export type PaymentAccountConfig = {
+  service_nft_tn: string; //AssetName,
+  account_nft_tn: string;
+  subscription_fee: AssetClassD,
+  total_subscription_fee: bigint,
+  subscription_start: bigint,
+  subscription_end: bigint,
+  interval_length: bigint,
+  interval_amount: bigint,
+  num_intervals: bigint,
+  last_claimed: bigint,
+  penalty_fee: AssetClassD,
+  penalty_fee_qty: bigint,
+  minimum_ada: bigint,
   scripts: {
     spending: CborHex;
     minting: CborHex;
