@@ -5,21 +5,13 @@ import {
     Data,
     fromText,
     LucidEvolution,
-    mintingPolicyToId,
-    SpendingValidator,
-    toUnit,
     TransactionError,
     TxSignBuilder,
-    validatorToAddress,
 } from "@lucid-evolution/lucid";
 import { getMultiValidator } from "../core/utils/index.js";
 import { RemoveAccountConfig } from "../core/types.js";
 import { Effect } from "effect";
-import {
-    AccountDatum,
-    CreateAccountRedeemer,
-    CreateServiceRedeemer,
-} from "../core/contract.types.js";
+import { AccountDatum, CreateAccountRedeemer } from "../core/contract.types.js";
 
 export const removeAccount = (
     lucid: LucidEvolution,
@@ -32,39 +24,26 @@ export const removeAccount = (
         );
 
         const validators = getMultiValidator(lucid, config.scripts);
-        const accountPolicyId = mintingPolicyToId(
-            validators.mintValidator,
-        );
-
-        const refToken = toUnit(
-            accountPolicyId,
-            "000643b0009e6291970cb44dd94008c79bcaf9d86f18b4b49ba5b2a04781db71",
-        );
-
-        const userToken = toUnit(
-            accountPolicyId,
-            "000de140009e6291970cb44dd94008c79bcaf9d86f18b4b49ba5b2a04781db71",
-        );
 
         const accountUTxO = yield* Effect.promise(() =>
             lucid.utxosAtWithUnit(
                 validators.spendValAddress,
-                refToken,
+                config.ref_token,
+            )
+        );
+
+        const subscriberUTxO = yield* Effect.promise(() =>
+            lucid.utxosAtWithUnit(
+                subscriberAddress,
+                config.user_token,
             )
         );
 
         console.log("Account UTxO: ", accountUTxO);
         const mintingAssets: Assets = {
-            [refToken]: -1n,
-            [userToken]: -1n,
+            [config.ref_token]: -1n,
+            [config.user_token]: -1n,
         };
-
-        const subscriberUTxO = yield* Effect.promise(() =>
-            lucid.utxosAtWithUnit(
-                subscriberAddress,
-                userToken,
-            )
-        );
 
         if (!accountUTxO || !accountUTxO.length) {
             console.error(
@@ -80,30 +59,30 @@ export const removeAccount = (
 
         const directDatum = Data.to<AccountDatum>(accountDatum, AccountDatum);
 
-        const redeemer: CreateAccountRedeemer = {
-            output_reference: {
-                txHash: {
-                    hash: subscriberUTxO[0].txHash,
-                },
-                outputIndex: BigInt(subscriberUTxO[0].outputIndex),
-            },
-            input_index: 0n,
-        };
-        const mintRedeemer = Data.to(redeemer, CreateServiceRedeemer);
+        // const redeemer: CreateAccountRedeemer = {
+        //     output_reference: {
+        //         txHash: {
+        //             hash: subscriberUTxO[0].txHash,
+        //         },
+        //         outputIndex: BigInt(subscriberUTxO[0].outputIndex),
+        //     },
+        //     input_index: 0n,
+        // };
+        // const mintRedeemer = Data.to(redeemer, CreateAccountRedeemer);
 
-        // const removeAccountRedeemer = Data.to(new Constr(1, [])); // Assuming DeleteAccount is index 1 in your MintAccount enum
-        const wrappedRedeemer = Data.to(new Constr(1, [new Constr(1, [])]));
+        const deleteAccRedeemer = Data.to(new Constr(1, [])); // Assuming DeleteAccount is index 1 in your MintAccount enum
+        const removeAccRedeemer = Data.to(new Constr(1, [new Constr(1, [])])); // Wrapped redeemer for multi-validator spend endpoint
 
         const tx = yield* lucid
             .newTx()
             .collectFrom(subscriberUTxO)
-            .collectFrom(accountUTxO, wrappedRedeemer)
+            .collectFrom(accountUTxO, removeAccRedeemer)
             .mintAssets(
                 mintingAssets,
-                mintRedeemer,
+                deleteAccRedeemer,
             )
-            .attach.SpendingValidator(validators.spendValidator)
             .attach.MintingPolicy(validators.mintValidator)
+            .attach.SpendingValidator(validators.spendValidator)
             .completeProgram();
 
         return tx;

@@ -82,6 +82,8 @@ export type RemoveAccountConfig = {
   email: string;
   phone: string;
   account_created: bigint;
+  user_token: Unit;
+  ref_token: Unit;
   scripts: {
     spending: CborHex;
     minting: CborHex;

@@ -1,5 +1,6 @@
 import {
     ADA,
+    createAccount,
     CreateAccountConfig,
     Emulator,
     generateEmulatorAccount,
@@ -18,6 +19,7 @@ import { mintingPolicyToId, validatorToAddress } from "@lucid-evolution/lucid";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { toText } from "@lucid-evolution/lucid";
+import { findCip68TokenNames } from "../src/core/utils/assets.js";
 
 type LucidContext = {
     lucid: LucidEvolution;
@@ -28,23 +30,11 @@ type LucidContext = {
 const accountValidator = readMultiValidators();
 const accountPolicyId = mintingPolicyToId(accountValidator.mintAccount);
 
-const refNft = toUnit(
-    accountPolicyId,
-    "000643b0009e6291970cb44dd94008c79bcaf9d86f18b4b49ba5b2a04781db71",
-);
-
-const userNft = toUnit(
-    accountPolicyId,
-    "000de140009e6291970cb44dd94008c79bcaf9d86f18b4b49ba5b2a04781db71",
-);
-
 // INITIALIZE EMULATOR + ACCOUNTS
 beforeEach<LucidContext>(async (context) => {
     context.users = {
         subscriber: generateEmulatorAccount({
             lovelace: BigInt(100_000_000),
-            [refNft]: BigInt(1),
-            [userNft]: BigInt(1),
         }),
     };
 
@@ -81,23 +71,18 @@ test<LucidContext>("Test 1 - Update Service", async ({
     console.log("subscriberAddress: ", users.subscriber.address);
     console.log("subscriberUTxOs before transaction: ", subscriberUTxO);
 
-    const sendTokenUnsigned = await sendTokenToAccount(
-        lucid,
-        createAccountConfig,
-    );
-
-    expect(sendTokenUnsigned.type).toBe("ok");
-    if (sendTokenUnsigned.type == "ok") {
-        const sendTokenSigned = await sendTokenUnsigned.data.sign
+    try {
+        const createAccountUnSigned = await Effect.runPromise(
+            createAccount(lucid, createAccountConfig),
+        );
+        const createAccountSigned = await createAccountUnSigned.sign
             .withWallet()
             .complete();
-        const sendTokenHash = await sendTokenSigned.submit();
-        emulator.awaitBlock(100);
-
-        console.log(
-            "subscriber utxos",
-            await lucid.utxosAt(users.subscriber.address),
-        );
+        const createServiceHash = await createAccountSigned.submit();
+        console.log("TxHash: ", createServiceHash);
+    } catch (error) {
+        console.error("Error updating service:", error);
+        throw error;
     }
     emulator.awaitBlock(100);
 
@@ -110,18 +95,36 @@ test<LucidContext>("Test 1 - Update Service", async ({
         accountValidator.spendAccount,
     );
     console.log("Validator utxos", await lucid.utxosAt(accountScriptAddress));
-    const serviceUTxO = await lucid.utxosAt(accountScriptAddress);
+    const accountUTxO = await lucid.utxosAt(accountScriptAddress);
 
     emulator.awaitBlock(100);
     console.log(
         "REMOVING///////////////////////////>>>>>>>>>>>>>>>>>>",
-        serviceUTxO,
+        accountUTxO,
+    );
+
+    // Find the token names
+    const { refTokenName, userTokenName } = findCip68TokenNames([
+        ...accountUTxO,
+        ...subscriberUTxOAfter,
+    ], accountPolicyId);
+
+    const refNft = toUnit(
+        accountPolicyId,
+        refTokenName,
+    );
+
+    const userNft = toUnit(
+        accountPolicyId,
+        userTokenName,
     );
 
     const removeAccountConfig: RemoveAccountConfig = {
         email: "business@web3.ada",
         phone: "288 481-2686",
         account_created: createAccountConfig.account_created,
+        user_token: userNft,
+        ref_token: refNft,
         scripts: accountScript,
     };
 
