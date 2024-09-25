@@ -37,48 +37,56 @@ test<LucidContext>("Test 1 - Create Account", async ({
   users,
   emulator,
 }) => {
-  console.log("createSubscriptionAccount...TEST!!!!");
+  const program = Effect.gen(function* () {
+    console.log("createSubscriptionAccount...TEST!!!!");
 
-  const accountValidator = readMultiValidators();
+    const accountValidator = readMultiValidators();
 
-  const accountScript = {
-    spending: accountValidator.spendAccount.script,
-    minting: accountValidator.mintAccount.script,
-    staking: "",
-  };
+    const accountScript = {
+      spending: accountValidator.spendAccount.script,
+      minting: accountValidator.mintAccount.script,
+      staking: "",
+    };
 
-  const createAccountConfig: CreateAccountConfig = {
-    email: "business@web3.ada",
-    phone: "288-481-2686",
-    account_created: BigInt(emulator.now()),
-    scripts: accountScript,
-  };
+    const createAccountConfig: CreateAccountConfig = {
+      email: "business@web3.ada",
+      phone: "288-481-2686",
+      account_created: BigInt(emulator.now()),
+      scripts: accountScript,
+    };
 
-  lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
-  const accountAddress = validatorToAddress(
-    "Custom",
-    accountValidator.spendAccount,
-  );
-  try {
-    const createAccountResult = await Effect.runPromise(
-      createAccount(lucid, createAccountConfig),
+    lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
+    const accountAddress = validatorToAddress(
+      "Custom",
+      accountValidator.spendAccount,
     );
-    const createAccountSigned = await createAccountResult.sign.withWallet()
-      .complete();
-    const createAccountHash = await createAccountSigned.submit();
-    console.log("TxHash: ", createAccountHash);
-  } catch (error) {
-    console.error("Error updating Account:", error);
-    throw error;
-  }
-  emulator.awaitBlock(100);
+    try {
+      const createAccountResult = yield* createAccount(
+        lucid,
+        createAccountConfig,
+      );
+      const createAccountSigned = yield* Effect.promise(() =>
+        createAccountResult.sign.withWallet().complete()
+      );
+      const createAccountHash = yield* Effect.promise(() =>
+        createAccountSigned.submit()
+      );
+      console.log("TxHash: ", createAccountHash);
+    } catch (error) {
+      console.error("Error updating Account:", error);
+      throw error;
+    }
+    yield* Effect.sync(() => emulator.awaitBlock(100));
 
-  const subscriberUTxO = await lucid.utxosAt(users.subscriber.address);
-  console.log("Updated Subscriber UTxO:", subscriberUTxO);
+    const subscriberUTxO = yield* Effect.promise(() =>
+      lucid.utxosAt(users.subscriber.address)
+    );
+    console.log("Updated Subscriber UTxO:", subscriberUTxO);
 
-  const scriptUTxOs = await lucid.utxosAt(accountAddress);
-
-  console.log("Updated Account Validator: UTxOs", scriptUTxOs);
-
-  emulator.awaitBlock(100);
+    const scriptUTxOs = yield* Effect.promise(() =>
+      lucid.utxosAt(accountAddress)
+    );
+    console.log("Updated Account Validator: UTxOs", scriptUTxOs);
+  });
+  await Effect.runPromise(program);
 });

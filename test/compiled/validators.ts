@@ -12,6 +12,8 @@ export type Validators = {
     mintService: MintingPolicy;
     spendAccount: SpendingValidator;
     mintAccount: MintingPolicy;
+    spendPayment : SpendingValidator;
+    mintPayment : MintingPolicy;
 };
 
 export function readMultiValidators(): Validators {
@@ -29,5 +31,7 @@ export function readMultiValidators(): Validators {
         mintService: getValidator("service_multi_validator.mint_service"),
         spendAccount: getValidator("account_multi_validator.spend_account"),
         mintAccount: getValidator("account_multi_validator.mint_account"),
+        spendPayment: getValidator("payment_multi_validator.spend_payment"),
+        mintPayment: getValidator("payment_multi_validator.mint_payment"),
     };
 }

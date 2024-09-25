@@ -17,12 +17,6 @@ const generateUniqueAssetName = (utxo: UTxO, prefix: string): string => {
     const indexByte = new Uint8Array([utxo.outputIndex]);
     const prependIndex = concatBytes(indexByte, txIdHash);
 
-    // // concat the prefix
-    // const prependPrefix = concatBytes(hexToBytes(prefix), prependIndex);
-
-    // // slice off the first 32 bytes and convert to hex
-    // return bytesToHex(prependPrefix.slice(0, 32));
-
     if (prefix != null) {
         // concat the prefix
         const prependPrefix = concatBytes(hexToBytes(prefix), prependIndex);
