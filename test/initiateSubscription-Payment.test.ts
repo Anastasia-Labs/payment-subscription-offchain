@@ -179,8 +179,8 @@ import {
     console.log("Account utxos with user nft",sample1);
       const paymentValidator = readMultiValidators();
       const paymentScript = {
-        spending: paymentValidator.spendAccount.script,
-        minting: paymentValidator.mintAccount.script,
+        spending: paymentValidator.spendPayment.script,
+        minting: paymentValidator.mintPayment.script,
         staking: "",
       }
 
@@ -209,13 +209,14 @@ import {
   
   try {
     const initiateSubscriptionUnsigned = await initiateSubscription(lucid, paymentConfig);
-    //expect(initiateSubscriptionUnsigned.type).toBe("ok");
-    //if (initiateSubscriptionUnsigned.type == "ok") {
-    //const initiateSubscriptionSigned = await initiateSubscriptionUnsigned.data.sign.withWallet()
-    //  .complete();
-    //const initiateSubscriptionHash = await initiateSubscriptionSigned.submit();
-    //console.log("TxHash: ", updateServiceHash);
+    expect(initiateSubscriptionUnsigned.type).toBe("ok");
+    if (initiateSubscriptionUnsigned.type == "ok") {
+    const initiateSubscriptionSigned = await initiateSubscriptionUnsigned.data.sign.withWallet()
+      .complete();
+    const initiateSubscriptionHash = await initiateSubscriptionSigned.submit();
+    console.log("TxHash: ", initiateSubscriptionHash);
     }
+  }
    catch (error) {
     console.error("Error updating service:", error);
     throw error; // or handle it as appropriate for your test

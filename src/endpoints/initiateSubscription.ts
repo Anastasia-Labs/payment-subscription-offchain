@@ -1,25 +1,19 @@
 import {
     Address,
-    Assets,
     Data,
     fromHex,
     LucidEvolution,
     mintingPolicyToId,
-    RedeemerBuilder,
     selectUTxOs,
     toHex,
     toUnit,
-    TransactionError,
     TxSignBuilder,
   } from "@lucid-evolution/lucid";
   import { sha3_256 } from "@noble/hashes/sha3";
-  import { readMultiValidators } from "../../test/compiled/validators.js";
+  //import { readMultiValidators } from "../../test/compiled/validators.js";
   import { getMultiValidator } from "../core/utils/index.js";
-  import { CreateServiceConfig, PaymentAccountConfig, Result } from "../core/types.js";
-  import { CreateServiceRedeemer, MintPayment, PaymentDatum, ServiceDatum } from "../core/contract.types.js";
-  import { createCip68TokenNames, generateUniqueAssetName } from "../core/utils/assets.js";
-  import { Effect } from "effect";
-  import { ADA } from "../core/constants.js";
+  import { PaymentAccountConfig, Result } from "../core/types.js";
+  import { MintPayment, PaymentDatum } from "../core/contract.types.js";
   
   export const initiateSubscription = async (
     lucid: LucidEvolution,
@@ -28,7 +22,7 @@ import {
       const subscriberAddr: Address = await lucid.wallet().address();
   
     const validators = getMultiValidator(lucid, config.scripts);
-    const validators1 = readMultiValidators();
+    //const validators1 = readMultiValidators();
     //   const paymentPolicyId = mintingPolicyToId(validators1.mintValidator);
     const paymentPolicyId = mintingPolicyToId(validators.mintValidator);
       console.log("servicePolicyId: ", paymentPolicyId);
@@ -59,12 +53,14 @@ import {
   //console.log("Token name", tokenName);
  console.log("Token name without function", tokenNameWithoutFunc);
 
+ console.log("Utxo used for payment redeemer",subscriberUTxOs[1]);
+
       const paymentredeemer: MintPayment = {
          InitSubscripton: {output_reference: {
             txHash: {
-              hash: subscriberUTxOs[0].txHash,
+              hash: subscriberUTxOs[1].txHash,
             },
-            outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
+            outputIndex: BigInt(subscriberUTxOs[1].outputIndex),
           },
           input_index: 0n } };
        
@@ -88,6 +84,7 @@ import {
       };
   
       const directDatum = Data.to<PaymentDatum>(currDatum, PaymentDatum);
+      console.log("Payment DAtum",directDatum);
   
       console.log("Account UTxOs :: ", config.accountUtxo);
       console.log("Service UTxOs :: ", config.serviceUtxo);
@@ -96,33 +93,38 @@ import {
         paymentPolicyId,
         tokenNameWithoutFunc,
       );
+      console.log("Payment NFT",paymentNFT);
       //const utxos = await subscriberAddr
+      //await mayFailAsync(() =>
   try{
-      const tx = await lucid
+      const tx =  await lucid
         .newTx()
+        .readFrom(config.serviceUtxo)
         //.collectFrom(subscriberUTxOs) // subscriber utxos
         .collectFrom(config.accountUtxo) // subscriber user nft utxo
-        .readFrom(config.serviceUtxo) // service validator ref nft utxo
+         // service validator ref nft utxo
         .mintAssets({[paymentNFT] : 1n},
           redeemerData,
         )
-        .pay.ToContract(validators.mintValAddress, {
+        .pay.ToAddress(subscriberAddr, {
+            [config.account_nft_tn]: 1n,
+          })
+          .pay.ToAddressWithData(validators.mintValAddress, {
             kind: "inline",
-            value: directDatum,
+            value: Data.void(),
         }, {
-            //lovelace : 2_000_000n,
+            lovelace : 2_000_000n,
             [paymentNFT]: 1n,
           })
-        .pay.ToAddress(subscriberAddr, {
-          [config.account_nft_tn]: 1n,
-        })
+
         .attach.MintingPolicy(validators.mintValidator)
-        //.attach.SpendingValidator(validators1.spendService)
-        .complete();
-  
+      .complete();
+        
         return { type: "ok", data: tx };  
+        
     } catch (error) {
         console.log(error);
+        
       if (error instanceof Error) return { type: "error", error: error };
       return { type: "error", error: new Error(`${JSON.stringify(error)}`) };
     }
