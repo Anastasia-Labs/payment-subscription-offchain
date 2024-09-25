@@ -128,6 +128,8 @@ export type PaymentAccountConfig = {
     minting: CborHex;
     staking: CborHex;
   };
+  accountUtxo : UTxO[];
+  serviceUtxo : UTxO[];
 };
 
 export type MultiValidator = {

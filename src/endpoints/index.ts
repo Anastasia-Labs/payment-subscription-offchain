@@ -6,3 +6,6 @@ export * from "./createAccount.js";
 export * from "./updateAccount.js";
 export * from "./removeAccount.js";
 export * from "./getValidatorDatum.js"
+export * from "./getServiceValidatorUtxos.js"
+export * from "./getAccountValidatorUtxos.js"
+export * from "./initiateSubscription.js"
