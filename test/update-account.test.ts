@@ -96,11 +96,11 @@ test<LucidContext>("Test 1 - Update Service", async ({
         accountUTxO,
     );
 
-    // Find the token names
-    const { refTokenName, userTokenName } = findCip68TokenNames([
-        ...accountUTxO,
-        ...subscriberUTxOAfter,
-    ], accountPolicyId);
+    const cip68TokenNames = findCip68TokenNames(
+        [...accountUTxO, ...subscriberUTxOAfter],
+        accountPolicyId,
+    );
+    const { refTokenName, userTokenName } = cip68TokenNames;
 
     const refNft = toUnit(
         accountPolicyId,

@@ -117,10 +117,10 @@ export const initiateSubscription = async (
       .collectFrom(subscriberUTxOs) // subscriber utxos
       // .collectFrom(config.accountUtxo) // subscriber user nft utxo
       .readFrom(config.serviceUtxo) // service validator ref nft utxo
-      .mintAssets({ [paymentNFT]: 1n }, Data.void())
+      .mintAssets({ [paymentNFT]: 1n }, redeemerData)
       .pay.ToContract(validators.mintValAddress, {
         kind: "inline",
-        value: Data.void(),
+        value: directDatum,
       }, {
         lovelace: 2_000_000n,
         [paymentNFT]: 1n,

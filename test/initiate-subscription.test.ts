@@ -20,11 +20,13 @@ import {
   LucidEvolution,
   mintingPolicyToId,
   PaymentAccountConfig,
+  toUnit,
   validatorToAddress,
 } from "../src/index.js";
 import { beforeEach, expect, test } from "vitest";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
+import { findCip68TokenNames } from "../src/core/utils/assets.js";
 
 type LucidContext = {
   lucid: LucidEvolution;
@@ -188,9 +190,43 @@ test<LucidContext>("Test 1 - Initiate subscription", async ({
     staking: "",
   };
 
+  // Find the Account token names
+  const { refTokenName: accRefName, userTokenName: accUserName } =
+    findCip68TokenNames([
+      ...accountScriptUTxOs,
+      ...subscriberUTxO,
+    ], accountPolicyId);
+
+  const accRefNft = toUnit(
+    accountPolicyId,
+    accRefName,
+  );
+
+  const accUsrNft = toUnit(
+    accountPolicyId,
+    accUserName,
+  );
+
+  // Service NFTs
+  const { refTokenName: serviceRefName, userTokenName: serviceUserName } =
+    findCip68TokenNames([
+      ...serviceScriptUTxOs,
+      ...merchantUTxO,
+    ], servicePolicyId);
+
+  const servcRefNft = toUnit(
+    servicePolicyId,
+    serviceRefName,
+  );
+
+  const serviceUserNft = toUnit(
+    servicePolicyId,
+    serviceUserName,
+  );
+
   const paymentConfig: PaymentAccountConfig = {
-    service_nft_tn: serviceRefNft.toString(),
-    account_nft_tn: accountUserNft.toString(),
+    service_nft_tn: serviceRefName,
+    account_nft_tn: accUserName,
     subscription_fee: ADA,
     total_subscription_fee: 1_000_000n,
     subscription_start: BigInt(emulator.now()),
@@ -209,6 +245,28 @@ test<LucidContext>("Test 1 - Initiate subscription", async ({
       serviceRefNft.toString(),
     ),
   };
+
+  // const paymentConfig: PaymentAccountConfig = {
+  //   service_nft_tn: serviceRefNft.toString(),
+  //   account_nft_tn: accountUserNft.toString(),
+  //   subscription_fee: ADA,
+  //   total_subscription_fee: 1_000_000n,
+  //   subscription_start: BigInt(emulator.now()),
+  //   subscription_end: subscription_end,
+  //   interval_length: 30n * 24n * 60n * 60n * 1000n,
+  //   interval_amount: 100_000_000n,
+  //   num_intervals: 10n,
+  //   last_claimed: 500000n,
+  //   penalty_fee: ADA,
+  //   penalty_fee_qty: 1_000_000n,
+  //   minimum_ada: 1_000_000n,
+  //   scripts: paymentScript,
+  //   accountUtxo: sample1,
+  //   serviceUtxo: await lucid.utxosAtWithUnit(
+  //     serviceAddress,
+  //     serviceRefNft.toString(),
+  //   ),
+  // };
 
   console.log("Payment config", paymentConfig);
   lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
