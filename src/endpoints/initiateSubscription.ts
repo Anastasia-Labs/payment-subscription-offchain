@@ -1,37 +1,25 @@
 import {
   Address,
-  Assets,
+  applyParamsToScript,
   Data,
   fromHex,
   LucidEvolution,
+  MintingPolicy,
   mintingPolicyToId,
-  RedeemerBuilder,
   selectUTxOs,
   toHex,
   toUnit,
-  TransactionError,
   TxSignBuilder,
+  validatorToAddress,
 } from "@lucid-evolution/lucid";
 import { sha3_256 } from "@noble/hashes/sha3";
-import { getMultiValidator } from "../core/utils/index.js";
+import { PaymentAccountConfig, Result } from "../core/types.js";
 import {
-  CreateServiceConfig,
-  PaymentAccountConfig,
-  Result,
-} from "../core/types.js";
-import {
-  CreatePaymentRedeemer,
-  CreateServiceRedeemer,
-  MintPayment,
+  InitiatePayment,
+  //MintPayment,
   PaymentDatum,
-  ServiceDatum,
 } from "../core/contract.types.js";
-import {
-  createCip68TokenNames,
-  generateUniqueAssetName,
-} from "../core/utils/assets.js";
-import { Effect } from "effect";
-import { ADA } from "../core/constants.js";
+import { generateUniqueAssetName } from "../core/utils/assets.js";
 
 export const initiateSubscription = async (
   lucid: LucidEvolution,
@@ -39,10 +27,10 @@ export const initiateSubscription = async (
 ): Promise<Result<TxSignBuilder>> => { // return type ,
   const subscriberAddr: Address = await lucid.wallet().address();
 
-  const validators = getMultiValidator(lucid, config.scripts);
-  //   const paymentPolicyId = mintingPolicyToId(validators1.mintValidator);
-  const paymentPolicyId = mintingPolicyToId(validators.mintValidator);
-  console.log("servicePolicyId: ", paymentPolicyId);
+  const paymentAddress = validatorToAddress("Custom", config.minting_Policy);
+
+  const paymentPolicyId = mintingPolicyToId(config.minting_Policy);
+  console.log("Payment Policy Id: ", paymentPolicyId);
 
   const subscriberUTxOs = await lucid.utxosAt(subscriberAddr);
 
@@ -55,46 +43,21 @@ export const initiateSubscription = async (
   const selectedUTxOs = selectUTxOs(subscriberUTxOs, {
     ["lovelace"]: 5000000n,
   });
+  const tokenName = generateUniqueAssetName(selectedUTxOs[0], "");
 
-  const txHash = selectedUTxOs[0].txHash;
-  const txHash256 = sha3_256(fromHex(txHash));
-
-  const outputIndex = selectedUTxOs[0].outputIndex;
-
-  //   console.log("TxHash", txHash);
-  //   console.log("TxHash", outputIndex);
-
-  const outputIndexByte = new Uint8Array([outputIndex]);
-  //const tokenName = generateUniqueAssetName(selectedUTxOs[0],"");
-  const tokenNameWithoutFunc = toHex(outputIndexByte) +
-    toHex(txHash256.slice(0, 31));
-  //console.log("Token name", tokenName);
-  console.log("Token name without function", tokenNameWithoutFunc);
-
-  const redeemer: CreatePaymentRedeemer = {
-    output_reference: {
-      txHash: {
-        hash: selectedUTxOs[0].txHash,
+  const paymentredeemer: InitiatePayment = {
+    InitSubscripton: {
+      output_reference: {
+        txHash: {
+          hash: subscriberUTxOs[0].txHash,
+        },
+        outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
       },
-      outputIndex: BigInt(selectedUTxOs[0].outputIndex),
+      input_index: 0n,
     },
-    input_index: 0n,
   };
-  const redeemerData = Data.to(redeemer, CreateServiceRedeemer);
 
-  // const paymentredeemer: MintPayment = {
-  //   InitSubscripton: {
-  //     output_reference: {
-  //       txHash: {
-  //         hash: subscriberUTxOs[0].txHash,
-  //       },
-  //       outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
-  //     },
-  //     input_index: 0n,
-  //   },
-  // };
-
-  // const redeemerData = Data.to(paymentredeemer, MintPayment);
+  const redeemerData = Data.to(paymentredeemer, InitiatePayment);
   console.log("REdeemer", redeemerData);
 
   const currDatum: PaymentDatum = {
@@ -115,33 +78,39 @@ export const initiateSubscription = async (
 
   const directDatum = Data.to<PaymentDatum>(currDatum, PaymentDatum);
 
+  console.log("DAtum", directDatum);
+
   console.log("Account UTxOs :: ", config.accountUtxo);
   console.log("Service UTxOs :: ", config.serviceUtxo);
-  //console.log("subscriber UTxOs :: ", config.serviceUtxo);
+
+  const accountAssets = config.accountUtxo[0].assets;
+  console.log("assets from Account utxs", accountAssets);
+
   const paymentNFT = toUnit(
     paymentPolicyId,
-    tokenNameWithoutFunc,
+    tokenName, //tokenNameWithoutFunc,
   );
-  //const utxos = await subscriberAddr
+  console.log("Service Utxo", config.serviceUtxo);
+  console.log("Payment validator address", paymentAddress);
   try {
     const tx = await lucid
       .newTx()
-      .collectFrom(subscriberUTxOs) // subscriber utxos
+      .readFrom(config.serviceUtxo)
+      //.collectFrom(subscriberUTxOs) // subscriber utxos
       .collectFrom(config.accountUtxo) // subscriber user nft utxo
-      .readFrom(config.serviceUtxo) // service validator ref nft utxo
+      // service validator ref nft utxo
       .mintAssets({ [paymentNFT]: 1n }, redeemerData)
-      .pay.ToContract(validators.mintValAddress, {
+      .pay.ToAddress(subscriberAddr, accountAssets)
+      .pay.ToAddressWithData(paymentAddress, {
         kind: "inline",
         value: directDatum,
       }, {
-        lovelace: 2_000_000n,
+        lovelace: 12_000_000n,
         [paymentNFT]: 1n,
       })
-      // .pay.ToAddress(subscriberAddr, {
-      //   [config.subscriber_token]: 1n,
-      // })
-      .attach.MintingPolicy(validators.mintValidator)
-      // .attach.SpendingValidator(validators.spendService)
+      //.pay.ToAddress(subscriberAddr,{lovelace:2_000_000n})
+      .attach.MintingPolicy(config.minting_Policy)
+      //.attach.SpendingValidator(config.serviceValidator)
       .complete();
 
     return { type: "ok", data: tx };

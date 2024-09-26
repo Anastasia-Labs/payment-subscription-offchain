@@ -147,8 +147,15 @@ export const MintPaymentSchema = Data.Enum([
     Data.Literal("TerminateSubscription"),
 ]);
 
-export type MintPayment = Data.Static<typeof MintPaymentSchema>;
-export const MintPayment = MintPaymentSchema as unknown as MintPayment;
+export type InitiatePayment = Data.Static<typeof MintPaymentSchema>;
+export const InitiatePayment = MintPaymentSchema as unknown as InitiatePayment;
+
+// export const InitiatorSchema = Data.Object({
+//     output_reference: OutputReferenceSchema,
+//     input_index: Data.Integer() });
+
+// export type InitiatePayment = Data.Static<typeof InitiatorSchema>;
+// export const InitiatePayment = InitiatorSchema as unknown as InitiatePayment;
 
 // pub type PaymentDatum {
 //     service_nft_tn: AssetName,
