@@ -40,7 +40,7 @@ test<LucidContext>("Test 1 - Create Account", async ({
   const program = Effect.gen(function* () {
     console.log("createSubscriptionAccount...TEST!!!!");
 
-    const accountValidator = readMultiValidators();
+    const accountValidator = readMultiValidators(false, []);
 
     const accountScript = {
       spending: accountValidator.spendAccount.script,

@@ -20,6 +20,7 @@ import {
   PaymentDatum,
 } from "../core/contract.types.js";
 import { generateUniqueAssetName } from "../core/utils/assets.js";
+import { getMultiValidator } from "../core/index.js";
 
 export const initiateSubscription = async (
   lucid: LucidEvolution,
@@ -27,7 +28,12 @@ export const initiateSubscription = async (
 ): Promise<Result<TxSignBuilder>> => { // return type ,
   const subscriberAddr: Address = await lucid.wallet().address();
 
-  const paymentAddress = validatorToAddress("Custom", config.minting_Policy);
+  // const paymentAddress = validatorToAddress("Custom", config.minting_Policy);
+  // const script = applyParamsToScript(
+  //   config.scripts.minting,
+  //   [config.service_policyId, config.account_policyId],
+  // );
+  const validators = getMultiValidator(lucid, config.scripts);
 
   const paymentPolicyId = mintingPolicyToId(config.minting_Policy);
   console.log("Payment Policy Id: ", paymentPolicyId);
@@ -91,7 +97,7 @@ export const initiateSubscription = async (
     tokenName, //tokenNameWithoutFunc,
   );
   console.log("Service Utxo", config.serviceUtxo);
-  console.log("Payment validator address", paymentAddress);
+  console.log("Payment validator address", config);
   try {
     const tx = await lucid
       .newTx()
@@ -101,7 +107,7 @@ export const initiateSubscription = async (
       // service validator ref nft utxo
       .mintAssets({ [paymentNFT]: 1n }, redeemerData)
       .pay.ToAddress(subscriberAddr, accountAssets)
-      .pay.ToAddressWithData(paymentAddress, {
+      .pay.ToAddressWithData(validators.spendValAddress, {
         kind: "inline",
         value: directDatum,
       }, {

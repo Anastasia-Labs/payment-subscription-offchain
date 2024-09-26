@@ -25,7 +25,7 @@ type LucidContext = {
   emulator: Emulator;
 };
 
-const serviceValidator = readMultiValidators();
+const serviceValidator = readMultiValidators(false, []);
 const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
 
 // INITIALIZE EMULATOR + ACCOUNTS

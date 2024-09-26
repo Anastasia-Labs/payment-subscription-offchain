@@ -61,7 +61,7 @@ test<LucidContext>("Test 1 - Initiate subscription", async ({
 }) => {
   console.log("createSubscriptionAccount...TEST!!!!");
 
-  const accountValidator = readMultiValidators();
+  const accountValidator = readMultiValidators(false, []);
 
   const accountScript = {
     spending: accountValidator.spendAccount.script,
@@ -104,7 +104,7 @@ test<LucidContext>("Test 1 - Initiate subscription", async ({
 
   console.log("createSubscriptionService...TEST!!!!");
 
-  const serviceValidator = readMultiValidators();
+  const serviceValidator = readMultiValidators(false, []);
 
   const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
 
@@ -160,24 +160,29 @@ test<LucidContext>("Test 1 - Initiate subscription", async ({
   const subscription_end = BigInt(emulator.now()) +
     interval_length * num_intervals;
 
-  const paymentValidator = readMultiValidators();
+  const paymentValidator = readMultiValidators(true, [
+    servicePolicyId,
+    accountPolicyId,
+  ]);
+
+  // const mintingPolicy: MintingPolicy = {
+  //   type: "PlutusV2",
+  //   script: applyParamsToScript(
+  //     paymentValidator.mintPayment.script,
+  //     [servicePolicyId, accountPolicyId],
+  //   ),
+  // };
+  const paymentValidatorAddress = validatorToAddress(
+    "Custom",
+    paymentValidator.mintPayment,
+  );
+  console.log("Payment validator address", paymentValidatorAddress);
 
   const paymentScript = {
     spending: paymentValidator.spendPayment.script,
     minting: paymentValidator.mintPayment.script,
     staking: "",
   };
-
-  const mintingPolicy: MintingPolicy = {
-    type: "PlutusV2",
-    script: applyParamsToScript(
-      paymentValidator.mintPayment.script,
-      [servicePolicyId, accountPolicyId],
-    ),
-  };
-  const paymentValidatorAddress = validatorToAddress("Custom", mintingPolicy);
-  console.log("Payment validator address", paymentValidatorAddress);
-
   // Find the Account token names
   const { refTokenName: accRefName, userTokenName: accUserName } =
     findCip68TokenNames([
@@ -239,7 +244,7 @@ test<LucidContext>("Test 1 - Initiate subscription", async ({
     scripts: paymentScript,
     accountUtxo: accountNFTUtxo,
     serviceUtxo: serviceNFTUtxo,
-    minting_Policy: mintingPolicy, //MintingPolicy
+    minting_Policy: paymentValidator.mintPayment, //MintingPolicy
   };
 
   console.log("Payment config", paymentConfig);

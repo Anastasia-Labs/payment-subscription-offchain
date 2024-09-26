@@ -40,7 +40,7 @@ test<LucidContext>("Test 1 - Create Service", async ({
 }) => {
   console.log("createSubscriptionService...TEST!!!!");
 
-  const serviceValidator = readMultiValidators();
+  const serviceValidator = readMultiValidators(false, []);
 
   const serviceScript = {
     spending: serviceValidator.spendService.script,
