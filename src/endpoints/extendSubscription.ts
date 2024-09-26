@@ -24,7 +24,7 @@ import { generateUniqueAssetName } from "../core/utils/assets.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
 
-export const initiateSubscription = (
+export const extendSubscription = (
   lucid: LucidEvolution,
   config: InitPaymentConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>

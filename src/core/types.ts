@@ -110,7 +110,33 @@ export type RemoveAccountConfig = {
   };
 };
 
-export type PaymentAccountConfig = {
+export type InitPaymentConfig = {
+  service_nft_tn: string; //AssetName,
+  account_nft_tn: string;
+  account_policyId: string;
+  service_policyId: string;
+  subscription_fee: AssetClassD;
+  total_subscription_fee: bigint;
+  subscription_start: bigint;
+  subscription_end: bigint;
+  interval_length: bigint;
+  interval_amount: bigint;
+  num_intervals: bigint;
+  last_claimed: bigint;
+  penalty_fee: AssetClassD;
+  penalty_fee_qty: bigint;
+  minimum_ada: bigint;
+  scripts: {
+    spending: CborHex;
+    minting: CborHex;
+    staking: CborHex;
+  };
+  accountUtxo: UTxO[];
+  serviceUtxo: UTxO[];
+  minting_Policy: MintingPolicy;
+};
+
+export type ExtendPaymentConfig = {
   service_nft_tn: string; //AssetName,
   account_nft_tn: string;
   account_policyId: string;

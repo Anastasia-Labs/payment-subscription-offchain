@@ -9,7 +9,7 @@ import {
 } from "../src/index.js";
 import { beforeEach, test } from "vitest";
 import { readMultiValidators } from "./compiled/validators.js";
-import { Effect } from "effect";
+import { Console, Effect } from "effect";
 
 type LucidContext = {
   lucid: LucidEvolution;
@@ -60,7 +60,8 @@ test<LucidContext>("Test 1 - Create Account", async ({
       "Custom",
       accountValidator.spendAccount,
     );
-    try {
+
+    const createAccountFlow = Effect.gen(function* (_) {
       const createAccountResult = yield* createAccount(
         lucid,
         createAccountConfig,
@@ -71,22 +72,36 @@ test<LucidContext>("Test 1 - Create Account", async ({
       const createAccountHash = yield* Effect.promise(() =>
         createAccountSigned.submit()
       );
+
       console.log("TxHash: ", createAccountHash);
-    } catch (error) {
-      console.error("Error updating Account:", error);
-      throw error;
-    }
-    yield* Effect.sync(() => emulator.awaitBlock(100));
+      yield* Effect.log(`TxHash: ${createAccountHash}`);
 
-    const subscriberUTxO = yield* Effect.promise(() =>
-      lucid.utxosAt(users.subscriber.address)
-    );
-    console.log("Updated Subscriber UTxO:", subscriberUTxO);
+      yield* Effect.sync(() => emulator.awaitBlock(50));
 
-    const scriptUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(accountAddress)
+      const [subscriberUtxos, serviceValidatorUtxos] = yield* Effect.all([
+        Effect.promise(() => lucid.utxosAt(users.subscriber.address)),
+        Effect.promise(() => lucid.utxosAt(accountAddress)),
+      ]);
+
+      yield* Console.log("Updated- Subscriber Utxos:", subscriberUtxos);
+      yield* Console.log(
+        "Updated- Account Validator Utxos:",
+        serviceValidatorUtxos,
+      );
+      return createAccountHash;
+    });
+
+    const createAccountResult = yield* createAccountFlow.pipe(
+      Effect.tapError((error) =>
+        Effect.log(`Error initiating subscription: ${error}`)
+      ),
+      Effect.map((hash) => {
+        console.log("Subscription initiated successfully. TxHash:", hash);
+        return hash;
+      }),
     );
-    console.log("Updated Account Validator: UTxOs", scriptUTxOs);
+
+    return createAccountResult;
   });
   await Effect.runPromise(program);
 });

@@ -45,13 +45,13 @@ beforeEach<LucidContext>(async (context) => {
     context.lucid = await Lucid(context.emulator, "Custom");
 });
 
-test<LucidContext>("Test 1 - Update Service", async ({
+test<LucidContext>("Test 1 - Remove Account", async ({
     lucid,
     users,
     emulator,
 }) => {
     const program = Effect.gen(function* () {
-        yield* Effect.log("Update Subscription Service...TEST!!!!");
+        yield* Effect.log("Remove Subscription Account...TEST!!!!");
 
         const accountScript = {
             spending: accountValidator.spendAccount.script,
