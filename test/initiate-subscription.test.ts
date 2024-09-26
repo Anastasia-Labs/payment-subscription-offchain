@@ -6,20 +6,21 @@
 
 import {
   ADA,
+  applyParamsToScript,
   createAccount,
   CreateAccountConfig,
   createService,
   CreateServiceConfig,
   Emulator,
   generateEmulatorAccount,
-  getAccountValidatorUtxos,
-  getServiceValidatorUtxos,
   getValidatorDatum,
   initiateSubscription,
   Lucid,
   LucidEvolution,
+  MintingPolicy,
   mintingPolicyToId,
   PaymentAccountConfig,
+  SpendingValidator,
   toUnit,
   validatorToAddress,
 } from "../src/index.js";
@@ -67,6 +68,7 @@ test<LucidContext>("Test 1 - Initiate subscription", async ({
     minting: accountValidator.mintAccount.script,
     staking: "",
   };
+  const accountPolicyId = mintingPolicyToId(accountValidator.mintAccount);
 
   const createAccountConfig: CreateAccountConfig = {
     email: "business@web3.ada",
@@ -105,8 +107,7 @@ test<LucidContext>("Test 1 - Initiate subscription", async ({
   const serviceValidator = readMultiValidators();
 
   const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
-  const accountPolicyId = mintingPolicyToId(serviceValidator.spendAccount);
-
+  
   const serviceScript = {
     spending: serviceValidator.spendService.script,
     minting: serviceValidator.mintService.script,
@@ -155,40 +156,30 @@ test<LucidContext>("Test 1 - Initiate subscription", async ({
 
   console.log("Service Validator Utxos", serviceValidatorUtxos);
   const interval_length = serviceValidatorUtxos[0].interval_length;
-  const num_intervals = -serviceValidatorUtxos[0].num_intervals;
+  const num_intervals = serviceValidatorUtxos[0].num_intervals;
   const subscription_end = BigInt(emulator.now()) +
     interval_length * num_intervals;
-
-  const serviceUtxos = await getServiceValidatorUtxos(
-    lucid,
-    createServiceConfig,
-  );
-  const serviceAssets = serviceUtxos[0].assets;
-  //console.log("assets from ", something1);
-  const serviceUnits = Object.keys(serviceAssets);
-  //console.log("Unit", units1);
-  const serviceRefNft = serviceUnits.filter((unit) => unit !== "lovelace");
-  console.log(" Service Ref NFT", serviceRefNft.toString());
-
-  //const accountUtxos = await getAccountValidatorUtxos(lucid,createAccountConfig );
-  const accountAssets = subscriberUTxO[0].assets;
-  //console.log("assets from ", something2);
-  const accountUnits = Object.keys(accountAssets);
-  //console.log("Unit", units2);
-  const accountUserNft = accountUnits.filter((unit) => unit !== "lovelace");
-  console.log("Account User NFT", accountUserNft.toString());
-
-  const sample1 = await lucid.utxosAtWithUnit(
-    users.subscriber.address,
-    accountUserNft.toString(),
-  );
-  console.log("Account utxos with user nft", sample1);
+  
   const paymentValidator = readMultiValidators();
+
   const paymentScript = {
     spending: paymentValidator.spendPayment.script,
     minting: paymentValidator.mintPayment.script,
     staking: "",
   };
+
+  const mintingPolicy : MintingPolicy = {
+    type: "PlutusV2",
+    script: applyParamsToScript(
+      paymentValidator.mintPayment.script,
+        [servicePolicyId,
+        accountPolicyId,
+        ]
+
+    ),
+  };
+  const paymentValidatorAddress = validatorToAddress("Custom",mintingPolicy);
+  console.log("Payment validator address",paymentValidatorAddress);
 
   // Find the Account token names
   const { refTokenName: accRefName, userTokenName: accUserName } =
@@ -224,50 +215,37 @@ test<LucidContext>("Test 1 - Initiate subscription", async ({
     serviceUserName,
   );
 
+  const accountNFTUtxo = await lucid.utxosAtWithUnit(
+    users.subscriber.address,
+    accUsrNft
+  );
+  const serviceNFTUtxo = await lucid.utxosAtWithUnit(
+    serviceAddress,
+    servcRefNft
+  );
   const paymentConfig: PaymentAccountConfig = {
     service_nft_tn: serviceRefName,
     account_nft_tn: accUserName,
+    account_policyId : accountPolicyId,
+    service_policyId : servicePolicyId,
     subscription_fee: ADA,
-    total_subscription_fee: 1_000_000n,
+    total_subscription_fee: 120_000_000n,
     subscription_start: BigInt(emulator.now()),
     subscription_end: subscription_end,
-    interval_length: 30n * 24n * 60n * 60n * 1000n,
-    interval_amount: 100_000_000n,
-    num_intervals: 10n,
+    interval_length: interval_length,//30n * 24n * 60n * 60n * 1000n,
+    interval_amount: 10_000_000n,
+    num_intervals: num_intervals,
     last_claimed: 500000n,
     penalty_fee: ADA,
     penalty_fee_qty: 1_000_000n,
     minimum_ada: 1_000_000n,
     scripts: paymentScript,
-    accountUtxo: sample1,
-    serviceUtxo: await lucid.utxosAtWithUnit(
-      serviceAddress,
-      serviceRefNft.toString(),
-    ),
-  };
-
-  // const paymentConfig: PaymentAccountConfig = {
-  //   service_nft_tn: serviceRefNft.toString(),
-  //   account_nft_tn: accountUserNft.toString(),
-  //   subscription_fee: ADA,
-  //   total_subscription_fee: 1_000_000n,
-  //   subscription_start: BigInt(emulator.now()),
-  //   subscription_end: subscription_end,
-  //   interval_length: 30n * 24n * 60n * 60n * 1000n,
-  //   interval_amount: 100_000_000n,
-  //   num_intervals: 10n,
-  //   last_claimed: 500000n,
-  //   penalty_fee: ADA,
-  //   penalty_fee_qty: 1_000_000n,
-  //   minimum_ada: 1_000_000n,
-  //   scripts: paymentScript,
-  //   accountUtxo: sample1,
-  //   serviceUtxo: await lucid.utxosAtWithUnit(
-  //     serviceAddress,
-  //     serviceRefNft.toString(),
-  //   ),
-  // };
-
+    accountUtxo: accountNFTUtxo,
+    serviceUtxo: serviceNFTUtxo,
+    minting_Policy : mintingPolicy //MintingPolicy
+  
+  };  
+ 
   console.log("Payment config", paymentConfig);
   lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
@@ -276,14 +254,20 @@ test<LucidContext>("Test 1 - Initiate subscription", async ({
       lucid,
       paymentConfig,
     );
-    //expect(initiateSubscriptionUnsigned.type).toBe("ok");
-    //if (initiateSubscriptionUnsigned.type == "ok") {
-    //const initiateSubscriptionSigned = await initiateSubscriptionUnsigned.data.sign.withWallet()
-    //  .complete();
-    //const initiateSubscriptionHash = await initiateSubscriptionSigned.submit();
-    //console.log("TxHash: ", updateServiceHash);
-  } catch (error) {
+    expect(initiateSubscriptionUnsigned.type).toBe("ok");
+    if (initiateSubscriptionUnsigned.type == "ok") {
+    const initiateSubscriptionSigned = await initiateSubscriptionUnsigned.data.sign.withWallet()
+      .complete();
+    const initiateSubscriptionHash = await initiateSubscriptionSigned.submit();
+    emulator.awaitBlock(50);
+    console.log("Payment Validator Utxos", await lucid.utxosAt(paymentValidatorAddress));
+  console.log("Account- Subscriber Utxos ", await lucid.utxosAt(users.subscriber.address) );
+  console.log("Service- Validator Utxos ", await lucid.utxosAt(serviceAddress) );
+  } 
+}
+catch (error) {
     console.error("Error updating service:", error);
-    throw error; // or handle it as appropriate for your test
-  }
+    throw error; 
+  
+}
 });

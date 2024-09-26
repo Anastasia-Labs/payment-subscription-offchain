@@ -1,6 +1,7 @@
 import {
   Address,
   Assets,
+  MintingPolicy,
   OutRef,
   Script,
   Unit,
@@ -112,6 +113,8 @@ export type RemoveAccountConfig = {
 export type PaymentAccountConfig = {
   service_nft_tn: string; //AssetName,
   account_nft_tn: string;
+  account_policyId : string;
+  service_policyId :string;
   subscription_fee: AssetClassD,
   total_subscription_fee: bigint,
   subscription_start: bigint,
@@ -130,6 +133,7 @@ export type PaymentAccountConfig = {
   };
   accountUtxo : UTxO[];
   serviceUtxo : UTxO[];
+  minting_Policy : MintingPolicy
 };
 
 export type MultiValidator = {

@@ -134,13 +134,23 @@ export const AccountDatum = AccountDatumSchema as unknown as AccountDatum;
 //   }
 
 export const MintPaymentSchema = Data.Enum([
-    
-    Data.Object({ InitSubscripton: Data.Object({ output_reference: OutputReferenceSchema, input_index: Data.Integer() }) }),
+    Data.Object({ 
+        InitSubscripton: Data.Object({ 
+            output_reference: OutputReferenceSchema, 
+            input_index: Data.Integer() }) }),
     Data.Literal("TerminateSubscription"),
   ]);
 
-export type MintPayment = Data.Static<typeof MintPaymentSchema>;
-export const MintPayment = MintPaymentSchema as unknown as MintPayment;
+
+export type InitiatePayment = Data.Static<typeof MintPaymentSchema>;
+export const InitiatePayment = MintPaymentSchema as unknown as InitiatePayment;
+
+// export const InitiatorSchema = Data.Object({ 
+//     output_reference: OutputReferenceSchema, 
+//     input_index: Data.Integer() });
+
+// export type InitiatePayment = Data.Static<typeof InitiatorSchema>;
+// export const InitiatePayment = InitiatorSchema as unknown as InitiatePayment;
 
 // pub type PaymentDatum {
 //     service_nft_tn: AssetName,
@@ -159,7 +169,7 @@ export const MintPayment = MintPaymentSchema as unknown as MintPayment;
 //   }
 
   export const PaymentDatumSchema = Data.Object({
-    service_nft_tn: Data.Bytes(), //AssetName,
+    service_nft_tn:Data.Bytes(), //AssetName,
     account_nft_tn: Data.Bytes(),
     subscription_fee: AssetClassSchema,
     total_subscription_fee: Data.Integer(),
