@@ -20,6 +20,7 @@ import {
   Result,
 } from "../core/types.js";
 import {
+  CreatePaymentRedeemer,
   CreateServiceRedeemer,
   MintPayment,
   PaymentDatum,
@@ -70,19 +71,30 @@ export const initiateSubscription = async (
   //console.log("Token name", tokenName);
   console.log("Token name without function", tokenNameWithoutFunc);
 
-  const paymentredeemer: MintPayment = {
-    InitSubscripton: {
-      output_reference: {
-        txHash: {
-          hash: subscriberUTxOs[0].txHash,
-        },
-        outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
+  const redeemer: CreatePaymentRedeemer = {
+    output_reference: {
+      txHash: {
+        hash: selectedUTxOs[0].txHash,
       },
-      input_index: 0n,
+      outputIndex: BigInt(selectedUTxOs[0].outputIndex),
     },
+    input_index: 0n,
   };
+  const redeemerData = Data.to(redeemer, CreateServiceRedeemer);
 
-  const redeemerData = Data.to(paymentredeemer, MintPayment);
+  // const paymentredeemer: MintPayment = {
+  //   InitSubscripton: {
+  //     output_reference: {
+  //       txHash: {
+  //         hash: subscriberUTxOs[0].txHash,
+  //       },
+  //       outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
+  //     },
+  //     input_index: 0n,
+  //   },
+  // };
+
+  // const redeemerData = Data.to(paymentredeemer, MintPayment);
   console.log("REdeemer", redeemerData);
 
   const currDatum: PaymentDatum = {
@@ -115,7 +127,7 @@ export const initiateSubscription = async (
     const tx = await lucid
       .newTx()
       .collectFrom(subscriberUTxOs) // subscriber utxos
-      // .collectFrom(config.accountUtxo) // subscriber user nft utxo
+      .collectFrom(config.accountUtxo) // subscriber user nft utxo
       .readFrom(config.serviceUtxo) // service validator ref nft utxo
       .mintAssets({ [paymentNFT]: 1n }, redeemerData)
       .pay.ToContract(validators.mintValAddress, {
@@ -125,11 +137,11 @@ export const initiateSubscription = async (
         lovelace: 2_000_000n,
         [paymentNFT]: 1n,
       })
-      .pay.ToAddress(subscriberAddr, {
-        [config.account_nft_tn]: 1n,
-      })
+      // .pay.ToAddress(subscriberAddr, {
+      //   [config.subscriber_token]: 1n,
+      // })
       .attach.MintingPolicy(validators.mintValidator)
-      //.attach.SpendingValidator(validators1.spendService)
+      // .attach.SpendingValidator(validators.spendService)
       .complete();
 
     return { type: "ok", data: tx };

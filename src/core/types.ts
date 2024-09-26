@@ -55,21 +55,21 @@ export type UpdateServiceConfig = {
 };
 
 export type RemoveServiceConfig = {
-  service_fee: AssetClassD,
-  service_fee_qty: bigint,
-  penalty_fee: AssetClassD,
-  penalty_fee_qty: bigint,
-  interval_length: bigint,
-  num_intervals: bigint,
-  minimum_ada: bigint,
-  is_active: boolean,
-  user_token: Unit,
-  ref_token: Unit,
+  service_fee: AssetClassD;
+  service_fee_qty: bigint;
+  penalty_fee: AssetClassD;
+  penalty_fee_qty: bigint;
+  interval_length: bigint;
+  num_intervals: bigint;
+  minimum_ada: bigint;
+  is_active: boolean;
+  user_token: Unit;
+  ref_token: Unit;
   scripts: {
     spending: CborHex;
     minting: CborHex;
     staking: CborHex;
-  }
+  };
 };
 
 export type CreateAccountConfig = {
@@ -112,24 +112,26 @@ export type RemoveAccountConfig = {
 export type PaymentAccountConfig = {
   service_nft_tn: string; //AssetName,
   account_nft_tn: string;
-  subscription_fee: AssetClassD,
-  total_subscription_fee: bigint,
-  subscription_start: bigint,
-  subscription_end: bigint,
-  interval_length: bigint,
-  interval_amount: bigint,
-  num_intervals: bigint,
-  last_claimed: bigint,
-  penalty_fee: AssetClassD,
-  penalty_fee_qty: bigint,
-  minimum_ada: bigint,
+  subscription_fee: AssetClassD;
+  total_subscription_fee: bigint;
+  subscription_start: bigint;
+  subscription_end: bigint;
+  interval_length: bigint;
+  interval_amount: bigint;
+  num_intervals: bigint;
+  last_claimed: bigint;
+  penalty_fee: AssetClassD;
+  penalty_fee_qty: bigint;
+  minimum_ada: bigint;
   scripts: {
     spending: CborHex;
     minting: CborHex;
     staking: CborHex;
   };
-  accountUtxo : UTxO[];
-  serviceUtxo : UTxO[];
+  accountUtxo: UTxO[];
+  serviceUtxo: UTxO[];
+  subscriber_token: Unit;
+  service_token: Unit;
 };
 
 export type MultiValidator = {

@@ -239,11 +239,10 @@ test<LucidContext>("Test 1 - Initiate subscription", async ({
     penalty_fee_qty: 1_000_000n,
     minimum_ada: 1_000_000n,
     scripts: paymentScript,
-    accountUtxo: sample1,
-    serviceUtxo: await lucid.utxosAtWithUnit(
-      serviceAddress,
-      serviceRefNft.toString(),
-    ),
+    accountUtxo: accountScriptUTxOs,
+    serviceUtxo: serviceScriptUTxOs,
+    subscriber_token: accUsrNft,
+    service_token: servcRefNft,
   };
 
   // const paymentConfig: PaymentAccountConfig = {

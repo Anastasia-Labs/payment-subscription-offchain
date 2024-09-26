@@ -88,6 +88,10 @@ export type CreateAccountRedeemer = Data.Static<typeof CreateMintSchema>;
 export const CreateAccountRedeemer =
     CreateMintSchema as unknown as CreateAccountRedeemer;
 
+export type CreatePaymentRedeemer = Data.Static<typeof CreateMintSchema>;
+export const CreatePaymentRedeemer =
+    CreateMintSchema as unknown as CreatePaymentRedeemer;
+
 // const deleteService: MintServiceRedeemer = "DeleteService";
 
 // export const UpdateService = () => Data.to(new Constr(0, []));
@@ -134,10 +138,14 @@ export const AccountDatum = AccountDatumSchema as unknown as AccountDatum;
 //   }
 
 export const MintPaymentSchema = Data.Enum([
-    
-    Data.Object({ InitSubscripton: Data.Object({ output_reference: OutputReferenceSchema, input_index: Data.Integer() }) }),
+    Data.Object({
+        InitSubscripton: Data.Object({
+            output_reference: OutputReferenceSchema,
+            input_index: Data.Integer(),
+        }),
+    }),
     Data.Literal("TerminateSubscription"),
-  ]);
+]);
 
 export type MintPayment = Data.Static<typeof MintPaymentSchema>;
 export const MintPayment = MintPaymentSchema as unknown as MintPayment;
@@ -158,7 +166,7 @@ export const MintPayment = MintPaymentSchema as unknown as MintPayment;
 //     minimum_ada: Int,
 //   }
 
-  export const PaymentDatumSchema = Data.Object({
+export const PaymentDatumSchema = Data.Object({
     service_nft_tn: Data.Bytes(), //AssetName,
     account_nft_tn: Data.Bytes(),
     subscription_fee: AssetClassSchema,
