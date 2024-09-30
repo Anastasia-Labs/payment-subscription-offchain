@@ -14,7 +14,6 @@ import { Effect } from "effect";
 export const removeService = (
     lucid: LucidEvolution,
     config: RemoveServiceConfig,
-
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
     Effect.gen(function* () { // return type ,
         console.log("Remove Service..........: ");
@@ -75,10 +74,10 @@ export const removeService = (
         //console.log("Datum service_fee_qty: ", config.new_service_fee_qty);
 
         const tx = yield* lucid
-            .newTx()  
+            .newTx()
             .collectFrom(merchantUTxO)
-            .collectFrom(serviceUTxO,wrappedRedeemer)
-           //.collectFrom(serviceUTxO)
+            .collectFrom(serviceUTxO, wrappedRedeemer)
+            //.collectFrom(serviceUTxO)
             .pay.ToContract(serviceValAddress, {
                 kind: "inline",
                 value: directDatum,
@@ -87,7 +86,7 @@ export const removeService = (
                 [config.ref_token]: 1n,
             })
             .pay.ToAddress(merchantAddress, {
-               // lovelace: 3_000_000n,
+                // lovelace: 3_000_000n,
                 [config.user_token]: 1n,
             })
             .attach.SpendingValidator(validators.spendValidator)

@@ -50,9 +50,23 @@ beforeEach<LucidContext>(async (context) => {
 
   context.lucid = await Lucid(context.emulator, "Custom");
 });
+
+type InitiateSubscriptionResult = {
+  txHash: string;
+  paymentConfig: InitPaymentConfig;
+  additionalInfo: {
+    paymentValidatorAddress: string;
+    serviceAddress: string;
+    accountPolicyId: string;
+    servicePolicyId: string;
+    accUsrNft: string;
+    servcRefNft: string;
+  };
+};
+
 export const initiateSubscriptionTestCase = (
   { lucid, users, emulator }: LucidContext,
-) => {
+): Effect.Effect<InitiateSubscriptionResult, Error, never> => {
   return Effect.gen(function* () {
     // Existing test logic goes here
     console.log("createSubscriptionAccount...TEST!!!!");
@@ -242,6 +256,7 @@ export const initiateSubscriptionTestCase = (
         servcRefNft,
       )
     );
+
     const paymentConfig: InitPaymentConfig = {
       service_nft_tn: serviceRefName,
       account_nft_tn: accUserName,
@@ -309,7 +324,18 @@ export const initiateSubscriptionTestCase = (
       }),
     );
 
-    return subscriptionResult;
+    return {
+      txHash: subscriptionResult,
+      paymentConfig,
+      additionalInfo: {
+        paymentValidatorAddress,
+        serviceAddress,
+        accountPolicyId,
+        servicePolicyId,
+        accUsrNft,
+        servcRefNft,
+      },
+    };
   });
 };
 
@@ -317,9 +343,12 @@ test<LucidContext>("Test 1 - Initiate subscription", async (
   context,
 ) => {
   const result = await Effect.runPromise(initiateSubscriptionTestCase(context));
-  expect(result).toBeDefined();
-  expect(typeof result).toBe("string"); // Assuming the result is a transaction hash
+  expect(result.txHash).toBeDefined();
+  expect(typeof result.txHash).toBe("string");
   console.log("Subscription initiated with transaction hash:", result);
+
+  expect(result.paymentConfig).toBeDefined();
+  expect(result.additionalInfo.paymentValidatorAddress).toBeDefined();
 });
 
 // await Effect.runPromise(program);

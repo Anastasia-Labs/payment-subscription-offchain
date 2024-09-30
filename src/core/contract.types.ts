@@ -191,3 +191,24 @@ export const PaymentDatumSchema = Data.Object({
 
 export type PaymentDatum = Data.Static<typeof PaymentDatumSchema>;
 export const PaymentDatum = PaymentDatumSchema as unknown as PaymentDatum;
+
+export const PenaltyDatumSchema = Data.Object({
+    service_nft_tn: Data.Bytes(),
+    account_nft_tn: Data.Bytes(),
+    penalty_fee: AssetClassSchema,
+    penalty_fee_qty: Data.Integer(),
+});
+
+export type PenaltyDatum = Data.Static<typeof PenaltyDatumSchema>;
+export const PenaltyDatum = PenaltyDatumSchema as unknown as PenaltyDatum;
+
+const PaymentValidatorDatumSchema = Data.Enum([
+    Data.Object({ Payment: PaymentDatumSchema }),
+    Data.Object({ Penalty: PenaltyDatumSchema }),
+]);
+
+export type PaymentValidatorDatum = Data.Static<
+    typeof PaymentValidatorDatumSchema
+>;
+export const PaymentValidatorDatum =
+    PaymentValidatorDatumSchema as unknown as PaymentValidatorDatum;

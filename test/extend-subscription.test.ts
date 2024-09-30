@@ -54,17 +54,95 @@ beforeEach<LucidContext>(async (context) => {
 });
 
 test<LucidContext>("Test 1 - Extend Service", async (
-    context,
+    { lucid, users, emulator }: LucidContext,
 ) => {
-    const result = await Effect.runPromise(
-        initiateSubscriptionTestCase(context),
+    const program = Effect.gen(function* () {
+        const initResult = yield* initiateSubscriptionTestCase({
+            lucid,
+            users,
+            emulator,
+        });
+
+        expect(initResult).toBeDefined();
+        expect(typeof initResult.txHash).toBe("string"); // Assuming the initResult is a transaction hash
+        console.log(
+            "Subscription initiated with transaction hash:",
+            initResult.txHash,
+        );
+
+        let extension_period = initResult.paymentConfig.interval_length;
+        let extension_fee = initResult.paymentConfig.interval_amount;
+        let extension_intervals = BigInt(1);
+
+        // Calculate new subscription end time
+        const currentTime = BigInt(emulator.now());
+        const newSubscriptionEnd = currentTime +
+            (extension_period * extension_intervals);
+        // const extendPaymentConfig: ExtendPaymentConfig = {
+        //     ...initResult.paymentConfig,
+        // };
+
+        const extendPaymentConfig: ExtendPaymentConfig = {
+            ...initResult.paymentConfig,
+            subscription_start: currentTime,
+            subscription_end: newSubscriptionEnd,
+            total_subscription_fee: extension_fee * extension_intervals,
+            num_intervals: extension_intervals,
+            // Update other fields as necessary
+            interval_length: extension_period,
+            interval_amount: extension_fee,
+        };
+        lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
+
+        const extendResult = yield* extendSubscription(
+            lucid,
+            extendPaymentConfig,
+        );
+        const extendSigned = yield* Effect.promise(() =>
+            extendResult.sign.withWallet().complete()
+        );
+        const extendTxHash = yield* Effect.promise(() => extendSigned.submit());
+
+        console.log(
+            "Subscription extended with transaction hash:",
+            extendTxHash,
+        );
+        yield* Effect.sync(() => emulator.awaitBlock(100));
+
+        const extendSubscriberUTxO = yield* Effect.promise(() =>
+            lucid.utxosAt(users.subscriber.address)
+        );
+
+        yield* Effect.log("removeSubscriberUTxO: After:", extendSubscriberUTxO);
+
+        // const scriptUTxOs = yield* Effect.promise(() =>
+        //     lucid.utxosAt(accountScriptAddress)
+        // );
+
+        // yield* Effect.log("Updated Service Validator: UTxOs", scriptUTxOs);
+
+        return {
+            initTxHash: initResult.txHash,
+            extendTxHash,
+            extendedConfig: extendPaymentConfig,
+        };
+    });
+    const result = await Effect.runPromise(program);
+
+    expect(result.initTxHash).toBeDefined();
+    expect(result.extendTxHash).toBeDefined();
+    expect(typeof result.initTxHash).toBe("string");
+    expect(typeof result.extendTxHash).toBe("string");
+
+    // Add assertions to verify the extended configuration
+    expect(result.extendedConfig.subscription_start).toBeGreaterThan(
+        result.extendedConfig.subscription_end,
     );
-    expect(result).toBeDefined();
-    expect(typeof result).toBe("string"); // Assuming the result is a transaction hash
-    console.log(
-        "Subscription initiated with transaction hash IN EXTEND:",
-        result,
+    expect(result.extendedConfig.total_subscription_fee).toBe(
+        result.extendedConfig.interval_amount *
+            result.extendedConfig.num_intervals,
     );
+    expect(result.extendedConfig.num_intervals).toBe(1n);
 });
 
 // test<LucidContext>("Test 1 - Extend Service", async ({
@@ -315,37 +393,37 @@ test<LucidContext>("Test 1 - Extend Service", async (
 
 //         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
-//         try {
-//             const extendPaymentResult = yield* extendSubscription(
-//                 lucid,
-//                 extendPaymentConfig,
-//             );
-//             const extendPaymentSigned = yield* Effect.promise(() =>
-//                 extendPaymentResult.sign
-//                     .withWallet()
-//                     .complete()
-//             );
-//             const removeAccountHash = yield* Effect.promise(() =>
-//                 extendPaymentSigned.submit()
-//             );
-//             yield* Effect.log("TxHash: ", removeAccountHash);
-//         } catch (error) {
-//             console.error("Error updating service:", error);
-//             throw error;
-//         }
-//         yield* Effect.sync(() => emulator.awaitBlock(100));
-
-//         const removeSubscriberUTxO = yield* Effect.promise(() =>
-//             lucid.utxosAt(users.subscriber.address)
+//     try {
+//         const extendPaymentResult = yield* extendSubscription(
+//             lucid,
+//             extendPaymentConfig,
 //         );
-
-//         yield* Effect.log("removeSubscriberUTxO: After:", removeSubscriberUTxO);
-
-//         const scriptUTxOs = yield* Effect.promise(() =>
-//             lucid.utxosAt(accountScriptAddress)
+//         const extendPaymentSigned = yield* Effect.promise(() =>
+//             extendPaymentResult.sign
+//                 .withWallet()
+//                 .complete()
 //         );
+//         const removeAccountHash = yield* Effect.promise(() =>
+//             extendPaymentSigned.submit()
+//         );
+//         yield* Effect.log("TxHash: ", removeAccountHash);
+//     } catch (error) {
+//         console.error("Error updating service:", error);
+//         throw error;
+//     }
+//     yield* Effect.sync(() => emulator.awaitBlock(100));
 
-//         yield* Effect.log("Updated Service Validator: UTxOs", scriptUTxOs);
-//     });
+//     const removeSubscriberUTxO = yield* Effect.promise(() =>
+//         lucid.utxosAt(users.subscriber.address)
+//     );
+
+//     yield* Effect.log("removeSubscriberUTxO: After:", removeSubscriberUTxO);
+
+//     const scriptUTxOs = yield* Effect.promise(() =>
+//         lucid.utxosAt(accountScriptAddress)
+//     );
+
+//     yield* Effect.log("Updated Service Validator: UTxOs", scriptUTxOs);
+// });
 //     await Effect.runPromise(program);
 // });

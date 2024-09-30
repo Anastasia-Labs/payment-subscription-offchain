@@ -14,11 +14,17 @@ import {
   validatorToAddress,
 } from "@lucid-evolution/lucid";
 import { sha3_256 } from "@noble/hashes/sha3";
-import { InitPaymentConfig, Result } from "../core/types.js";
+import {
+  ExtendPaymentConfig,
+  InitPaymentConfig,
+  Result,
+} from "../core/types.js";
 import {
   InitiatePayment,
   //MintPayment,
   PaymentDatum,
+  PaymentValidatorDatum,
+  PenaltyDatum,
 } from "../core/contract.types.js";
 import { generateUniqueAssetName } from "../core/utils/assets.js";
 import { getMultiValidator } from "../core/index.js";
@@ -26,7 +32,7 @@ import { Effect } from "effect";
 
 export const extendSubscription = (
   lucid: LucidEvolution,
-  config: InitPaymentConfig,
+  config: ExtendPaymentConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
   Effect.gen(function* () { // return type ,
     const subscriberAddress: Address = yield* Effect.promise(() =>
@@ -67,7 +73,7 @@ export const extendSubscription = (
     const redeemerData = Data.to(paymentredeemer, InitiatePayment);
     console.log("REdeemer", redeemerData);
 
-    const currDatum: PaymentDatum = {
+    const paymentDatum: PaymentDatum = {
       service_nft_tn: config.service_nft_tn,
       account_nft_tn: config.account_nft_tn,
       subscription_fee: config.subscription_fee,
@@ -83,9 +89,36 @@ export const extendSubscription = (
       minimum_ada: config.minimum_ada,
     };
 
-    const directDatum = Data.to<PaymentDatum>(currDatum, PaymentDatum);
+    const directPaymentDatum = Data.to<PaymentDatum>(
+      paymentDatum,
+      PaymentDatum,
+    );
 
-    console.log("DAtum", directDatum);
+    const penaltyDatum: PenaltyDatum = {
+      service_nft_tn: config.service_nft_tn,
+      account_nft_tn: config.account_nft_tn,
+      penalty_fee: config.penalty_fee,
+      penalty_fee_qty: config.penalty_fee_qty,
+    };
+
+    const directPenaltyDatum = Data.to<PenaltyDatum>(
+      penaltyDatum,
+      PenaltyDatum,
+    );
+
+    const allDatums: PaymentValidatorDatum = {
+      Payment: paymentDatum,
+      Penalty: penaltyDatum,
+    };
+
+    const allDatumData = Data.to<PaymentValidatorDatum>(
+      allDatums,
+      PaymentValidatorDatum,
+    );
+
+    console.log("EXTEND ALL DATUM", allDatumData);
+    console.log("EXTEND PAYMENT DATUM", paymentDatum);
+    console.log("EXTEND PENALTY DATUM", penaltyDatum);
 
     console.log("Account UTxOs :: ", config.accountUtxo);
     console.log("Service UTxOs :: ", config.serviceUtxo);
@@ -98,7 +131,7 @@ export const extendSubscription = (
       tokenName, //tokenNameWithoutFunc,
     );
     console.log("Service Utxo", config.serviceUtxo);
-    console.log("Payment validator address", config);
+    console.log("Payment validator", config);
 
     const tx = yield* lucid
       .newTx()
@@ -106,18 +139,18 @@ export const extendSubscription = (
       //.collectFrom(subscriberUTxOs) // subscriber utxos
       .collectFrom(config.accountUtxo) // subscriber user nft utxo
       // service validator ref nft utxo
-      .mintAssets({ [paymentNFT]: 1n }, redeemerData)
+      // .mintAssets({ [paymentNFT]: 1n }, redeemerData)
       .pay.ToAddress(subscriberAddress, accountAssets)
       .pay.ToAddressWithData(validators.spendValAddress, {
         kind: "inline",
-        value: directDatum,
+        value: allDatumData,
       }, {
         lovelace: 12_000_000n,
         [paymentNFT]: 1n,
       })
       //.pay.ToAddress(subscriberAddr,{lovelace:2_000_000n})
-      .attach.MintingPolicy(config.minting_Policy)
-      //.attach.SpendingValidator(config.serviceValidator)
+      // .attach.MintingPolicy(config.minting_Policy)
+      .attach.SpendingValidator(validators.spendValidator)
       .completeProgram();
 
     return tx;
