@@ -6,6 +6,7 @@ import {
     Emulator,
     ExtendPaymentConfig,
     extendSubscription,
+    fromAssets,
     generateEmulatorAccount,
     getValidatorDatum,
     initiateSubscription,
@@ -25,7 +26,10 @@ import { mintingPolicyToId, validatorToAddress } from "@lucid-evolution/lucid";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Console, Effect, pipe } from "effect";
 import { toText } from "@lucid-evolution/lucid";
-import { findCip68TokenNames } from "../src/core/utils/assets.js";
+import {
+    findCip68TokenNames,
+    tokenNameFromUTxO,
+} from "../src/core/utils/assets.js";
 import { initiateSubscriptionTestCase } from "./initiate-subscription.test.js";
 
 type LucidContext = {
@@ -62,12 +66,50 @@ test<LucidContext>("Test 1 - Extend Service", async (
             users,
             emulator,
         });
+        emulator.awaitBlock(100);
 
         expect(initResult).toBeDefined();
         expect(typeof initResult.txHash).toBe("string"); // Assuming the initResult is a transaction hash
         console.log(
             "Subscription initiated with transaction hash:",
             initResult.txHash,
+        );
+
+        const paymentUTxO = yield* Effect.promise(() =>
+            lucid.utxosAt(initResult.additionalInfo.paymentValidatorAddress)
+        );
+        console.log(
+            "PAYMENT UTXO:",
+            paymentUTxO,
+        );
+
+        const paymentValidator = readMultiValidators(true, [
+            initResult.paymentConfig.service_policyId,
+            initResult.paymentConfig.account_policyId,
+        ]);
+
+        const paymentPolicyId = mintingPolicyToId(
+            paymentValidator.mintPayment,
+        );
+
+        const payment_token_name = tokenNameFromUTxO(
+            paymentUTxO[0],
+            paymentPolicyId,
+        );
+
+        const paymentNFT = toUnit(
+            paymentPolicyId,
+            payment_token_name, //tokenNameWithoutFunc,
+        );
+
+        // console.log(
+        //     "paymentUTxO2 UTxO:",
+        //     paymentUTxO2,
+        // );
+
+        console.log(
+            "initResult.paymentConfig.account_nft_tn:",
+            initResult.paymentConfig.account_nft_tn,
         );
 
         let extension_period = initResult.paymentConfig.interval_length;
@@ -78,9 +120,6 @@ test<LucidContext>("Test 1 - Extend Service", async (
         const currentTime = BigInt(emulator.now());
         const newSubscriptionEnd = currentTime +
             (extension_period * extension_intervals);
-        // const extendPaymentConfig: ExtendPaymentConfig = {
-        //     ...initResult.paymentConfig,
-        // };
 
         const extendPaymentConfig: ExtendPaymentConfig = {
             ...initResult.paymentConfig,
@@ -88,10 +127,14 @@ test<LucidContext>("Test 1 - Extend Service", async (
             subscription_end: newSubscriptionEnd,
             total_subscription_fee: extension_fee * extension_intervals,
             num_intervals: extension_intervals,
-            // Update other fields as necessary
             interval_length: extension_period,
             interval_amount: extension_fee,
+            user_token: initResult.additionalInfo.accUsrNft,
+            service_ref_token: initResult.additionalInfo.servcRefNft,
+            payment_token: paymentNFT,
+            paymentUtxo: paymentUTxO,
         };
+
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
         const extendResult = yield* extendSubscription(
@@ -114,12 +157,6 @@ test<LucidContext>("Test 1 - Extend Service", async (
         );
 
         yield* Effect.log("removeSubscriberUTxO: After:", extendSubscriberUTxO);
-
-        // const scriptUTxOs = yield* Effect.promise(() =>
-        //     lucid.utxosAt(accountScriptAddress)
-        // );
-
-        // yield* Effect.log("Updated Service Validator: UTxOs", scriptUTxOs);
 
         return {
             initTxHash: initResult.txHash,
@@ -144,286 +181,3 @@ test<LucidContext>("Test 1 - Extend Service", async (
     );
     expect(result.extendedConfig.num_intervals).toBe(1n);
 });
-
-// test<LucidContext>("Test 1 - Extend Service", async ({
-//     lucid,
-//     users,
-//     emulator,
-// }) => {
-//     const program = Effect.gen(function* () {
-//         yield* Effect.log("Extend Subscription Service...TEST!!!!");
-
-//         const validators = readMultiValidators(false, []);
-//         const accountPolicyId = mintingPolicyToId(validators.mintAccount);
-//         const servicePolicyId = mintingPolicyToId(validators.mintService);
-//         const serviceAddress = validatorToAddress(
-//             "Custom",
-//             validators.mintService,
-//         );
-
-//         const accountAddress = validatorToAddress(
-//             "Custom",
-//             validators.spendAccount,
-//         );
-
-//         const accountScriptUTxOs = yield* Effect.promise(() =>
-//             lucid.utxosAt(accountAddress)
-//         );
-
-//         const subscriberUTxO = yield* Effect.promise(() =>
-//             lucid.utxosAt(users.subscriber.address)
-//         );
-
-//         yield* Console.log("accountScriptUTxOs: ", accountScriptUTxOs);
-
-//         // Find the Account token names
-//         const { refTokenName: accRefName, userTokenName: accUserName } =
-//             findCip68TokenNames([
-//                 ...accountScriptUTxOs,
-//                 ...subscriberUTxO,
-//             ], accountPolicyId);
-
-//         const accRefNft = toUnit(
-//             accountPolicyId,
-//             accRefName,
-//         );
-
-//         const accUsrNft = toUnit(
-//             accountPolicyId,
-//             accUserName,
-//         );
-
-//         const accountNFTUtxo = yield* Effect.promise(() =>
-//             lucid.utxosAtWithUnit(
-//                 users.subscriber.address,
-//                 accUsrNft,
-//             )
-//         );
-
-//         const accountScript = {
-//             spending: validators.spendAccount.script,
-//             minting: validators.mintAccount.script,
-//             staking: "",
-//         };
-
-//         const serviceScript = {
-//             spending: validators.spendService.script,
-//             minting: validators.mintService.script,
-//             staking: "",
-//         };
-
-//         const paymentScript = {
-//             spending: validators.spendPayment.script,
-//             minting: validators.mintPayment.script,
-//             staking: "",
-//         };
-
-//         const createServiceConfig: CreateServiceConfig = {
-//             service_fee: ADA,
-//             service_fee_qty: 10_000_000n,
-//             penalty_fee: ADA,
-//             penalty_fee_qty: 1_000_000n,
-//             interval_length: 1n,
-//             num_intervals: 12n,
-//             minimum_ada: 2_000_000n,
-//             is_active: true,
-//             scripts: serviceScript,
-//         };
-
-//         const serviceValidatorDatum = yield* Effect.promise(() =>
-//             getValidatorDatum(
-//                 lucid,
-//                 createServiceConfig,
-//             )
-//         );
-//         const merchantUTxO = yield* Effect.promise(() =>
-//             lucid.utxosAt(users.merchant.address)
-//         );
-
-//         const serviceScriptUTxOs = yield* Effect.promise(() =>
-//             lucid.utxosAt(serviceAddress)
-//         );
-//         yield* Console.log("serviceAddress: ", serviceAddress);
-//         yield* Console.log("merchantUTxO: ", merchantUTxO);
-//         yield* Console.log("serviceScriptUTxOs: ", serviceScriptUTxOs);
-//         // yield* Console.log("paymentScriptUTxOs: ", paymentScriptUTxOs);
-
-//         // Service NFTs
-//         const { refTokenName: serviceRefName, userTokenName: serviceUserName } =
-//             findCip68TokenNames([
-//                 ...serviceScriptUTxOs,
-//                 ...merchantUTxO,
-//             ], servicePolicyId);
-
-//         const servcRefNft = toUnit(
-//             servicePolicyId,
-//             serviceRefName,
-//         );
-
-//         const serviceUserNft = toUnit(
-//             servicePolicyId,
-//             serviceUserName,
-//         );
-
-//         const serviceNFTUtxo = yield* Effect.promise(() =>
-//             lucid.utxosAtWithUnit(
-//                 serviceAddress,
-//                 servcRefNft,
-//             )
-//         );
-
-//         yield* Effect.log("subscriberAddress: ", users.subscriber.address);
-//         yield* Effect.log(
-//             "subscriberUTxOs before transaction: ",
-//             subscriberUTxO,
-//         );
-
-//         const interval_length = serviceValidatorDatum[0].interval_length;
-//         const num_intervals = serviceValidatorDatum[0].num_intervals;
-//         const subscription_end = BigInt(emulator.now()) +
-//             interval_length * num_intervals;
-
-//         const paymentServiceConfig: InitPaymentConfig = {
-//             service_nft_tn: serviceRefName,
-//             account_nft_tn: accUserName,
-//             account_policyId: accountPolicyId,
-//             service_policyId: servicePolicyId,
-//             subscription_fee: ADA,
-//             total_subscription_fee: 120_000_000n,
-//             subscription_start: BigInt(emulator.now()),
-//             subscription_end: subscription_end,
-//             interval_length: interval_length, //30n * 24n * 60n * 60n * 1000n,
-//             interval_amount: 10_000_000n,
-//             num_intervals: num_intervals,
-//             last_claimed: 500000n,
-//             penalty_fee: ADA,
-//             penalty_fee_qty: 1_000_000n,
-//             minimum_ada: 1_000_000n,
-//             scripts: paymentScript,
-//             accountUtxo: accountNFTUtxo,
-//             serviceUtxo: serviceNFTUtxo,
-//             minting_Policy: validators.mintPayment, //MintingPolicy
-//         };
-
-//         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
-
-//         try {
-//             const initSubscriptionUnSigned = yield* initiateSubscription(
-//                 lucid,
-//                 paymentServiceConfig,
-//             );
-//             const initiateSubscriptionSigned = yield* Effect.promise(() =>
-//                 initSubscriptionUnSigned.sign.withWallet().complete()
-//             );
-
-//             const createAccountHash = yield* Effect.promise(() =>
-//                 initiateSubscriptionSigned.submit()
-//             );
-//             yield* Effect.log("TxHash: ", createAccountHash);
-//         } catch (error) {
-//             console.error("Error updating service:", error);
-//             throw error;
-//         }
-
-//         yield* Effect.sync(() => emulator.awaitBlock(100));
-
-//         const subscriberUTxOAfter = yield* Effect.promise(() =>
-//             lucid.utxosAt(users.subscriber.address)
-//         );
-
-//         yield* Effect.log(
-//             "subscriberAddress: After: ",
-//             users.subscriber.address,
-//         );
-//         yield* Effect.log("subscriberUTxO: After:", subscriberUTxOAfter);
-
-//         const accountScriptAddress = validatorToAddress(
-//             "Custom",
-//             validators.spendAccount,
-//         );
-//         const accountUTxO = yield* Effect.promise(() =>
-//             lucid.utxosAt(accountScriptAddress)
-//         );
-
-//         yield* Effect.log("Validator utxos", accountUTxO);
-
-//         emulator.awaitBlock(100);
-//         yield* Effect.log(
-//             "REMOVING///////////////////////////>>>>>>>>>>>>>>>>>>",
-//             accountUTxO,
-//         );
-
-//         // Find the token names
-//         const { refTokenName, userTokenName } = findCip68TokenNames([
-//             ...accountUTxO,
-//             ...subscriberUTxOAfter,
-//         ], accountPolicyId);
-
-//         const refNft = toUnit(
-//             accountPolicyId,
-//             refTokenName,
-//         );
-
-//         const userNft = toUnit(
-//             accountPolicyId,
-//             userTokenName,
-//         );
-
-//         const extendPaymentConfig: ExtendPaymentConfig = {
-//             service_nft_tn: serviceRefName,
-//             account_nft_tn: accUserName,
-//             account_policyId: accountPolicyId,
-//             service_policyId: servicePolicyId,
-//             subscription_fee: ADA,
-//             total_subscription_fee: 120_000_000n,
-//             subscription_start: BigInt(emulator.now()),
-//             subscription_end: subscription_end,
-//             interval_length: interval_length, //30n * 24n * 60n * 60n * 1000n,
-//             interval_amount: 10_000_000n,
-//             num_intervals: num_intervals,
-//             last_claimed: 500000n,
-//             penalty_fee: ADA,
-//             penalty_fee_qty: 1_000_000n,
-//             minimum_ada: 1_000_000n,
-//             scripts: paymentScript,
-//             accountUtxo: accountNFTUtxo,
-//             serviceUtxo: serviceNFTUtxo,
-//             minting_Policy: validators.mintPayment, //Mintin
-//         };
-
-//         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
-
-//     try {
-//         const extendPaymentResult = yield* extendSubscription(
-//             lucid,
-//             extendPaymentConfig,
-//         );
-//         const extendPaymentSigned = yield* Effect.promise(() =>
-//             extendPaymentResult.sign
-//                 .withWallet()
-//                 .complete()
-//         );
-//         const removeAccountHash = yield* Effect.promise(() =>
-//             extendPaymentSigned.submit()
-//         );
-//         yield* Effect.log("TxHash: ", removeAccountHash);
-//     } catch (error) {
-//         console.error("Error updating service:", error);
-//         throw error;
-//     }
-//     yield* Effect.sync(() => emulator.awaitBlock(100));
-
-//     const removeSubscriberUTxO = yield* Effect.promise(() =>
-//         lucid.utxosAt(users.subscriber.address)
-//     );
-
-//     yield* Effect.log("removeSubscriberUTxO: After:", removeSubscriberUTxO);
-
-//     const scriptUTxOs = yield* Effect.promise(() =>
-//         lucid.utxosAt(accountScriptAddress)
-//     );
-
-//     yield* Effect.log("Updated Service Validator: UTxOs", scriptUTxOs);
-// });
-//     await Effect.runPromise(program);
-// });

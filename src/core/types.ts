@@ -152,6 +152,9 @@ export type ExtendPaymentConfig = {
   penalty_fee: AssetClassD;
   penalty_fee_qty: bigint;
   minimum_ada: bigint;
+  user_token: Unit;
+  service_ref_token: Unit;
+  payment_token: Unit;
   scripts: {
     spending: CborHex;
     minting: CborHex;
@@ -159,6 +162,7 @@ export type ExtendPaymentConfig = {
   };
   accountUtxo: UTxO[];
   serviceUtxo: UTxO[];
+  paymentUtxo: UTxO[];
   minting_Policy: MintingPolicy;
 };
 

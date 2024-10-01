@@ -19,6 +19,7 @@ import {
   LucidEvolution,
   mintingPolicyToId,
   toUnit,
+  Unit,
   validatorToAddress,
 } from "../src/index.js";
 import { beforeEach, expect, test } from "vitest";
@@ -56,11 +57,8 @@ type InitiateSubscriptionResult = {
   paymentConfig: InitPaymentConfig;
   additionalInfo: {
     paymentValidatorAddress: string;
-    serviceAddress: string;
-    accountPolicyId: string;
-    servicePolicyId: string;
-    accUsrNft: string;
-    servcRefNft: string;
+    accUsrNft: Unit;
+    servcRefNft: Unit;
   };
 };
 
@@ -203,7 +201,7 @@ export const initiateSubscriptionTestCase = (
       "Custom",
       paymentValidator.mintPayment,
     );
-    console.log("Payment validator address", paymentValidatorAddress);
+    // console.log("Payment validator address", paymentValidatorAddress);
 
     const paymentScript = {
       spending: paymentValidator.spendPayment.script,
@@ -279,7 +277,7 @@ export const initiateSubscriptionTestCase = (
       minting_Policy: paymentValidator.mintPayment, //MintingPolicy
     };
 
-    console.log("Payment config", paymentConfig);
+    // console.log("Payment config", paymentConfig);
     lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
     const initiateSubscriptionFlow = Effect.gen(function* (_) {
@@ -307,9 +305,9 @@ export const initiateSubscriptionTestCase = (
           Effect.promise(() => lucid.utxosAt(serviceAddress)),
         ]);
 
-      yield* Console.log("Payment Validator Utxos:", paymentValidatorUtxos);
-      yield* Console.log("Account- Subscriber Utxos:", subscriberUtxos);
-      yield* Console.log("Service- Validator Utxos:", serviceValidatorUtxos);
+      // yield* Console.log("Payment Validator Utxos:", paymentValidatorUtxos);
+      // yield* Console.log("Account- Subscriber Utxos:", subscriberUtxos);
+      // yield* Console.log("Service- Validator Utxos:", serviceValidatorUtxos);
 
       return initiateSubscriptionHash;
     });
@@ -329,9 +327,6 @@ export const initiateSubscriptionTestCase = (
       paymentConfig,
       additionalInfo: {
         paymentValidatorAddress,
-        serviceAddress,
-        accountPolicyId,
-        servicePolicyId,
         accUsrNft,
         servcRefNft,
       },
@@ -345,7 +340,7 @@ test<LucidContext>("Test 1 - Initiate subscription", async (
   const result = await Effect.runPromise(initiateSubscriptionTestCase(context));
   expect(result.txHash).toBeDefined();
   expect(typeof result.txHash).toBe("string");
-  console.log("Subscription initiated with transaction hash:", result);
+  // console.log("Subscription initiated with transaction hash:", result);
 
   expect(result.paymentConfig).toBeDefined();
   expect(result.additionalInfo.paymentValidatorAddress).toBeDefined();

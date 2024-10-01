@@ -19,6 +19,8 @@ import {
   InitiatePayment,
   //MintPayment,
   PaymentDatum,
+  PaymentValidatorDatum,
+  PenaltyDatum,
 } from "../core/contract.types.js";
 import { generateUniqueAssetName } from "../core/utils/assets.js";
 import { getMultiValidator } from "../core/index.js";
@@ -67,7 +69,7 @@ export const initiateSubscription = (
     const redeemerData = Data.to(paymentredeemer, InitiatePayment);
     console.log("REdeemer", redeemerData);
 
-    const currDatum: PaymentDatum = {
+    const paymentDatum: PaymentDatum = {
       service_nft_tn: config.service_nft_tn,
       account_nft_tn: config.account_nft_tn,
       subscription_fee: config.subscription_fee,
@@ -83,7 +85,10 @@ export const initiateSubscription = (
       minimum_ada: config.minimum_ada,
     };
 
-    const directDatum = Data.to<PaymentDatum>(currDatum, PaymentDatum);
+    const directDatum = Data.to<PaymentDatum>(
+      paymentDatum,
+      PaymentDatum,
+    );
 
     console.log("DAtum", directDatum);
 
@@ -98,7 +103,7 @@ export const initiateSubscription = (
       tokenName, //tokenNameWithoutFunc,
     );
     console.log("Service Utxo", config.serviceUtxo);
-    console.log("Payment validator address", config);
+    // console.log("Payment validator address", config);
 
     const tx = yield* lucid
       .newTx()

@@ -1,6 +1,7 @@
 import {
   Address,
   applyParamsToScript,
+  Constr,
   Data,
   fromHex,
   LucidEvolution,
@@ -26,7 +27,6 @@ import {
   PaymentValidatorDatum,
   PenaltyDatum,
 } from "../core/contract.types.js";
-import { generateUniqueAssetName } from "../core/utils/assets.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
 
@@ -51,13 +51,6 @@ export const extendSubscription = (
       console.error("No UTxO found at user address: " + subscriberAddress);
     }
 
-    // Selecting a utxo containing atleast 5 ADA to cover tx fees and min ADA
-    // Note: To avoid tx balancing errors, the utxo should only contain lovelaces
-    const selectedUTxOs = selectUTxOs(subscriberUTxOs, {
-      ["lovelace"]: 5000000n,
-    });
-    const tokenName = generateUniqueAssetName(selectedUTxOs[0], "");
-
     const paymentredeemer: InitiatePayment = {
       InitSubscripton: {
         output_reference: {
@@ -71,7 +64,7 @@ export const extendSubscription = (
     };
 
     const redeemerData = Data.to(paymentredeemer, InitiatePayment);
-    console.log("REdeemer", redeemerData);
+    console.log("Redeemer", redeemerData);
 
     const paymentDatum: PaymentDatum = {
       service_nft_tn: config.service_nft_tn,
@@ -89,10 +82,10 @@ export const extendSubscription = (
       minimum_ada: config.minimum_ada,
     };
 
-    const directPaymentDatum = Data.to<PaymentDatum>(
-      paymentDatum,
-      PaymentDatum,
-    );
+    // const directPaymentDatum = Data.to<PaymentDatum>(
+    //   paymentDatum,
+    //   PaymentDatum,
+    // );
 
     const penaltyDatum: PenaltyDatum = {
       service_nft_tn: config.service_nft_tn,
@@ -101,55 +94,55 @@ export const extendSubscription = (
       penalty_fee_qty: config.penalty_fee_qty,
     };
 
-    const directPenaltyDatum = Data.to<PenaltyDatum>(
-      penaltyDatum,
-      PenaltyDatum,
-    );
+    // const directPenaltyDatum = Data.to<PenaltyDatum>(
+    //   penaltyDatum,
+    //   PenaltyDatum,
+    // );
+
+    // const directDatum = Data.to<PaymentDatum>(
+    //   paymentDatum,
+    //   PaymentDatum,
+    // );
 
     const allDatums: PaymentValidatorDatum = {
-      Payment: paymentDatum,
-      Penalty: penaltyDatum,
+      Payment: [paymentDatum],
     };
 
-    const allDatumData = Data.to<PaymentValidatorDatum>(
+    const paymentValDatum = Data.to<PaymentValidatorDatum>(
       allDatums,
       PaymentValidatorDatum,
     );
 
-    console.log("EXTEND ALL DATUM", allDatumData);
+    // const directDatum = Data.to(new Constr(0, [paymentValDatum]));
+    // console.log("EXTEND ALL DATUM", paymentValDatum);
     console.log("EXTEND PAYMENT DATUM", paymentDatum);
-    console.log("EXTEND PENALTY DATUM", penaltyDatum);
+    console.log("EXTEND DIRECT DATUM", paymentValDatum);
+    // console.log("EXTEND PENALTY DATUM", penaltyDatum);
 
     console.log("Account UTxOs :: ", config.accountUtxo);
     console.log("Service UTxOs :: ", config.serviceUtxo);
 
-    const accountAssets = config.accountUtxo[0].assets;
-    console.log("assets from Account utxs", accountAssets);
-
-    const paymentNFT = toUnit(
-      paymentPolicyId,
-      tokenName, //tokenNameWithoutFunc,
-    );
-    console.log("Service Utxo", config.serviceUtxo);
-    console.log("Payment validator", config);
+    console.log("Payment Utxo", config.paymentUtxo);
+    console.log("Subscriber UTxO", config.accountUtxo);
+    console.log("User  Token", config.user_token);
+    // console.log("PAyment  Token", config.ref_token);
+    const wrappedRedeemer = Data.to(new Constr(1, [new Constr(0, [])]));
 
     const tx = yield* lucid
       .newTx()
       .readFrom(config.serviceUtxo)
-      //.collectFrom(subscriberUTxOs) // subscriber utxos
       .collectFrom(config.accountUtxo) // subscriber user nft utxo
-      // service validator ref nft utxo
-      // .mintAssets({ [paymentNFT]: 1n }, redeemerData)
-      .pay.ToAddress(subscriberAddress, accountAssets)
-      .pay.ToAddressWithData(validators.spendValAddress, {
+      .collectFrom(config.paymentUtxo, wrappedRedeemer) // subscriber utxos
+      .pay.ToAddress(subscriberAddress, {
+        lovelace: 3_000_000n,
+        [config.user_token]: 1n,
+      }).pay.ToAddressWithData(validators.spendValAddress, {
         kind: "inline",
-        value: allDatumData,
+        value: paymentValDatum,
       }, {
         lovelace: 12_000_000n,
-        [paymentNFT]: 1n,
+        [config.payment_token]: 1n,
       })
-      //.pay.ToAddress(subscriberAddr,{lovelace:2_000_000n})
-      // .attach.MintingPolicy(config.minting_Policy)
       .attach.SpendingValidator(validators.spendValidator)
       .completeProgram();
 

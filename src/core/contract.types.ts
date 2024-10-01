@@ -203,8 +203,8 @@ export type PenaltyDatum = Data.Static<typeof PenaltyDatumSchema>;
 export const PenaltyDatum = PenaltyDatumSchema as unknown as PenaltyDatum;
 
 const PaymentValidatorDatumSchema = Data.Enum([
-    Data.Object({ Payment: PaymentDatumSchema }),
-    Data.Object({ Penalty: PenaltyDatumSchema }),
+    Data.Object({ Payment: Data.Tuple([PaymentDatumSchema]) }),
+    Data.Object({ Penalty: Data.Tuple([PenaltyDatumSchema]) }),
 ]);
 
 export type PaymentValidatorDatum = Data.Static<
