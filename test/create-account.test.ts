@@ -5,9 +5,11 @@ import {
   generateEmulatorAccount,
   Lucid,
   LucidEvolution,
+  PROTOCOL_PARAMETERS_DEFAULT,
+  UTxO,
   validatorToAddress,
 } from "../src/index.js";
-import { beforeEach, test } from "vitest";
+import { beforeEach, expect, test } from "vitest";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Console, Effect } from "effect";
 
@@ -27,17 +29,24 @@ beforeEach<LucidContext>(async (context) => {
 
   context.emulator = new Emulator([
     context.users.subscriber,
-  ]);
+  ], { ...PROTOCOL_PARAMETERS_DEFAULT, maxTxSize: 19000 });
 
   context.lucid = await Lucid(context.emulator, "Custom");
 });
 
-test<LucidContext>("Test 1 - Create Account", async ({
-  lucid,
-  users,
-  emulator,
-}) => {
-  const program = Effect.gen(function* () {
+type CreateAccountResult = {
+  txHash: string;
+  accountConfig: CreateAccountConfig;
+  outputs: {
+    subscriberUTxOs: UTxO[];
+    accountUTxOs: UTxO[];
+  };
+};
+
+export const createAccountTestCase = (
+  { lucid, users, emulator }: LucidContext,
+): Effect.Effect<CreateAccountResult, Error, never> => {
+  return Effect.gen(function* () {
     console.log("createSubscriptionAccount...TEST!!!!");
 
     const accountValidator = readMultiValidators(false, []);
@@ -48,7 +57,7 @@ test<LucidContext>("Test 1 - Create Account", async ({
       staking: "",
     };
 
-    const createAccountConfig: CreateAccountConfig = {
+    const accountConfig: CreateAccountConfig = {
       email: "business@web3.ada",
       phone: "288-481-2686",
       account_created: BigInt(emulator.now()),
@@ -58,13 +67,13 @@ test<LucidContext>("Test 1 - Create Account", async ({
     lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
     const accountAddress = validatorToAddress(
       "Custom",
-      accountValidator.spendAccount,
+      accountValidator.mintAccount,
     );
 
     const createAccountFlow = Effect.gen(function* (_) {
       const createAccountResult = yield* createAccount(
         lucid,
-        createAccountConfig,
+        accountConfig,
       );
       const createAccountSigned = yield* Effect.promise(() =>
         createAccountResult.sign.withWallet().complete()
@@ -76,18 +85,6 @@ test<LucidContext>("Test 1 - Create Account", async ({
       console.log("TxHash: ", createAccountHash);
       yield* Effect.log(`TxHash: ${createAccountHash}`);
 
-      yield* Effect.sync(() => emulator.awaitBlock(50));
-
-      const [subscriberUtxos, serviceValidatorUtxos] = yield* Effect.all([
-        Effect.promise(() => lucid.utxosAt(users.subscriber.address)),
-        Effect.promise(() => lucid.utxosAt(accountAddress)),
-      ]);
-
-      yield* Console.log("Updated- Subscriber Utxos:", subscriberUtxos);
-      yield* Console.log(
-        "Updated- Account Validator Utxos:",
-        serviceValidatorUtxos,
-      );
       return createAccountHash;
     });
 
@@ -100,8 +97,36 @@ test<LucidContext>("Test 1 - Create Account", async ({
         return hash;
       }),
     );
+    yield* Effect.sync(() => emulator.awaitBlock(100));
 
-    return createAccountResult;
+    const [subscriberUTxOs, accountUTxOs] = yield* Effect.all([
+      Effect.promise(() => lucid.utxosAt(users.subscriber.address)),
+      Effect.promise(() => lucid.utxosAt(accountAddress)),
+    ]);
+
+    yield* Console.log("Updated- Subscriber Utxos:", subscriberUTxOs);
+    yield* Console.log(
+      "Updated- Account Validator Utxos:",
+      accountUTxOs,
+    );
+
+    return {
+      txHash: createAccountResult,
+      accountConfig,
+      outputs: {
+        subscriberUTxOs,
+        accountUTxOs,
+      },
+    };
   });
-  await Effect.runPromise(program);
+};
+
+test<LucidContext>("Test 1 - Create Account", async (context) => {
+  const result = await Effect.runPromise(createAccountTestCase(context));
+  expect(result.txHash).toBeDefined();
+  expect(typeof result.txHash).toBe("string");
+  // console.log("Create Account with transaction hash:", result);
+
+  expect(result.accountConfig).toBeDefined();
+  // expect(result.additionalInfo.paymentValidatorAddress).toBeDefined();
 });

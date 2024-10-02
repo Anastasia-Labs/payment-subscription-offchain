@@ -85,6 +85,15 @@ export const initiateSubscription = (
       minimum_ada: config.minimum_ada,
     };
 
+    const allDatums: PaymentValidatorDatum = {
+      Payment: [paymentDatum],
+    };
+
+    const paymentValDatum = Data.to<PaymentValidatorDatum>(
+      allDatums,
+      PaymentValidatorDatum,
+    );
+
     const directDatum = Data.to<PaymentDatum>(
       paymentDatum,
       PaymentDatum,
@@ -115,9 +124,9 @@ export const initiateSubscription = (
       .pay.ToAddress(subscriberAddress, accountAssets)
       .pay.ToAddressWithData(validators.spendValAddress, {
         kind: "inline",
-        value: directDatum,
+        value: paymentValDatum,
       }, {
-        lovelace: 12_000_000n,
+        lovelace: config.total_subscription_fee,
         [paymentNFT]: 1n,
       })
       //.pay.ToAddress(subscriberAddr,{lovelace:2_000_000n})

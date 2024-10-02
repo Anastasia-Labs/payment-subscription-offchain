@@ -9,11 +9,12 @@ import {
     updateAccount,
     UpdateAccountConfig,
 } from "../src/index.js";
-import { beforeEach, test } from "vitest";
+import { beforeEach, expect, test } from "vitest";
 import { mintingPolicyToId, validatorToAddress } from "@lucid-evolution/lucid";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { findCip68TokenNames } from "../src/core/utils/assets.js";
+import { createAccountTestCase } from "./create-account.test.js";
 
 type LucidContext = {
     lucid: LucidEvolution;
@@ -44,105 +45,139 @@ test<LucidContext>("Test 1 - Update Service", async ({
     users,
     emulator,
 }) => {
-    console.log("Update Subscription Service...TEST!!!!");
+    const program = Effect.gen(function* () {
+        console.log("Update Subscription Service...TEST!!!!");
 
-    const accountScript = {
-        spending: accountValidator.spendAccount.script,
-        minting: accountValidator.mintAccount.script,
-        staking: "",
-    };
+        // const accountScript = {
+        //     spending: accountValidator.spendAccount.script,
+        //     minting: accountValidator.mintAccount.script,
+        //     staking: "",
+        // };
 
-    const createAccountConfig: CreateAccountConfig = {
-        email: "business@web3.ada",
-        phone: "288-481-2686",
-        account_created: BigInt(emulator.now()),
-        scripts: accountScript,
-    };
+        // const createAccountConfig: CreateAccountConfig = {
+        //     email: "business@web3.ada",
+        //     phone: "288-481-2686",
+        //     account_created: BigInt(emulator.now()),
+        //     scripts: accountScript,
+        // };
 
-    lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
+        // lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
-    const subscriberUTxO = await lucid.utxosAt(users.subscriber.address);
-    console.log("Subscriber Address: Before :: ", users.subscriber.address);
-    console.log("Subscriber UTxOs: Before :: ", subscriberUTxO);
+        // const subscriberUTxO = await lucid.utxosAt(users.subscriber.address);
+        // console.log("Subscriber Address: Before :: ", users.subscriber.address);
+        // console.log("Subscriber UTxOs: Before :: ", subscriberUTxO);
 
-    try {
-        const createAccountUnSigned = await Effect.runPromise(
-            createAccount(lucid, createAccountConfig),
+        // try {
+        //     const createAccountUnSigned = await Effect.runPromise(
+        //         createAccount(lucid, createAccountConfig),
+        //     );
+        //     const createAccountSigned = yield* Effect.promise(() =>
+        //         createAccountUnSigned.sign
+        //             .withWallet()
+        //             .complete()
+        //     );
+        //     const createServiceHash = yield* Effect.promise(() =>
+        //         createAccountSigned.submit()
+        //     );
+        //     console.log("TxHash: ", createServiceHash);
+        // } catch (error) {
+        //     console.error("Error updating service:", error);
+        //     throw error;
+        // }
+
+        const createAccountResult = yield* createAccountTestCase({
+            lucid,
+            users,
+            emulator,
+        });
+
+        expect(createAccountResult).toBeDefined();
+        expect(typeof createAccountResult.txHash).toBe("string"); // Assuming the createAccountResult is a transaction hash
+        console.log(
+            "Update account with transaction hash:",
+            createAccountResult.txHash,
         );
-        const createAccountSigned = await createAccountUnSigned.sign
-            .withWallet()
-            .complete();
-        const createServiceHash = await createAccountSigned.submit();
-        console.log("TxHash: ", createServiceHash);
-    } catch (error) {
-        console.error("Error updating service:", error);
-        throw error;
-    }
-    emulator.awaitBlock(100);
-    const subscriberUTxOAfter = await lucid.utxosAt(users.subscriber.address);
-    console.log("Subscriber Address: After :: ", users.subscriber.address);
-    console.log("Subscriber UTxOs: After :: ", subscriberUTxOAfter);
 
-    const accountScriptAddress = validatorToAddress(
-        "Custom",
-        accountValidator.spendAccount,
-    );
-    console.log("Validator utxos", await lucid.utxosAt(accountScriptAddress));
-    const accountUTxO = await lucid.utxosAt(accountScriptAddress);
-
-    emulator.awaitBlock(100);
-    console.log(
-        "UPDATING///////////////////////////>>>>>>>>>>>>>>>>>>",
-        accountUTxO,
-    );
-
-    const cip68TokenNames = findCip68TokenNames(
-        [...accountUTxO, ...subscriberUTxOAfter],
-        accountPolicyId,
-    );
-    const { refTokenName, userTokenName } = cip68TokenNames;
-
-    const refNft = toUnit(
-        accountPolicyId,
-        refTokenName,
-    );
-
-    const userNft = toUnit(
-        accountPolicyId,
-        userTokenName,
-    );
-
-    const updateAccountConfig: UpdateAccountConfig = {
-        new_email: "new_business@web3.ada",
-        new_phone: "(288) 481-2686",
-        account_created: createAccountConfig.account_created,
-        user_token: userNft,
-        ref_token: refNft,
-        scripts: accountScript,
-    };
-
-    lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
-
-    try {
-        const updateAccountResult = await Effect.runPromise(
-            updateAccount(lucid, updateAccountConfig),
+        emulator.awaitBlock(100);
+        const subscriberUTxOAfter = yield* Effect.promise(() =>
+            lucid.utxosAt(
+                users.subscriber.address,
+            )
         );
-        const updateAccountSigned = await updateAccountResult.sign.withWallet()
-            .complete();
-        const updateAccountHash = await updateAccountSigned.submit();
+        console.log("Subscriber Address: After :: ", users.subscriber.address);
+        console.log("Subscriber UTxOs: After :: ", subscriberUTxOAfter);
+
+        const accountScriptAddress = validatorToAddress(
+            "Custom",
+            accountValidator.spendAccount,
+        );
+        console.log(
+            "Validator utxos",
+            yield* Effect.promise(() => lucid.utxosAt(accountScriptAddress)),
+        );
+        const accountUTxO = yield* Effect.promise(() =>
+            lucid.utxosAt(accountScriptAddress)
+        );
+
+        emulator.awaitBlock(100);
+        console.log(
+            "UPDATING///////////////////////////>>>>>>>>>>>>>>>>>>",
+            accountUTxO,
+        );
+
+        const cip68TokenNames = findCip68TokenNames(
+            [...accountUTxO, ...subscriberUTxOAfter],
+            accountPolicyId,
+        );
+        const { refTokenName, userTokenName } = cip68TokenNames;
+
+        const refNft = toUnit(
+            accountPolicyId,
+            refTokenName,
+        );
+
+        const userNft = toUnit(
+            accountPolicyId,
+            userTokenName,
+        );
+
+        const updateAccountConfig: UpdateAccountConfig = {
+            ...createAccountResult.accountConfig,
+            new_email: "new_business@web3.ada",
+            new_phone: "(288) 481-2686",
+            user_token: userNft,
+            ref_token: refNft,
+        };
+
+        lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
+
+        const updateAccountResult = yield* Effect.promise(() =>
+            Effect.runPromise(
+                updateAccount(lucid, updateAccountConfig),
+            )
+        );
+        const updateAccountSigned = yield* Effect.promise(() =>
+            updateAccountResult.sign
+                .withWallet()
+                .complete()
+        );
+        const updateAccountHash = yield* Effect.promise(() =>
+            updateAccountSigned.submit()
+        );
         console.log("TxHash: ", updateAccountHash);
-    } catch (error) {
-        console.error("Error updating service:", error);
-        throw error; // or handle it as appropriate for your test
-    }
-    emulator.awaitBlock(100);
+        emulator.awaitBlock(100);
 
-    const subscriberUTxOs = await lucid.utxosAt(users.subscriber.address);
-    console.log("Updated Subscriber UTxOs: After:", subscriberUTxOs);
+        const subscriberUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(users.subscriber.address)
+        );
+        console.log("Updated Subscriber UTxOs: After:", subscriberUTxOs);
 
-    const scriptUTxOs = await lucid.utxosAt(accountScriptAddress);
+        const scriptUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(accountScriptAddress)
+        );
 
-    console.log("Updated Service Validator: UTxOs", scriptUTxOs);
+        console.log("Updated Service Validator: UTxOs", scriptUTxOs);
+    });
 
-    emulator.awaitBlock(100);
+    await Effect.runPromise(program);
 });

@@ -82,10 +82,10 @@ export const extendSubscription = (
       minimum_ada: config.minimum_ada,
     };
 
-    // const directPaymentDatum = Data.to<PaymentDatum>(
-    //   paymentDatum,
-    //   PaymentDatum,
-    // );
+    const directPaymentDatum = Data.to<PaymentDatum>(
+      paymentDatum,
+      PaymentDatum,
+    );
 
     const penaltyDatum: PenaltyDatum = {
       service_nft_tn: config.service_nft_tn,
@@ -116,7 +116,7 @@ export const extendSubscription = (
     // const directDatum = Data.to(new Constr(0, [paymentValDatum]));
     // console.log("EXTEND ALL DATUM", paymentValDatum);
     console.log("EXTEND PAYMENT DATUM", paymentDatum);
-    console.log("EXTEND DIRECT DATUM", paymentValDatum);
+    console.log("EXTEND DIRECT DATUM", directPaymentDatum);
     // console.log("EXTEND PENALTY DATUM", penaltyDatum);
 
     console.log("Account UTxOs :: ", config.accountUtxo);
@@ -134,13 +134,13 @@ export const extendSubscription = (
       .collectFrom(config.accountUtxo) // subscriber user nft utxo
       .collectFrom(config.paymentUtxo, wrappedRedeemer) // subscriber utxos
       .pay.ToAddress(subscriberAddress, {
-        lovelace: 3_000_000n,
         [config.user_token]: 1n,
-      }).pay.ToAddressWithData(validators.spendValAddress, {
+      })
+      .pay.ToAddressWithData(validators.spendValAddress, {
         kind: "inline",
         value: paymentValDatum,
       }, {
-        lovelace: 12_000_000n,
+        lovelace: config.total_subscription_fee,
         [config.payment_token]: 1n,
       })
       .attach.SpendingValidator(validators.spendValidator)

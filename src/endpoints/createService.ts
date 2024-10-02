@@ -79,13 +79,13 @@ export const createService = (
 
     const currDatum: ServiceDatum = {
       service_fee: ADA,
-      service_fee_qty: 10_000_000n,
+      service_fee_qty: config.service_fee_qty,
       penalty_fee: ADA,
-      penalty_fee_qty: 1_000_000n,
-      interval_length: 1n,
-      num_intervals: 12n,
-      minimum_ada: 2_000_000n,
-      is_active: true,
+      penalty_fee_qty: config.penalty_fee_qty,
+      interval_length: config.interval_length,
+      num_intervals: config.num_intervals,
+      minimum_ada: config.minimum_ada,
+      is_active: config.is_active,
     };
 
     const directDatum = Data.to<ServiceDatum>(currDatum, ServiceDatum);

@@ -38,7 +38,7 @@ export const updateAccount = (
             );
         }
 
-        const AccountUTxO = yield* Effect.promise(() =>
+        const accountUTxO = yield* Effect.promise(() =>
             lucid.utxosAtWithUnit(
                 validators.spendValAddress,
                 config.ref_token,
@@ -52,10 +52,10 @@ export const updateAccount = (
             )
         );
 
-        if (!AccountUTxO) {
+        if (!accountUTxO) {
             throw new Error("Account NFT not found");
         }
-        console.log("AccountNFTUTxO: ", AccountUTxO);
+        console.log("AccountNFTUTxO: ", accountUTxO);
 
         const updatedDatum: AccountDatum = {
             email: fromText(config.new_email),
@@ -74,7 +74,7 @@ export const updateAccount = (
         const tx = yield* lucid
             .newTx()
             .collectFrom(subscriberUTxO)
-            .collectFrom(AccountUTxO, wrappedRedeemer)
+            .collectFrom(accountUTxO, wrappedRedeemer)
             .pay.ToAddress(subscriberAddress, {
                 lovelace: 3_000_000n,
                 [config.user_token]: 1n,

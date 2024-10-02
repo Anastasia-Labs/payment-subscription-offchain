@@ -6,6 +6,7 @@ import {
   generateEmulatorAccount,
   Lucid,
   LucidEvolution,
+  PROTOCOL_PARAMETERS_DEFAULT,
   validatorToAddress,
 } from "../src/index.js";
 import { beforeEach, test } from "vitest";
@@ -28,7 +29,7 @@ beforeEach<LucidContext>(async (context) => {
 
   context.emulator = new Emulator([
     context.users.merchant,
-  ]);
+  ], { ...PROTOCOL_PARAMETERS_DEFAULT, maxTxSize: 19000 });
 
   context.lucid = await Lucid(context.emulator, "Custom");
 });

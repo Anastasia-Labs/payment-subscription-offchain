@@ -20,6 +20,7 @@ import { readMultiValidators } from "./compiled/validators.js";
 import { Effect, pipe } from "effect";
 import { toText } from "@lucid-evolution/lucid";
 import { findCip68TokenNames } from "../src/core/utils/assets.js";
+import { createAccountTestCase } from "./create-account.test.js";
 
 type LucidContext = {
     lucid: LucidEvolution;
@@ -51,50 +52,20 @@ test<LucidContext>("Test 1 - Remove Account", async ({
     emulator,
 }) => {
     const program = Effect.gen(function* () {
+        const createAccountResult = yield* createAccountTestCase({
+            lucid,
+            users,
+            emulator,
+        });
+
+        expect(createAccountResult).toBeDefined();
+        expect(typeof createAccountResult.txHash).toBe("string"); // Assuming the createAccountResult is a transaction hash
+        console.log(
+            "Create account with transaction hash:",
+            createAccountResult.txHash,
+        );
+
         yield* Effect.log("Remove Subscription Account...TEST!!!!");
-
-        const accountScript = {
-            spending: accountValidator.spendAccount.script,
-            minting: accountValidator.mintAccount.script,
-            staking: "",
-        };
-
-        const createAccountConfig: CreateAccountConfig = {
-            email: "business@web3.ada",
-            phone: "288-481-2686",
-            account_created: BigInt(emulator.now()),
-            scripts: accountScript,
-        };
-
-        lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
-
-        const subscriberUTxO = yield* Effect.promise(() =>
-            lucid.utxosAt(users.subscriber.address)
-        );
-
-        yield* Effect.log("subscriberAddress: ", users.subscriber.address);
-        yield* Effect.log(
-            "subscriberUTxOs before transaction: ",
-            subscriberUTxO,
-        );
-
-        try {
-            const createAccountUnSigned = yield* createAccount(
-                lucid,
-                createAccountConfig,
-            );
-            const createAccountSigned = yield* Effect.promise(() =>
-                createAccountUnSigned.sign.withWallet().complete()
-            );
-
-            const createAccountHash = yield* Effect.promise(() =>
-                createAccountSigned.submit()
-            );
-            yield* Effect.log("TxHash: ", createAccountHash);
-        } catch (error) {
-            console.error("Error updating service:", error);
-            throw error;
-        }
 
         yield* Effect.sync(() => emulator.awaitBlock(100));
 
@@ -141,34 +112,29 @@ test<LucidContext>("Test 1 - Remove Account", async ({
         );
 
         const removeAccountConfig: RemoveAccountConfig = {
+            ...createAccountResult.accountConfig,
             email: "business@web3.ada",
             phone: "288 481-2686",
-            account_created: createAccountConfig.account_created,
             user_token: userNft,
             ref_token: refNft,
-            scripts: accountScript,
         };
 
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
+        const removeAccountResult = yield* removeAccount(
+            lucid,
+            removeAccountConfig,
+        );
+        const removeAccountSigned = yield* Effect.promise(() =>
+            removeAccountResult.sign
+                .withWallet()
+                .complete()
+        );
+        const removeAccountHash = yield* Effect.promise(() =>
+            removeAccountSigned.submit()
+        );
 
-        try {
-            const removeAccountResult = yield* removeAccount(
-                lucid,
-                removeAccountConfig,
-            );
-            const removeAccountSigned = yield* Effect.promise(() =>
-                removeAccountResult.sign
-                    .withWallet()
-                    .complete()
-            );
-            const removeAccountHash = yield* Effect.promise(() =>
-                removeAccountSigned.submit()
-            );
-            yield* Effect.log("TxHash: ", removeAccountHash);
-        } catch (error) {
-            console.error("Error updating service:", error);
-            throw error; // or handle it as appropriate for your test
-        }
+        yield* Effect.log("TxHash: ", removeAccountHash);
+
         yield* Effect.sync(() => emulator.awaitBlock(100));
 
         const removeSubscriberUTxO = yield* Effect.promise(() =>
