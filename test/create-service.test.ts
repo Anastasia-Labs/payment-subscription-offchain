@@ -7,11 +7,12 @@ import {
   Lucid,
   LucidEvolution,
   PROTOCOL_PARAMETERS_DEFAULT,
+  UTxO,
   validatorToAddress,
 } from "../src/index.js";
-import { beforeEach, test } from "vitest";
+import { beforeEach, expect, test } from "vitest";
 import { readMultiValidators } from "./compiled/validators.js";
-import { Effect } from "effect";
+import { Console, Effect } from "effect";
 
 type LucidContext = {
   lucid: LucidEvolution;
@@ -34,59 +35,106 @@ beforeEach<LucidContext>(async (context) => {
   context.lucid = await Lucid(context.emulator, "Custom");
 });
 
-test<LucidContext>("Test 1 - Create Service", async ({
-  lucid,
-  users,
-  emulator,
-}) => {
-  console.log("createSubscriptionService...TEST!!!!");
-
-  const serviceValidator = readMultiValidators(false, []);
-
-  const serviceScript = {
-    spending: serviceValidator.spendService.script,
-    minting: serviceValidator.mintService.script,
-    staking: "",
+type CreateServiceResult = {
+  txHash: string;
+  serviceConfig: CreateServiceConfig;
+  outputs: {
+    merchantUTxOs: UTxO[];
+    serviceUTxOs: UTxO[];
   };
+};
 
-  const createServiceConfig: CreateServiceConfig = {
-    service_fee: ADA,
-    service_fee_qty: 10_000_000n,
-    penalty_fee: ADA,
-    penalty_fee_qty: 1_000_000n,
-    interval_length: 1n,
-    num_intervals: 12n,
-    minimum_ada: 2_000_000n,
-    is_active: true,
-    scripts: serviceScript,
-  };
+export const createServiceTestCase = (
+  { lucid, users, emulator }: LucidContext,
+): Effect.Effect<CreateServiceResult, Error, never> => {
+  return Effect.gen(function* () {
+    console.log("createSubscriptionService...TEST!!!!");
 
-  lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
+    const serviceValidator = readMultiValidators(false, []);
 
-  try {
-    const createServiceUnSigned = await Effect.runPromise(
-      createService(lucid, createServiceConfig),
+    const serviceScript = {
+      spending: serviceValidator.spendService.script,
+      minting: serviceValidator.mintService.script,
+      staking: "",
+    };
+
+    const serviceConfig: CreateServiceConfig = {
+      service_fee: ADA,
+      service_fee_qty: 10_000_000n,
+      penalty_fee: ADA,
+      penalty_fee_qty: 1_000_000n,
+      interval_length: 30n * 24n * 60n * 60n * 1000n, // 30 days in seconds,
+      num_intervals: 12n,
+      minimum_ada: 2_000_000n,
+      is_active: true,
+      scripts: serviceScript,
+    };
+
+    lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
+
+    const createServiceFlow = Effect.gen(function* (_) {
+      const createServiceUnSigned = yield* createService(
+        lucid,
+        serviceConfig,
+      );
+      const createServiceSigned = yield* Effect.promise(() =>
+        createServiceUnSigned.sign.withWallet()
+          .complete()
+      );
+      const createServiceHash = yield* Effect.promise(() =>
+        createServiceSigned.submit()
+      );
+      console.log("createServiceSigned: ", createServiceSigned.toJSON());
+      console.log("TxHash: ", createServiceHash);
+
+      return createServiceHash;
+    });
+
+    const createServiceResult = yield* createServiceFlow.pipe(
+      Effect.tapError((error) =>
+        Effect.log(`Error creating Service: ${error}`)
+      ),
+      Effect.map((hash) => {
+        console.log("Service created successfully. TxHash:", hash);
+        return hash;
+      }),
     );
-    const createServiceSigned = await createServiceUnSigned.sign.withWallet()
-      .complete();
-    const createServiceHash = await createServiceSigned.submit();
-    console.log("createServiceSigned: ", createServiceSigned.toJSON());
-    console.log("TxHash: ", createServiceHash);
-  } catch (error) {
-    console.error("Error updating service:", error);
-    throw error; // or handle it as appropriate for your test
-  }
-  emulator.awaitBlock(100);
 
-  const serviceAddress = validatorToAddress(
-    "Custom",
-    serviceValidator.mintService,
-  );
+    yield* Effect.sync(() => emulator.awaitBlock(100));
 
-  const scriptUTxOs = await lucid.utxosAt(serviceAddress);
-  console.log("Service Validator mint Address: ", serviceAddress);
-  const merchantUTxO = await lucid.utxosAt(users.merchant.address);
-  console.log("walletUTxO: ", merchantUTxO);
-  console.log("Service Validator: ", scriptUTxOs);
-  emulator.awaitBlock(100);
+    const serviceAddress = validatorToAddress(
+      "Custom",
+      serviceValidator.mintService,
+    );
+
+    const [merchantUTxOs, serviceUTxOs] = yield* Effect.all([
+      Effect.promise(() => lucid.utxosAt(users.merchant.address)),
+      Effect.promise(() => lucid.utxosAt(serviceAddress)),
+    ]);
+
+    yield* Console.log("Updated- Merchant Utxos:", merchantUTxOs);
+    yield* Console.log(
+      "Updated- Service Validator Utxos:",
+      serviceUTxOs,
+    );
+
+    return {
+      txHash: createServiceResult,
+      serviceConfig,
+      outputs: {
+        merchantUTxOs,
+        serviceUTxOs,
+      },
+    };
+  });
+};
+
+test<LucidContext>("Test 1 - Create Service", async (context) => {
+  const result = await Effect.runPromise(createServiceTestCase(context));
+  expect(result.txHash).toBeDefined();
+  expect(typeof result.txHash).toBe("string");
+  // console.log("Create Account with transaction hash:", result);
+
+  expect(result.serviceConfig).toBeDefined();
+  expect(result.outputs).toBeDefined();
 });

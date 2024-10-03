@@ -1,31 +1,17 @@
 import {
   Address,
-  applyParamsToScript,
   Constr,
   Data,
-  fromHex,
   LucidEvolution,
-  MintingPolicy,
   mintingPolicyToId,
-  selectUTxOs,
-  toHex,
-  toUnit,
   TransactionError,
   TxSignBuilder,
-  validatorToAddress,
 } from "@lucid-evolution/lucid";
-import { sha3_256 } from "@noble/hashes/sha3";
-import {
-  ExtendPaymentConfig,
-  InitPaymentConfig,
-  Result,
-} from "../core/types.js";
+import { ExtendPaymentConfig } from "../core/types.js";
 import {
   InitiatePayment,
-  //MintPayment,
   PaymentDatum,
   PaymentValidatorDatum,
-  PenaltyDatum,
 } from "../core/contract.types.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
@@ -87,23 +73,6 @@ export const extendSubscription = (
       PaymentDatum,
     );
 
-    const penaltyDatum: PenaltyDatum = {
-      service_nft_tn: config.service_nft_tn,
-      account_nft_tn: config.account_nft_tn,
-      penalty_fee: config.penalty_fee,
-      penalty_fee_qty: config.penalty_fee_qty,
-    };
-
-    // const directPenaltyDatum = Data.to<PenaltyDatum>(
-    //   penaltyDatum,
-    //   PenaltyDatum,
-    // );
-
-    // const directDatum = Data.to<PaymentDatum>(
-    //   paymentDatum,
-    //   PaymentDatum,
-    // );
-
     const allDatums: PaymentValidatorDatum = {
       Payment: [paymentDatum],
     };
@@ -113,26 +82,13 @@ export const extendSubscription = (
       PaymentValidatorDatum,
     );
 
-    // const directDatum = Data.to(new Constr(0, [paymentValDatum]));
-    // console.log("EXTEND ALL DATUM", paymentValDatum);
-    console.log("EXTEND PAYMENT DATUM", paymentDatum);
-    console.log("EXTEND DIRECT DATUM", directPaymentDatum);
-    // console.log("EXTEND PENALTY DATUM", penaltyDatum);
-
-    console.log("Account UTxOs :: ", config.accountUtxo);
-    console.log("Service UTxOs :: ", config.serviceUtxo);
-
-    console.log("Payment Utxo", config.paymentUtxo);
-    console.log("Subscriber UTxO", config.accountUtxo);
-    console.log("User  Token", config.user_token);
-    // console.log("PAyment  Token", config.ref_token);
     const wrappedRedeemer = Data.to(new Constr(1, [new Constr(0, [])]));
 
     const tx = yield* lucid
       .newTx()
-      .readFrom(config.serviceUtxo)
-      .collectFrom(config.accountUtxo) // subscriber user nft utxo
-      .collectFrom(config.paymentUtxo, wrappedRedeemer) // subscriber utxos
+      .readFrom(config.serviceUTxO)
+      .collectFrom(config.subscriberUTxO) // subscriber user nft utxo
+      .collectFrom(config.paymentUTxO, wrappedRedeemer) // subscriber utxos
       .pay.ToAddress(subscriberAddress, {
         [config.user_token]: 1n,
       })

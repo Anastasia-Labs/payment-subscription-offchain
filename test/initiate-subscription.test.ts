@@ -29,6 +29,7 @@ import { readMultiValidators } from "./compiled/validators.js";
 import { Console, Effect } from "effect";
 import { findCip68TokenNames } from "../src/core/utils/assets.js";
 import { createAccountTestCase } from "./create-account.test.js";
+import { createServiceTestCase } from "./create-service.test.js";
 
 type LucidContext = {
   lucid: LucidEvolution;
@@ -58,13 +59,12 @@ beforeEach<LucidContext>(async (context) => {
 type InitiateSubscriptionResult = {
   txHash: string;
   paymentConfig: InitPaymentConfig;
-  additionalInfo: {
-    paymentValidatorAddress: string;
+  outputs: {
+    subscriberUTxOs: UTxO[];
+    serviceValidatorUTxOs: UTxO[];
+    paymentValidatorUTxOs: UTxO[];
     accUsrNft: Unit;
     servcRefNft: Unit;
-    subscriberUtxos: UTxO[];
-    serviceValidatorUtxos: UTxO[];
-    paymentValidatorUtxos: UTxO[];
   };
 };
 
@@ -73,59 +73,9 @@ export const initiateSubscriptionTestCase = (
 ): Effect.Effect<InitiateSubscriptionResult, Error, never> => {
   return Effect.gen(function* () {
     // Existing test logic goes here
-    console.log("createSubscriptionAccount...TEST!!!!");
+    console.log("Initiaie Subscription Account...TEST!!!!");
 
     const validators = readMultiValidators(false, []);
-
-    // const accountScript = {
-    //   spending: accountValidator.spendAccount.script,
-    //   minting: accountValidator.mintAccount.script,
-    //   staking: "",
-    // };
-    // const accountPolicyId = mintingPolicyToId(accountValidator.mintAccount);
-
-    // const createAccountConfig: CreateAccountConfig = {
-    //   email: "business@web3.ada",
-    //   phone: "288-481-2686",
-    //   account_created: BigInt(emulator.now()),
-    //   scripts: accountScript,
-    // };
-
-    // lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
-    // const accountAddress = validatorToAddress(
-    //   "Custom",
-    //   accountValidator.spendAccount,
-    // );
-
-    // const createAccountResult = yield* createAccount(
-    //   lucid,
-    //   createAccountConfig,
-    // );
-
-    // const createAccountSigned = yield* Effect.promise(() =>
-    //   createAccountResult.sign.withWallet()
-    //     .complete()
-    // );
-    // const createAccountHash = yield* Effect.promise(() =>
-    //   createAccountSigned.submit()
-    // );
-    // console.log("TxHash: ", createAccountHash);
-
-    emulator.awaitBlock(100);
-
-    // const subscriberUTxO = yield* Effect.promise(() =>
-    //   lucid.utxosAt(users.subscriber.address)
-    // );
-    // console.log("Subscriber UTxO after creation of account:", subscriberUTxO);
-
-    // const accountScriptUTxOs = yield* Effect.promise(() =>
-    //   lucid.utxosAt(accountAddress)
-    // );
-
-    // console.log(
-    //   "Validator UTxOs after creation of account",
-    //   accountScriptUTxOs,
-    // );
 
     const createAccountResult = yield* createAccountTestCase({
       lucid,
@@ -136,87 +86,30 @@ export const initiateSubscriptionTestCase = (
     expect(createAccountResult).toBeDefined();
     expect(typeof createAccountResult.txHash).toBe("string"); // Assuming the createAccountResult is a transaction hash
     console.log(
-      "Create account with transaction hash:",
+      "Create Account with transaction hash:",
       createAccountResult.txHash,
     );
 
-    yield* Effect.log("Remove Subscription Account...TEST!!!!");
+    yield* Effect.sync(() => emulator.awaitBlock(100));
+
+    console.log("Create Subscription Service...TEST!!!!");
+
+    const createServiceResult = yield* createServiceTestCase({
+      lucid,
+      users,
+      emulator,
+    });
+
+    expect(createServiceResult).toBeDefined();
+    expect(typeof createServiceResult.txHash).toBe("string"); // Assuming the createServiceResult is a transaction hash
+    console.log(
+      "Create Account with transaction hash:",
+      createServiceResult.txHash,
+    );
 
     yield* Effect.sync(() => emulator.awaitBlock(100));
 
-    emulator.awaitBlock(100);
-
-    console.log("createSubscriptionService...TEST!!!!");
-
-    const serviceValidator = readMultiValidators(false, []);
-
-    const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
-
-    const serviceScript = {
-      spending: serviceValidator.spendService.script,
-      minting: serviceValidator.mintService.script,
-      staking: "",
-    };
-
-    const createServiceConfig: CreateServiceConfig = {
-      service_fee: ADA,
-      service_fee_qty: 10_000_000n,
-      penalty_fee: ADA,
-      penalty_fee_qty: 1_000_000n,
-      interval_length: 30n * 24n * 60n * 60n * 1000n, // 30 days in seconds,
-      num_intervals: 12n,
-      minimum_ada: 2_000_000n,
-      is_active: true,
-      scripts: serviceScript,
-    };
-
-    console.log("createServiceConfig : ", createServiceConfig.interval_length);
-
-    lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
-
-    const createServiceUnSigned = yield* createService(
-      lucid,
-      createServiceConfig,
-    );
-    const createServiceSigned = yield* Effect.promise(() =>
-      createServiceUnSigned.sign.withWallet()
-        .complete()
-    );
-    const createServiceHash = yield* Effect.promise(() =>
-      createServiceSigned.submit()
-    );
-
-    emulator.awaitBlock(100);
-
-    const serviceAddress = validatorToAddress(
-      "Custom",
-      serviceValidator.mintService,
-    );
-
-    const serviceScriptUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(serviceAddress)
-    );
-    //console.log("Service Validator mint Address: ", serviceAddress);
-    const merchantUTxO = yield* Effect.promise(() =>
-      lucid.utxosAt(users.merchant.address)
-    );
-    console.log("walletUTxO after create service: ", merchantUTxO);
-    console.log("Validator utxos after create service: ", serviceScriptUTxOs);
-    emulator.awaitBlock(100);
-
-    const serviceValidatorDatum = yield* Effect.promise(() =>
-      getValidatorDatum(
-        lucid,
-        createServiceConfig,
-      )
-    );
-
-    console.log("Service Validator Utxos", serviceValidatorDatum);
-    const interval_length = serviceValidatorDatum[0].interval_length;
-    const num_intervals = serviceValidatorDatum[0].num_intervals;
-    const subscription_end = BigInt(emulator.now()) +
-      interval_length * num_intervals;
-
+    const servicePolicyId = mintingPolicyToId(validators.mintService);
     const accountPolicyId = mintingPolicyToId(validators.mintAccount);
 
     const paymentValidator = readMultiValidators(true, [
@@ -224,10 +117,6 @@ export const initiateSubscriptionTestCase = (
       accountPolicyId,
     ]);
 
-    const paymentValidatorAddress = validatorToAddress(
-      "Custom",
-      paymentValidator.mintPayment,
-    );
     // console.log("Payment validator address", paymentValidatorAddress);
 
     const paymentScript = {
@@ -255,8 +144,8 @@ export const initiateSubscriptionTestCase = (
     // Service NFTs
     const { refTokenName: serviceRefName, userTokenName: serviceUserName } =
       findCip68TokenNames([
-        ...serviceScriptUTxOs,
-        ...merchantUTxO,
+        ...createServiceResult.outputs.serviceUTxOs,
+        ...createServiceResult.outputs.merchantUTxOs,
       ], servicePolicyId);
 
     const servcRefNft = toUnit(
@@ -275,12 +164,11 @@ export const initiateSubscriptionTestCase = (
         accUsrNft,
       )
     );
-    const serviceNFTUtxo = yield* Effect.promise(() =>
-      lucid.utxosAtWithUnit(
-        serviceAddress,
-        servcRefNft,
-      )
-    );
+
+    const interval_length = createServiceResult.serviceConfig.interval_length;
+    const num_intervals = createServiceResult.serviceConfig.num_intervals;
+    const subscription_end = BigInt(emulator.now()) +
+      interval_length * num_intervals;
 
     const paymentConfig: InitPaymentConfig = {
       service_nft_tn: serviceRefName,
@@ -292,15 +180,15 @@ export const initiateSubscriptionTestCase = (
       subscription_start: BigInt(emulator.now()),
       subscription_end: subscription_end,
       interval_length: interval_length, //30n * 24n * 60n * 60n * 1000n,
-      interval_amount: 10_000_000n,
+      interval_amount: createServiceResult.serviceConfig.service_fee_qty,
       num_intervals: num_intervals,
       last_claimed: 500000n,
       penalty_fee: ADA,
-      penalty_fee_qty: 1_000_000n,
-      minimum_ada: 2_000_000n,
+      penalty_fee_qty: createServiceResult.serviceConfig.penalty_fee_qty,
+      minimum_ada: createServiceResult.serviceConfig.minimum_ada,
       scripts: paymentScript,
-      accountUtxo: accountNFTUtxo,
-      serviceUtxo: serviceNFTUtxo,
+      subscriberUTxO: createAccountResult.outputs.subscriberUTxOs,
+      serviceUTxO: createServiceResult.outputs.serviceUTxOs,
       minting_Policy: paymentValidator.mintPayment, //MintingPolicy
     };
 
@@ -325,10 +213,6 @@ export const initiateSubscriptionTestCase = (
 
       yield* Effect.sync(() => emulator.awaitBlock(50));
 
-      // yield* Console.log("Payment Validator Utxos:", paymentValidatorUtxos);
-      // yield* Console.log("Account- Subscriber Utxos:", subscriberUtxos);
-      // yield* Console.log("Service- Validator Utxos:", serviceValidatorUtxos);
-
       return initiateSubscriptionHash;
     });
 
@@ -342,23 +226,36 @@ export const initiateSubscriptionTestCase = (
       }),
     );
 
-    const [paymentValidatorUtxos, subscriberUtxos, serviceValidatorUtxos] =
+    const paymentValidatorAddress = validatorToAddress(
+      "Custom",
+      paymentValidator.mintPayment,
+    );
+
+    const serviceAddress = validatorToAddress(
+      "Custom",
+      validators.mintService,
+    );
+
+    const [paymentValidatorUTxOs, subscriberUTxOs, serviceValidatorUTxOs] =
       yield* Effect.all([
         Effect.promise(() => lucid.utxosAt(paymentValidatorAddress)),
         Effect.promise(() => lucid.utxosAt(users.subscriber.address)),
         Effect.promise(() => lucid.utxosAt(serviceAddress)),
       ]);
 
+    yield* Console.log("Payment Validator Utxos:", paymentValidatorUTxOs);
+    yield* Console.log("Account- Subscriber Utxos:", subscriberUTxOs);
+    yield* Console.log("Service- Validator Utxos:", serviceValidatorUTxOs);
+
     return {
       txHash: subscriptionResult,
       paymentConfig,
-      additionalInfo: {
-        paymentValidatorAddress,
+      outputs: {
+        subscriberUTxOs,
+        serviceValidatorUTxOs,
+        paymentValidatorUTxOs,
         accUsrNft,
         servcRefNft,
-        subscriberUtxos,
-        serviceValidatorUtxos,
-        paymentValidatorUtxos,
       },
     };
   });
@@ -373,8 +270,5 @@ test<LucidContext>("Test 1 - Initiate subscription", async (
   // console.log("Subscription initiated with transaction hash:", result);
 
   expect(result.paymentConfig).toBeDefined();
-  expect(result.additionalInfo.paymentValidatorAddress).toBeDefined();
+  expect(result.outputs).toBeDefined();
 });
-
-// await Effect.runPromise(program);
-// });

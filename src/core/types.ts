@@ -131,8 +131,8 @@ export type InitPaymentConfig = {
     minting: CborHex;
     staking: CborHex;
   };
-  accountUtxo: UTxO[];
-  serviceUtxo: UTxO[];
+  subscriberUTxO: UTxO[];
+  serviceUTxO: UTxO[];
   minting_Policy: MintingPolicy;
 };
 
@@ -160,9 +160,9 @@ export type ExtendPaymentConfig = {
     minting: CborHex;
     staking: CborHex;
   };
-  accountUtxo: UTxO[];
-  serviceUtxo: UTxO[];
-  paymentUtxo: UTxO[];
+  subscriberUTxO: UTxO[];
+  serviceUTxO: UTxO[];
+  paymentUTxO: UTxO[];
   minting_Policy: MintingPolicy;
 };
 

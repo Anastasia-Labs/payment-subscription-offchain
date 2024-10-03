@@ -101,24 +101,24 @@ export const initiateSubscription = (
 
     console.log("DAtum", directDatum);
 
-    console.log("Account UTxOs :: ", config.accountUtxo);
-    console.log("Service UTxOs :: ", config.serviceUtxo);
+    console.log("Account UTxOs :: ", config.subscriberUTxO);
+    console.log("Service UTxOs :: ", config.serviceUTxO);
 
-    const accountAssets = config.accountUtxo[0].assets;
+    const accountAssets = config.subscriberUTxO[0].assets;
     console.log("assets from Account utxs", accountAssets);
 
     const paymentNFT = toUnit(
       paymentPolicyId,
       tokenName, //tokenNameWithoutFunc,
     );
-    console.log("Service Utxo", config.serviceUtxo);
+    console.log("Service Utxo", config.serviceUTxO);
     // console.log("Payment validator address", config);
 
     const tx = yield* lucid
       .newTx()
-      .readFrom(config.serviceUtxo)
+      .readFrom(config.serviceUTxO)
       //.collectFrom(subscriberUTxOs) // subscriber utxos
-      .collectFrom(config.accountUtxo) // subscriber user nft utxo
+      .collectFrom(config.subscriberUTxO) // subscriber user nft utxo
       // service validator ref nft utxo
       .mintAssets({ [paymentNFT]: 1n }, redeemerData)
       .pay.ToAddress(subscriberAddress, accountAssets)

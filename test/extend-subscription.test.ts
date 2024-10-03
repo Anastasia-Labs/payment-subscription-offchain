@@ -60,14 +60,6 @@ test<LucidContext>("Test 1 - Extend Service", async (
             initResult.txHash,
         );
 
-        const paymentUTxO = yield* Effect.promise(() =>
-            lucid.utxosAt(initResult.additionalInfo.paymentValidatorAddress)
-        );
-        console.log(
-            "PAYMENT UTXO:",
-            paymentUTxO,
-        );
-
         const paymentValidator = readMultiValidators(true, [
             initResult.paymentConfig.service_policyId,
             initResult.paymentConfig.account_policyId,
@@ -84,7 +76,7 @@ test<LucidContext>("Test 1 - Extend Service", async (
         );
 
         const payment_token_name = tokenNameFromUTxO(
-            paymentUTxO[0],
+            initResult.outputs.paymentValidatorUTxOs,
             paymentPolicyId,
         );
 
@@ -120,29 +112,6 @@ test<LucidContext>("Test 1 - Extend Service", async (
         // Calculate new subscription end time
         const currentTime = BigInt(emulator.now());
 
-        console.log(
-            "newNumIntervals:",
-            newNumIntervals,
-        );
-
-        console.log(
-            "sub_end:",
-            initResult.paymentConfig.subscription_end,
-        );
-
-        console.log(
-            "interval_length:",
-            initResult.paymentConfig.interval_length,
-        );
-        console.log(
-            "interval_amount:",
-            interval_amount,
-        );
-        console.log(
-            "newSubscriptionEnd:",
-            newSubscriptionEnd,
-        );
-
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
         const extendPaymentConfig: ExtendPaymentConfig = {
@@ -153,12 +122,12 @@ test<LucidContext>("Test 1 - Extend Service", async (
             num_intervals: newNumIntervals,
             interval_length: initResult.paymentConfig.interval_length,
             interval_amount: interval_amount,
-            user_token: initResult.additionalInfo.accUsrNft,
-            service_ref_token: initResult.additionalInfo.servcRefNft,
+            user_token: initResult.outputs.accUsrNft,
+            service_ref_token: initResult.outputs.servcRefNft,
             payment_token: paymentNFT,
             scripts: paymentScript,
-            accountUtxo: initResult.additionalInfo.subscriberUtxos,
-            paymentUtxo: paymentUTxO,
+            subscriberUTxO: initResult.outputs.subscriberUTxOs,
+            paymentUTxO: initResult.outputs.paymentValidatorUTxOs,
         };
 
         console.log(

@@ -90,13 +90,14 @@ export const createAccountTestCase = (
 
     const createAccountResult = yield* createAccountFlow.pipe(
       Effect.tapError((error) =>
-        Effect.log(`Error initiating subscription: ${error}`)
+        Effect.log(`Error creating Account: ${error}`)
       ),
       Effect.map((hash) => {
-        console.log("Subscription initiated successfully. TxHash:", hash);
+        console.log("Account created successfully. TxHash:", hash);
         return hash;
       }),
     );
+
     yield* Effect.sync(() => emulator.awaitBlock(100));
 
     const [subscriberUTxOs, accountUTxOs] = yield* Effect.all([
@@ -128,5 +129,6 @@ test<LucidContext>("Test 1 - Create Account", async (context) => {
   // console.log("Create Account with transaction hash:", result);
 
   expect(result.accountConfig).toBeDefined();
+  expect(result.outputs).toBeDefined();
   // expect(result.additionalInfo.paymentValidatorAddress).toBeDefined();
 });

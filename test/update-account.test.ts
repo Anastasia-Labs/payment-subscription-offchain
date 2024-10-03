@@ -48,43 +48,6 @@ test<LucidContext>("Test 1 - Update Service", async ({
     const program = Effect.gen(function* () {
         console.log("Update Subscription Service...TEST!!!!");
 
-        // const accountScript = {
-        //     spending: accountValidator.spendAccount.script,
-        //     minting: accountValidator.mintAccount.script,
-        //     staking: "",
-        // };
-
-        // const createAccountConfig: CreateAccountConfig = {
-        //     email: "business@web3.ada",
-        //     phone: "288-481-2686",
-        //     account_created: BigInt(emulator.now()),
-        //     scripts: accountScript,
-        // };
-
-        // lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
-
-        // const subscriberUTxO = await lucid.utxosAt(users.subscriber.address);
-        // console.log("Subscriber Address: Before :: ", users.subscriber.address);
-        // console.log("Subscriber UTxOs: Before :: ", subscriberUTxO);
-
-        // try {
-        //     const createAccountUnSigned = await Effect.runPromise(
-        //         createAccount(lucid, createAccountConfig),
-        //     );
-        //     const createAccountSigned = yield* Effect.promise(() =>
-        //         createAccountUnSigned.sign
-        //             .withWallet()
-        //             .complete()
-        //     );
-        //     const createServiceHash = yield* Effect.promise(() =>
-        //         createAccountSigned.submit()
-        //     );
-        //     console.log("TxHash: ", createServiceHash);
-        // } catch (error) {
-        //     console.error("Error updating service:", error);
-        //     throw error;
-        // }
-
         const createAccountResult = yield* createAccountTestCase({
             lucid,
             users,
@@ -98,7 +61,8 @@ test<LucidContext>("Test 1 - Update Service", async ({
             createAccountResult.txHash,
         );
 
-        emulator.awaitBlock(100);
+        yield* Effect.sync(() => emulator.awaitBlock(100));
+
         const subscriberUTxOAfter = yield* Effect.promise(() =>
             lucid.utxosAt(
                 users.subscriber.address,
@@ -119,7 +83,8 @@ test<LucidContext>("Test 1 - Update Service", async ({
             lucid.utxosAt(accountScriptAddress)
         );
 
-        emulator.awaitBlock(100);
+        yield* Effect.sync(() => emulator.awaitBlock(100));
+
         console.log(
             "UPDATING///////////////////////////>>>>>>>>>>>>>>>>>>",
             accountUTxO,
@@ -165,7 +130,7 @@ test<LucidContext>("Test 1 - Update Service", async ({
             updateAccountSigned.submit()
         );
         console.log("TxHash: ", updateAccountHash);
-        emulator.awaitBlock(100);
+        yield* Effect.sync(() => emulator.awaitBlock(100));
 
         const subscriberUTxOs = yield* Effect.promise(() =>
             lucid.utxosAt(users.subscriber.address)

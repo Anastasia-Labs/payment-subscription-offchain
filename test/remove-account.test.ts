@@ -89,7 +89,7 @@ test<LucidContext>("Test 1 - Remove Account", async ({
 
         yield* Effect.log("Validator utxos", accountUTxO);
 
-        emulator.awaitBlock(100);
+        yield* Effect.sync(() => emulator.awaitBlock(100));
         yield* Effect.log(
             "REMOVING///////////////////////////>>>>>>>>>>>>>>>>>>",
             accountUTxO,
