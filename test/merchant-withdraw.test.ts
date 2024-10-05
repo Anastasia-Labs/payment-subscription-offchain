@@ -5,6 +5,8 @@ import {
     generateEmulatorAccount,
     Lucid,
     LucidEvolution,
+    merchantWithdraw,
+    MerchantWithdrawConfig,
     toUnit,
 } from "../src/index.js";
 import { beforeEach, expect, test } from "vitest";
@@ -27,22 +29,22 @@ type LucidContext = {
 beforeEach<LucidContext>(async (context) => {
     context.users = {
         subscriber: generateEmulatorAccount({
-            lovelace: BigInt(100_000_000),
+            lovelace: BigInt(1000_000_000),
         }),
         merchant: generateEmulatorAccount({
-            lovelace: BigInt(100_000_000),
+            lovelace: BigInt(1000_000_000),
         }),
     };
 
     context.emulator = new Emulator([
         context.users.subscriber,
         context.users.merchant,
-    ], { ...PROTOCOL_PARAMETERS_DEFAULT, maxTxSize: 19000 });
+    ], { ...PROTOCOL_PARAMETERS_DEFAULT, maxTxSize: 20000 });
 
     context.lucid = await Lucid(context.emulator, "Custom");
 });
 
-test<LucidContext>("Test 1 - Extend Service", async (
+test<LucidContext>("Test 1 - Merchant Withdraw", async (
     { lucid, users, emulator }: LucidContext,
 ) => {
     const program = Effect.gen(function* () {
@@ -84,16 +86,6 @@ test<LucidContext>("Test 1 - Extend Service", async (
             payment_token_name, //tokenNameWithoutFunc,
         );
 
-        // console.log(
-        //     "paymentUTxO2 UTxO:",
-        //     paymentUTxO2,
-        // );
-
-        console.log(
-            "initResult.paymentConfig.account_nft_tn:",
-            initResult.paymentConfig.account_nft_tn,
-        );
-
         const extension_intervals = BigInt(1); // Number of intervals to extend
         const interval_amount = initResult.paymentConfig.interval_amount *
             extension_intervals;
@@ -111,73 +103,74 @@ test<LucidContext>("Test 1 - Extend Service", async (
         // Calculate new subscription end time
         const currentTime = BigInt(emulator.now());
 
-        lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
+        lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
 
-        const extendPaymentConfig: ExtendPaymentConfig = {
+        const merchantWithdrawConfig: MerchantWithdrawConfig = {
             ...initResult.paymentConfig,
             subscription_start: currentTime,
             subscription_end: newSubscriptionEnd,
             total_subscription_fee: newTotalSubscriptionFee,
             num_intervals: newNumIntervals,
+            last_claimed: currentTime,
             interval_length: initResult.paymentConfig.interval_length,
             interval_amount: interval_amount,
-            user_token: initResult.outputs.accUsrNft,
+            merchant_token: initResult.outputs.serviceUserNft,
             service_ref_token: initResult.outputs.servcRefNft,
             payment_token: paymentNFT,
             scripts: paymentScript,
-            subscriberUTxO: initResult.outputs.subscriberUTxOs,
+            merchantUTxO: initResult.outputs.merchantUTxOs,
             paymentUTxO: initResult.outputs.paymentValidatorUTxOs,
         };
 
         console.log(
-            "ExtendPaymentConfig:",
-            extendPaymentConfig,
+            "MerchantWithdrawConfig:",
+            merchantWithdrawConfig,
         );
 
-        const extendResult = yield* extendSubscription(
+        const merchantWithdrawResult = yield* merchantWithdraw(
             lucid,
-            extendPaymentConfig,
+            merchantWithdrawConfig,
         );
-        const extendSigned = yield* Effect.promise(() =>
-            extendResult.sign.withWallet().complete()
+        const merchantWithdrawSigned = yield* Effect.promise(() =>
+            merchantWithdrawResult.sign.withWallet().complete()
         );
-        console.log(
-            "We reach here....",
+
+        const merchantWithdrawTxHash = yield* Effect.promise(() =>
+            merchantWithdrawSigned.submit()
         );
-        const extendTxHash = yield* Effect.promise(() => extendSigned.submit());
 
         console.log(
-            "Subscription extended with transaction hash:",
-            extendTxHash,
+            "Merchant withdraws with transaction hash:",
+            merchantWithdrawTxHash,
         );
         yield* Effect.sync(() => emulator.awaitBlock(100));
 
-        const extendSubscriberUTxO = yield* Effect.promise(() =>
-            lucid.utxosAt(users.subscriber.address)
+        const merchantUTxO = yield* Effect.promise(() =>
+            lucid.utxosAt(users.merchant.address)
         );
 
-        yield* Effect.log("removeSubscriberUTxO: After:", extendSubscriberUTxO);
+        yield* Effect.log("merchantUTxO: After:", merchantUTxO);
 
         return {
             initTxHash: initResult.txHash,
-            extendTxHash,
-            extendedConfig: extendPaymentConfig,
+            merchantWithdrawTxHash,
+            withdrawConfig: merchantWithdrawConfig,
         };
     });
     const result = await Effect.runPromise(program);
 
     expect(result.initTxHash).toBeDefined();
-    expect(result.extendTxHash).toBeDefined();
+    expect(result.merchantWithdrawTxHash).toBeDefined();
     expect(typeof result.initTxHash).toBe("string");
-    expect(typeof result.extendTxHash).toBe("string");
+    expect(typeof result.merchantWithdrawTxHash).toBe("string");
 
     // Add assertions to verify the extended configuration
-    expect(result.extendedConfig.subscription_end).toBeGreaterThan(
-        result.extendedConfig.subscription_start,
+    expect(result.withdrawConfig.subscription_end).toBeGreaterThan(
+        result.withdrawConfig.subscription_start,
     );
-    expect(result.extendedConfig.total_subscription_fee).toBe(
-        result.extendedConfig.interval_amount *
-            result.extendedConfig.num_intervals,
+    expect(result.withdrawConfig.total_subscription_fee).toBe(
+        result.withdrawConfig.interval_amount *
+            result.withdrawConfig.num_intervals,
     );
-    expect(result.extendedConfig.num_intervals).toBe(13n);
+    expect(result.withdrawConfig.num_intervals).toBe(13n);
 });

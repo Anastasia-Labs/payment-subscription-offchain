@@ -1,26 +1,18 @@
 import {
   Address,
-  applyParamsToScript,
   Data,
-  fromHex,
   LucidEvolution,
-  MintingPolicy,
   mintingPolicyToId,
   selectUTxOs,
-  toHex,
   toUnit,
   TransactionError,
   TxSignBuilder,
-  validatorToAddress,
 } from "@lucid-evolution/lucid";
-import { sha3_256 } from "@noble/hashes/sha3";
-import { InitPaymentConfig, Result } from "../core/types.js";
+import { InitPaymentConfig } from "../core/types.js";
 import {
   InitiatePayment,
-  //MintPayment,
   PaymentDatum,
   PaymentValidatorDatum,
-  PenaltyDatum,
 } from "../core/contract.types.js";
 import { generateUniqueAssetName } from "../core/utils/assets.js";
 import { getMultiValidator } from "../core/index.js";
@@ -55,15 +47,13 @@ export const initiateSubscription = (
     const tokenName = generateUniqueAssetName(selectedUTxOs[0], "");
 
     const paymentredeemer: InitiatePayment = {
-      InitSubscripton: {
-        output_reference: {
-          txHash: {
-            hash: subscriberUTxOs[0].txHash,
-          },
-          outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
+      output_reference: {
+        txHash: {
+          hash: subscriberUTxOs[0].txHash,
         },
-        input_index: 0n,
+        outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
       },
+      input_index: 0n,
     };
 
     const redeemerData = Data.to(paymentredeemer, InitiatePayment);
@@ -101,7 +91,7 @@ export const initiateSubscription = (
 
     console.log("DAtum", directDatum);
 
-    console.log("Account UTxOs :: ", config.subscriberUTxO);
+    console.log("Subscriber UTxOs :: ", config.subscriberUTxO);
     console.log("Service UTxOs :: ", config.serviceUTxO);
 
     const accountAssets = config.subscriberUTxO[0].assets;
@@ -112,14 +102,11 @@ export const initiateSubscription = (
       tokenName, //tokenNameWithoutFunc,
     );
     console.log("Service Utxo", config.serviceUTxO);
-    // console.log("Payment validator address", config);
 
     const tx = yield* lucid
       .newTx()
       .readFrom(config.serviceUTxO)
-      //.collectFrom(subscriberUTxOs) // subscriber utxos
       .collectFrom(config.subscriberUTxO) // subscriber user nft utxo
-      // service validator ref nft utxo
       .mintAssets({ [paymentNFT]: 1n }, redeemerData)
       .pay.ToAddress(subscriberAddress, accountAssets)
       .pay.ToAddressWithData(validators.spendValAddress, {
@@ -129,9 +116,7 @@ export const initiateSubscription = (
         lovelace: config.total_subscription_fee,
         [paymentNFT]: 1n,
       })
-      //.pay.ToAddress(subscriberAddr,{lovelace:2_000_000n})
       .attach.MintingPolicy(config.minting_Policy)
-      //.attach.SpendingValidator(config.serviceValidator)
       .completeProgram();
 
     return tx;

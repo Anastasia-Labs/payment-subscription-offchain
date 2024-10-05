@@ -51,7 +51,7 @@ beforeEach<LucidContext>(async (context) => {
   context.emulator = new Emulator([
     context.users.subscriber,
     context.users.merchant,
-  ], { ...PROTOCOL_PARAMETERS_DEFAULT, maxTxSize: 19000 });
+  ], { ...PROTOCOL_PARAMETERS_DEFAULT, maxTxSize: 20000 });
 
   context.lucid = await Lucid(context.emulator, "Custom");
 });
@@ -60,11 +60,14 @@ type InitiateSubscriptionResult = {
   txHash: string;
   paymentConfig: InitPaymentConfig;
   outputs: {
+    merchantUTxOs: UTxO[];
     subscriberUTxOs: UTxO[];
     serviceValidatorUTxOs: UTxO[];
     paymentValidatorUTxOs: UTxO[];
+    accRefNft: Unit;
     accUsrNft: Unit;
     servcRefNft: Unit;
+    serviceUserNft: Unit;
   };
 };
 
@@ -165,6 +168,7 @@ export const initiateSubscriptionTestCase = (
       )
     );
 
+    const interval_amount = createServiceResult.serviceConfig.service_fee_qty;
     const interval_length = createServiceResult.serviceConfig.interval_length;
     const num_intervals = createServiceResult.serviceConfig.num_intervals;
     const subscription_end = BigInt(emulator.now()) +
@@ -176,11 +180,11 @@ export const initiateSubscriptionTestCase = (
       account_policyId: accountPolicyId,
       service_policyId: servicePolicyId,
       subscription_fee: ADA,
-      total_subscription_fee: 120_000_000n,
+      total_subscription_fee: interval_amount * num_intervals,
       subscription_start: BigInt(emulator.now()),
       subscription_end: subscription_end,
       interval_length: interval_length, //30n * 24n * 60n * 60n * 1000n,
-      interval_amount: createServiceResult.serviceConfig.service_fee_qty,
+      interval_amount: interval_amount,
       num_intervals: num_intervals,
       last_claimed: 500000n,
       penalty_fee: ADA,
@@ -242,20 +246,24 @@ export const initiateSubscriptionTestCase = (
         Effect.promise(() => lucid.utxosAt(users.subscriber.address)),
         Effect.promise(() => lucid.utxosAt(serviceAddress)),
       ]);
-
+    const merchantUTxOs = createServiceResult.outputs.merchantUTxOs;
     yield* Console.log("Payment Validator Utxos:", paymentValidatorUTxOs);
     yield* Console.log("Account- Subscriber Utxos:", subscriberUTxOs);
     yield* Console.log("Service- Validator Utxos:", serviceValidatorUTxOs);
+    yield* Console.log("MerchantUTxOs:", merchantUTxOs);
 
     return {
       txHash: subscriptionResult,
       paymentConfig,
       outputs: {
+        merchantUTxOs,
         subscriberUTxOs,
         serviceValidatorUTxOs,
         paymentValidatorUTxOs,
+        accRefNft,
         accUsrNft,
         servcRefNft,
+        serviceUserNft,
       },
     };
   });

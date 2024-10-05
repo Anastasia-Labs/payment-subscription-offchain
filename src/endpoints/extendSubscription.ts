@@ -38,15 +38,13 @@ export const extendSubscription = (
     }
 
     const paymentredeemer: InitiatePayment = {
-      InitSubscripton: {
-        output_reference: {
-          txHash: {
-            hash: subscriberUTxOs[0].txHash,
-          },
-          outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
+      output_reference: {
+        txHash: {
+          hash: subscriberUTxOs[0].txHash,
         },
-        input_index: 0n,
+        outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
       },
+      input_index: 0n,
     };
 
     const redeemerData = Data.to(paymentredeemer, InitiatePayment);
@@ -68,10 +66,10 @@ export const extendSubscription = (
       minimum_ada: config.minimum_ada,
     };
 
-    const directPaymentDatum = Data.to<PaymentDatum>(
-      paymentDatum,
-      PaymentDatum,
-    );
+    // const directPaymentDatum = Data.to<PaymentDatum>(
+    //   paymentDatum,
+    //   PaymentDatum,
+    // );
 
     const allDatums: PaymentValidatorDatum = {
       Payment: [paymentDatum],

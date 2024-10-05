@@ -115,6 +115,7 @@ export const createService = (
         redeemerData,
       )
       .pay.ToAddress(merchantAddress, {
+        lovelace: config.minimum_ada,
         [userToken]: 1n,
       })
       .pay.ToContract(validators.mintValAddress, {

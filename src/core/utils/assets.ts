@@ -71,7 +71,7 @@ const createCip68TokenNames = (utxo: UTxO) => {
 const tokenNameFromUTxO = (
     utxoOrUtxos: UTxO | UTxO[],
     policyId: string,
-): string | null => {
+): string => {
     const utxos = Array.isArray(utxoOrUtxos) ? utxoOrUtxos : [utxoOrUtxos];
 
     console.log(
@@ -92,7 +92,7 @@ const tokenNameFromUTxO = (
     }
 
     // If no matching NFT is found, return null
-    return null;
+    return "";
 };
 
 export {

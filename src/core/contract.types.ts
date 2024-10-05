@@ -137,18 +137,26 @@ export const AccountDatum = AccountDatumSchema as unknown as AccountDatum;
 //     TerminateSubscription
 //   }
 
-export const MintPaymentSchema = Data.Enum([
-    Data.Object({
-        InitSubscripton: Data.Object({
-            output_reference: OutputReferenceSchema,
-            input_index: Data.Integer(),
-        }),
-    }),
-    Data.Literal("TerminateSubscription"),
-]);
+// export const MintPaymentSchema = Data.Enum([
+//     Data.Object({
+//         InitSubscripton: Data.Object({
+//             output_reference: OutputReferenceSchema,
+//             input_index: Data.Integer(),
+//         }),
+//     }),
+//     Data.Literal("TerminateSubscription"),
+// ]);
 
-export type InitiatePayment = Data.Static<typeof MintPaymentSchema>;
-export const InitiatePayment = MintPaymentSchema as unknown as InitiatePayment;
+export type InitiatePayment = Data.Static<typeof CreateMintSchema>;
+export const InitiatePayment = CreateMintSchema as unknown as InitiatePayment;
+
+export const WithdrawSchema = Data.Object({
+    merchant_input_index: Data.Integer(),
+    payment_input_index: Data.Integer(),
+});
+
+export type MerchantWithdraw = Data.Static<typeof WithdrawSchema>;
+export const MerchantWithdraw = WithdrawSchema as unknown as MerchantWithdraw;
 
 // export const InitiatorSchema = Data.Object({
 //     output_reference: OutputReferenceSchema,

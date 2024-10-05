@@ -166,6 +166,36 @@ export type ExtendPaymentConfig = {
   minting_Policy: MintingPolicy;
 };
 
+export type MerchantWithdrawConfig = {
+  service_nft_tn: string; //AssetName,
+  account_nft_tn: string;
+  account_policyId: string;
+  service_policyId: string;
+  subscription_fee: AssetClassD;
+  total_subscription_fee: bigint;
+  subscription_start: bigint;
+  subscription_end: bigint;
+  interval_length: bigint;
+  interval_amount: bigint;
+  num_intervals: bigint;
+  last_claimed: bigint;
+  penalty_fee: AssetClassD;
+  penalty_fee_qty: bigint;
+  minimum_ada: bigint;
+  merchant_token: Unit;
+  service_ref_token: Unit;
+  payment_token: Unit;
+  scripts: {
+    spending: CborHex;
+    minting: CborHex;
+    staking: CborHex;
+  };
+  merchantUTxO: UTxO[];
+  serviceUTxO: UTxO[];
+  paymentUTxO: UTxO[];
+  minting_Policy: MintingPolicy;
+};
+
 export type MultiValidator = {
   spendValidator: Script;
   spendValAddress: Address;
