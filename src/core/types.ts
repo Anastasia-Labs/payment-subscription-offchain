@@ -55,6 +55,25 @@ export type UpdateServiceConfig = {
   };
 };
 
+export type UpdateServiceDatumConfig = {
+  new_service_fee: AssetClassD;
+  new_service_fee_qty: bigint;
+  new_penalty_fee: AssetClassD;
+  new_penalty_fee_qty: bigint;
+  new_interval_length: bigint;
+  new_num_intervals: bigint;
+  new_minimum_ada: bigint;
+  is_active: boolean;
+  user_token: Unit;
+  ref_token: Unit;
+  scripts: {
+    spending: CborHex;
+    minting: CborHex;
+    staking: CborHex;
+  };
+  serviceUTxOs: UTxO[];
+};
+
 export type RemoveServiceConfig = {
   service_fee: AssetClassD;
   service_fee_qty: bigint;
@@ -191,6 +210,36 @@ export type MerchantWithdrawConfig = {
     staking: CborHex;
   };
   merchantUTxO: UTxO[];
+  serviceUTxO: UTxO[];
+  paymentUTxO: UTxO[];
+  minting_Policy: MintingPolicy;
+};
+
+export type SubscriberWithdrawConfig = {
+  service_nft_tn: string; //AssetName,
+  account_nft_tn: string;
+  account_policyId: string;
+  service_policyId: string;
+  subscription_fee: AssetClassD;
+  total_subscription_fee: bigint;
+  subscription_start: bigint;
+  subscription_end: bigint;
+  interval_length: bigint;
+  interval_amount: bigint;
+  num_intervals: bigint;
+  last_claimed: bigint;
+  penalty_fee: AssetClassD;
+  penalty_fee_qty: bigint;
+  minimum_ada: bigint;
+  subscriber_token: Unit;
+  service_ref_token: Unit;
+  payment_token: Unit;
+  scripts: {
+    spending: CborHex;
+    minting: CborHex;
+    staking: CborHex;
+  };
+  subscriberUTxO: UTxO[];
   serviceUTxO: UTxO[];
   paymentUTxO: UTxO[];
   minting_Policy: MintingPolicy;

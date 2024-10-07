@@ -11,3 +11,5 @@ export * from "./getAccountValidatorUtxos.js";
 export * from "./initiateSubscription.js";
 export * from "./extendSubscription.js";
 export * from "./merchantWithdraw.js";
+export * from "./updateServiceDatum.js";
+export * from "./subscriberWithdraw.js";
