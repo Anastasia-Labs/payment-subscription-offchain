@@ -3,16 +3,11 @@ import {
   Constr,
   Data,
   LucidEvolution,
-  mintingPolicyToId,
   TransactionError,
   TxSignBuilder,
 } from "@lucid-evolution/lucid";
 import { ExtendPaymentConfig } from "../core/types.js";
-import {
-  InitiatePayment,
-  PaymentDatum,
-  PaymentValidatorDatum,
-} from "../core/contract.types.js";
+import { PaymentDatum, PaymentValidatorDatum } from "../core/contract.types.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
 
@@ -27,28 +22,12 @@ export const extendSubscription = (
 
     const validators = getMultiValidator(lucid, config.scripts);
 
-    const paymentPolicyId = mintingPolicyToId(validators.mintValidator);
-    console.log("Payment Policy Id: ", paymentPolicyId);
-
     const subscriberUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(subscriberAddress)
     );
     if (!subscriberUTxOs || !subscriberUTxOs.length) {
       console.error("No UTxO found at user address: " + subscriberAddress);
     }
-
-    const paymentredeemer: InitiatePayment = {
-      output_reference: {
-        txHash: {
-          hash: subscriberUTxOs[0].txHash,
-        },
-        outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
-      },
-      input_index: 0n,
-    };
-
-    const redeemerData = Data.to(paymentredeemer, InitiatePayment);
-    console.log("Redeemer", redeemerData);
 
     const paymentDatum: PaymentDatum = {
       service_nft_tn: config.service_nft_tn,
@@ -65,11 +44,6 @@ export const extendSubscription = (
       penalty_fee_qty: config.penalty_fee_qty,
       minimum_ada: config.minimum_ada,
     };
-
-    // const directPaymentDatum = Data.to<PaymentDatum>(
-    //   paymentDatum,
-    //   PaymentDatum,
-    // );
 
     const allDatums: PaymentValidatorDatum = {
       Payment: [paymentDatum],

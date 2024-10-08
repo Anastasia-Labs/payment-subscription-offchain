@@ -50,9 +50,6 @@ const findCip68TokenNames = (
         throw new Error("Failed to find both reference and user token names");
     }
 
-    console.log("refTokenName: ", refTokenName);
-    console.log("userTokenName: ", userTokenName);
-
     return { refTokenName, userTokenName };
 };
 
@@ -74,10 +71,6 @@ const tokenNameFromUTxO = (
 ): string => {
     const utxos = Array.isArray(utxoOrUtxos) ? utxoOrUtxos : [utxoOrUtxos];
 
-    console.log(
-        "tokenNameFromUTxO UTxO:",
-        utxos,
-    );
     for (const utxo of utxos) {
         const assets: Assets = utxo.assets;
 

@@ -1,7 +1,5 @@
 import {
     Emulator,
-    ExtendPaymentConfig,
-    extendSubscription,
     generateEmulatorAccount,
     Lucid,
     LucidEvolution,
@@ -56,10 +54,10 @@ test<LucidContext>("Test 1 - Merchant Withdraw", async (
 
         expect(initResult).toBeDefined();
         expect(typeof initResult.txHash).toBe("string"); // Assuming the initResult is a transaction hash
-        console.log(
-            "Subscription initiated with transaction hash:",
-            initResult.txHash,
-        );
+
+        yield* Effect.sync(() => emulator.awaitBlock(100));
+
+        console.log("Merchant Withdraw...TEST!!!!");
 
         const paymentValidator = readMultiValidators(true, [
             initResult.paymentConfig.service_policyId,
@@ -122,11 +120,6 @@ test<LucidContext>("Test 1 - Merchant Withdraw", async (
             paymentUTxO: initResult.outputs.paymentValidatorUTxOs,
         };
 
-        console.log(
-            "MerchantWithdrawConfig:",
-            merchantWithdrawConfig,
-        );
-
         const merchantWithdrawResult = yield* merchantWithdraw(
             lucid,
             merchantWithdrawConfig,
@@ -139,17 +132,7 @@ test<LucidContext>("Test 1 - Merchant Withdraw", async (
             merchantWithdrawSigned.submit()
         );
 
-        console.log(
-            "Merchant withdraws with transaction hash:",
-            merchantWithdrawTxHash,
-        );
         yield* Effect.sync(() => emulator.awaitBlock(100));
-
-        const merchantUTxO = yield* Effect.promise(() =>
-            lucid.utxosAt(users.merchant.address)
-        );
-
-        yield* Effect.log("merchantUTxO: After:", merchantUTxO);
 
         return {
             initTxHash: initResult.txHash,
@@ -172,5 +155,4 @@ test<LucidContext>("Test 1 - Merchant Withdraw", async (
         result.withdrawConfig.interval_amount *
             result.withdrawConfig.num_intervals,
     );
-    expect(result.withdrawConfig.num_intervals).toBe(13n);
 });

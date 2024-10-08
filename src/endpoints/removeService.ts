@@ -7,7 +7,7 @@ import {
     TxSignBuilder,
 } from "@lucid-evolution/lucid";
 import { getMultiValidator } from "../core/utils/index.js";
-import { RemoveServiceConfig, UpdateServiceConfig } from "../core/types.js";
+import { RemoveServiceConfig } from "../core/types.js";
 import { ServiceDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
 
@@ -16,7 +16,6 @@ export const removeService = (
     config: RemoveServiceConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
     Effect.gen(function* () { // return type ,
-        console.log("Remove Service..........: ");
         const merchantAddress: Address = yield* Effect.promise(() =>
             lucid.wallet().address()
         );
@@ -48,11 +47,6 @@ export const removeService = (
         if (!serviceUTxO) {
             throw new Error("Service NFT not found");
         }
-        console.log("serviceNFTUTxO: ", serviceUTxO);
-
-        console.log("Merchant Utxo", merchantUTxO);
-
-        // i should parse the datum from the utxo to find
 
         const updatedDatum: ServiceDatum = {
             service_fee: config.service_fee,
@@ -69,24 +63,17 @@ export const removeService = (
 
         const wrappedRedeemer = Data.to(new Constr(1, [new Constr(1, [])]));
 
-        console.log("Redeemer updateService: ", wrappedRedeemer);
-        console.log("Datum serviceDatum: ", directDatum);
-        //console.log("Datum service_fee_qty: ", config.new_service_fee_qty);
-
         const tx = yield* lucid
             .newTx()
             .collectFrom(merchantUTxO)
             .collectFrom(serviceUTxO, wrappedRedeemer)
-            //.collectFrom(serviceUTxO)
             .pay.ToContract(serviceValAddress, {
                 kind: "inline",
                 value: directDatum,
             }, {
-                //lovelace: 3_000_000n,
                 [config.ref_token]: 1n,
             })
             .pay.ToAddress(merchantAddress, {
-                // lovelace: 3_000_000n,
                 [config.user_token]: 1n,
             })
             .attach.SpendingValidator(validators.spendValidator)

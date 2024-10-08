@@ -47,8 +47,6 @@ export const createAccountTestCase = (
   { lucid, users, emulator }: LucidContext,
 ): Effect.Effect<CreateAccountResult, Error, never> => {
   return Effect.gen(function* () {
-    console.log("createSubscriptionAccount...TEST!!!!");
-
     const accountValidator = readMultiValidators(false, []);
 
     const accountScript = {
@@ -82,9 +80,6 @@ export const createAccountTestCase = (
         createAccountSigned.submit()
       );
 
-      console.log("TxHash: ", createAccountHash);
-      yield* Effect.log(`TxHash: ${createAccountHash}`);
-
       return createAccountHash;
     });
 
@@ -105,12 +100,6 @@ export const createAccountTestCase = (
       Effect.promise(() => lucid.utxosAt(accountAddress)),
     ]);
 
-    yield* Console.log("Updated- Subscriber Utxos:", subscriberUTxOs);
-    yield* Console.log(
-      "Updated- Account Validator Utxos:",
-      accountUTxOs,
-    );
-
     return {
       txHash: createAccountResult,
       accountConfig,
@@ -126,9 +115,7 @@ test<LucidContext>("Test 1 - Create Account", async (context) => {
   const result = await Effect.runPromise(createAccountTestCase(context));
   expect(result.txHash).toBeDefined();
   expect(typeof result.txHash).toBe("string");
-  // console.log("Create Account with transaction hash:", result);
 
   expect(result.accountConfig).toBeDefined();
   expect(result.outputs).toBeDefined();
-  // expect(result.additionalInfo.paymentValidatorAddress).toBeDefined();
 });

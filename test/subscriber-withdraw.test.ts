@@ -52,16 +52,6 @@ type SubscriberWithdrawResult = {
     paymentConfig: InitPaymentConfig;
     penaltyConfig: CreatePenaltyConfig;
     outputs: { paymentUTxOs: UTxO[] };
-    // outputs: {
-    //     merchantUTxOs: UTxO[];
-    //     subscriberUTxOs: UTxO[];
-    //     serviceValidatorUTxOs: UTxO[];
-    //     paymentValidatorUTxOs: UTxO[];
-    //     accRefNft: Unit;
-    //     accUsrNft: Unit;
-    //     servcRefNft: Unit;
-    //     serviceUserNft: Unit;
-    // };
 };
 
 export const subscriberWithdrawTestCase = (
@@ -76,10 +66,6 @@ export const subscriberWithdrawTestCase = (
 
         expect(initResult).toBeDefined();
         expect(typeof initResult.txHash).toBe("string"); // Assuming the initResult is a transaction hash
-        console.log(
-            "Subscription initiated with transaction hash:",
-            initResult.txHash,
-        );
 
         yield* Effect.sync(() => emulator.awaitBlock(100));
 
@@ -107,11 +93,6 @@ export const subscriberWithdrawTestCase = (
             scripts: serviceScript,
         };
 
-        console.log(
-            "updateServiceConfig:",
-            updateServiceConfig,
-        );
-
         const updateServiceResult = yield* updateServiceDatum(
             lucid,
             updateServiceConfig,
@@ -135,12 +116,6 @@ export const subscriberWithdrawTestCase = (
             "Custom",
             serviceValidator.spendService,
         );
-
-        const serviceScriptUTxOs = yield* Effect.promise(() =>
-            lucid.utxosAt(serviceScriptAddress)
-        );
-
-        console.log("Updated Service Validator: UTxOs", serviceScriptUTxOs);
 
         const paymentValidator = readMultiValidators(true, [
             initResult.paymentConfig.service_policyId,
@@ -167,14 +142,14 @@ export const subscriberWithdrawTestCase = (
             payment_token_name, //tokenNameWithoutFunc,
         );
 
-        const extension_intervals = BigInt(1); // Number of intervals to extend
-
-        // Calculate new subscription end time
-        const currentTime = BigInt(emulator.now());
-
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
+
         const subscriberUTxOs = yield* Effect.promise(() =>
             lucid.utxosAt(users.subscriber.address)
+        );
+
+        const serviceScriptUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(serviceScriptAddress)
         );
 
         const penaltyConfig: CreatePenaltyConfig = {
@@ -190,11 +165,6 @@ export const subscriberWithdrawTestCase = (
             paymentUTxO: initResult.outputs.paymentValidatorUTxOs,
         };
 
-        console.log(
-            "CreatePenaltyConfig:",
-            penaltyConfig,
-        );
-
         const subscriberWithdrawFlow = Effect.gen(function* (_) {
             const subscriberWithdrawUnsigned = yield* subscriberWithdraw(
                 lucid,
@@ -206,10 +176,6 @@ export const subscriberWithdrawTestCase = (
 
             const subscriberWithdrawTxHash = yield* Effect.promise(() =>
                 subscriberWithdrawSigned.submit()
-            );
-
-            yield* Effect.log(
-                `Subscriber withdraws with TxHash: ${subscriberWithdrawTxHash}`,
             );
 
             yield* Effect.sync(() => emulator.awaitBlock(100));
@@ -229,10 +195,6 @@ export const subscriberWithdrawTestCase = (
             }),
         );
 
-        const subscriberUTxO = yield* Effect.promise(() =>
-            lucid.utxosAt(users.subscriber.address)
-        );
-
         const paymentScriptAddress = validatorToAddress(
             "Custom",
             paymentValidator.spendPayment,
@@ -241,8 +203,6 @@ export const subscriberWithdrawTestCase = (
             lucid.utxosAt(paymentScriptAddress)
         );
 
-        console.log("subscriberUTxO: After:", subscriberUTxO);
-        console.log("paymentUTxO: After:", paymentUTxOs);
         const paymentConfig = initResult.paymentConfig;
 
         return {
@@ -252,16 +212,6 @@ export const subscriberWithdrawTestCase = (
             outputs: {
                 paymentUTxOs,
             },
-            // outputs: {
-            //     merchantUTxOs,
-            //     subscriberUTxOs,
-            //     serviceValidatorUTxOs,
-            //     paymentValidatorUTxOs,
-            //     accRefNft,
-            //     accUsrNft,
-            //     servcRefNft,
-            //     serviceUserNft,
-            // },
         };
     });
 };
@@ -272,6 +222,7 @@ test<LucidContext>("Test 1 - Subscriber Withdraw", async (
     const result = await Effect.runPromise(
         subscriberWithdrawTestCase(context),
     );
+
     expect(result.txHash).toBeDefined();
     expect(typeof result.txHash).toBe("string");
 });

@@ -1,24 +1,16 @@
 import {
-    ADA,
-    createAccount,
-    CreateAccountConfig,
     Emulator,
     generateEmulatorAccount,
     Lucid,
     LucidEvolution,
     removeAccount,
     RemoveAccountConfig,
-    sendTokenToAccount,
-    sendTokenToService,
     toUnit,
-    UpdateAccountConfig,
-    UpdateServiceConfig,
 } from "../src/index.js";
 import { beforeEach, expect, test } from "vitest";
 import { mintingPolicyToId, validatorToAddress } from "@lucid-evolution/lucid";
 import { readMultiValidators } from "./compiled/validators.js";
-import { Effect, pipe } from "effect";
-import { toText } from "@lucid-evolution/lucid";
+import { Effect } from "effect";
 import { findCip68TokenNames } from "../src/core/utils/assets.js";
 import { createAccountTestCase } from "./create-account.test.js";
 
@@ -52,6 +44,8 @@ test<LucidContext>("Test 1 - Remove Account", async ({
     emulator,
 }) => {
     const program = Effect.gen(function* () {
+        console.log("Remove Subscription Account...TEST!!!!");
+
         const createAccountResult = yield* createAccountTestCase({
             lucid,
             users,
@@ -60,12 +54,6 @@ test<LucidContext>("Test 1 - Remove Account", async ({
 
         expect(createAccountResult).toBeDefined();
         expect(typeof createAccountResult.txHash).toBe("string"); // Assuming the createAccountResult is a transaction hash
-        console.log(
-            "Create account with transaction hash:",
-            createAccountResult.txHash,
-        );
-
-        yield* Effect.log("Remove Subscription Account...TEST!!!!");
 
         yield* Effect.sync(() => emulator.awaitBlock(100));
 
@@ -73,26 +61,12 @@ test<LucidContext>("Test 1 - Remove Account", async ({
             lucid.utxosAt(users.subscriber.address)
         );
 
-        yield* Effect.log(
-            "subscriberAddress: After: ",
-            users.subscriber.address,
-        );
-        yield* Effect.log("subscriberUTxO: After:", subscriberUTxOAfter);
-
         const accountScriptAddress = validatorToAddress(
             "Custom",
             accountValidator.spendAccount,
         );
         const accountUTxO = yield* Effect.promise(() =>
             lucid.utxosAt(accountScriptAddress)
-        );
-
-        yield* Effect.log("Validator utxos", accountUTxO);
-
-        yield* Effect.sync(() => emulator.awaitBlock(100));
-        yield* Effect.log(
-            "REMOVING///////////////////////////>>>>>>>>>>>>>>>>>>",
-            accountUTxO,
         );
 
         // Find the token names
@@ -133,21 +107,7 @@ test<LucidContext>("Test 1 - Remove Account", async ({
             removeAccountSigned.submit()
         );
 
-        yield* Effect.log("TxHash: ", removeAccountHash);
-
-        yield* Effect.sync(() => emulator.awaitBlock(100));
-
-        const removeSubscriberUTxO = yield* Effect.promise(() =>
-            lucid.utxosAt(users.subscriber.address)
-        );
-
-        yield* Effect.log("removeSubscriberUTxO: After:", removeSubscriberUTxO);
-
-        const scriptUTxOs = yield* Effect.promise(() =>
-            lucid.utxosAt(accountScriptAddress)
-        );
-
-        yield* Effect.log("Updated Service Validator: UTxOs", scriptUTxOs);
+        console.log("Remove Account TxHash: ", removeAccountHash);
     });
     await Effect.runPromise(program);
 });

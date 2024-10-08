@@ -1,6 +1,4 @@
 import {
-    createAccount,
-    CreateAccountConfig,
     Emulator,
     generateEmulatorAccount,
     Lucid,
@@ -56,10 +54,6 @@ test<LucidContext>("Test 1 - Update Account", async ({
 
         expect(createAccountResult).toBeDefined();
         expect(typeof createAccountResult.txHash).toBe("string"); // Assuming the createAccountResult is a transaction hash
-        console.log(
-            "Update account with transaction hash:",
-            createAccountResult.txHash,
-        );
 
         yield* Effect.sync(() => emulator.awaitBlock(100));
 
@@ -68,27 +62,17 @@ test<LucidContext>("Test 1 - Update Account", async ({
                 users.subscriber.address,
             )
         );
-        console.log("Subscriber Address: After :: ", users.subscriber.address);
-        console.log("Subscriber UTxOs: After :: ", subscriberUTxOAfter);
 
         const accountScriptAddress = validatorToAddress(
             "Custom",
             accountValidator.spendAccount,
         );
-        console.log(
-            "Validator utxos",
-            yield* Effect.promise(() => lucid.utxosAt(accountScriptAddress)),
-        );
+
         const accountUTxO = yield* Effect.promise(() =>
             lucid.utxosAt(accountScriptAddress)
         );
 
         yield* Effect.sync(() => emulator.awaitBlock(100));
-
-        console.log(
-            "UPDATING///////////////////////////>>>>>>>>>>>>>>>>>>",
-            accountUTxO,
-        );
 
         const cip68TokenNames = findCip68TokenNames(
             [...accountUTxO, ...subscriberUTxOAfter],
@@ -129,19 +113,7 @@ test<LucidContext>("Test 1 - Update Account", async ({
         const updateAccountHash = yield* Effect.promise(() =>
             updateAccountSigned.submit()
         );
-        console.log("TxHash: ", updateAccountHash);
-        yield* Effect.sync(() => emulator.awaitBlock(100));
-
-        const subscriberUTxOs = yield* Effect.promise(() =>
-            lucid.utxosAt(users.subscriber.address)
-        );
-        console.log("Updated Subscriber UTxOs: After:", subscriberUTxOs);
-
-        const scriptUTxOs = yield* Effect.promise(() =>
-            lucid.utxosAt(accountScriptAddress)
-        );
-
-        console.log("Updated Service Validator: UTxOs", scriptUTxOs);
+        console.log("Update Account TxHash: ", updateAccountHash);
     });
 
     await Effect.runPromise(program);

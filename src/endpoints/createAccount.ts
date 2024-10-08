@@ -27,8 +27,6 @@ export const createAccount = (
     const validators = getMultiValidator(lucid, config.scripts);
     const accountPolicyId = mintingPolicyToId(validators.mintValidator);
 
-    console.log("accountPolicyId: ", accountPolicyId);
-
     const subscriberUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(subscriberAddress)
     );
@@ -45,24 +43,6 @@ export const createAccount = (
     const { refTokenName, userTokenName } = createCip68TokenNames(
       selectedUTxOs[0],
     );
-    console.log("refTokenName: ", refTokenName);
-    console.log("userTokenName: ", userTokenName);
-
-    // Create the redeemer
-    // const rdmrBuilderMint: RedeemerBuilder = {
-    //   kind: "selected",
-    //   makeRedeemer: (inputIndices: bigint[]) => {
-    //     const redeemer: CreateaccountRedeemer = {
-    //       output_reference: {
-    //         txHash: { hash: subscriberUTxOs[0].txHash },
-    //         outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
-    //       },
-    //       input_index: inputIndices[0],
-    //     };
-    //     return Data.to(redeemer, CreateaccountRedeemer);
-    //   },
-    //   inputs: [subscriberUTxOs[0]],
-    // };
 
     const redeemer: CreateAccountRedeemer = {
       output_reference: {
@@ -82,8 +62,6 @@ export const createAccount = (
     };
 
     const directDatum = Data.to<AccountDatum>(currDatum, AccountDatum);
-
-    console.log("subscriberUTxOs :: ", subscriberUTxOs);
 
     const refToken = toUnit(
       accountPolicyId,

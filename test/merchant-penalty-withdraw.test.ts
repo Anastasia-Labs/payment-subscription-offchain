@@ -4,8 +4,6 @@ import {
     Lucid,
     LucidEvolution,
     merchantPenaltyWithdraw,
-    merchantWithdraw,
-    MerchantWithdrawConfig,
     toUnit,
     WithdrawPenaltyConfig,
 } from "../src/index.js";
@@ -17,7 +15,6 @@ import {
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { tokenNameFromUTxO } from "../src/core/utils/assets.js";
-import { initiateSubscriptionTestCase } from "./initiate-subscription.test.js";
 import { subscriberWithdrawTestCase } from "./subscriber-withdraw.test.js";
 
 type LucidContext = {
@@ -56,11 +53,9 @@ test<LucidContext>("Test 1 - Merchant Penalty Withdraw", async (
         });
 
         expect(initResult).toBeDefined();
-        expect(typeof initResult.txHash).toBe("string"); // Assuming the initResult is a transaction hash
-        console.log(
-            "Subscription initiated with transaction hash:",
-            initResult.txHash,
-        );
+        expect(typeof initResult.txHash).toBe("string");
+
+        yield* Effect.sync(() => emulator.awaitBlock(100));
 
         const paymentValidator = readMultiValidators(true, [
             initResult.paymentConfig.service_policyId,
@@ -107,11 +102,6 @@ test<LucidContext>("Test 1 - Merchant Penalty Withdraw", async (
             paymentUTxO: initResult.outputs.paymentUTxOs,
         };
 
-        console.log(
-            "withdrawPenaltyConfig:",
-            withdrawPenaltyConfig,
-        );
-
         const merchantWithdrawResult = yield* merchantPenaltyWithdraw(
             lucid,
             withdrawPenaltyConfig,
@@ -124,17 +114,7 @@ test<LucidContext>("Test 1 - Merchant Penalty Withdraw", async (
             merchantWithdrawSigned.submit()
         );
 
-        console.log(
-            "Merchant withdraws with transaction hash:",
-            merchantWithdrawTxHash,
-        );
         yield* Effect.sync(() => emulator.awaitBlock(100));
-
-        // const merchantUTxO = yield* Effect.promise(() =>
-        //     lucid.utxosAt(users.merchant.address)
-        // );
-
-        yield* Effect.log("merchantUTxOs: After:", merchantUTxOs);
 
         return {
             initTxHash: initResult.txHash,
@@ -148,14 +128,4 @@ test<LucidContext>("Test 1 - Merchant Penalty Withdraw", async (
     expect(result.merchantWithdrawTxHash).toBeDefined();
     expect(typeof result.initTxHash).toBe("string");
     expect(typeof result.merchantWithdrawTxHash).toBe("string");
-
-    // Add assertions to verify the extended configuration
-    // expect(result.withdrawConfig.subscription_end).toBeGreaterThan(
-    //     result.withdrawConfig.subscription_start,
-    // );
-    // expect(result.withdrawConfig.total_subscription_fee).toBe(
-    //     result.withdrawConfig.interval_amount *
-    //         result.withdrawConfig.num_intervals,
-    // );
-    // expect(result.withdrawConfig.num_intervals).toBe(13n);
 });

@@ -3,7 +3,6 @@ import {
   Constr,
   Data,
   LucidEvolution,
-  mintingPolicyToId,
   RedeemerBuilder,
   TransactionError,
   TxSignBuilder,
@@ -24,9 +23,6 @@ export const subscriberWithdraw = (
 
     const validators = getMultiValidator(lucid, config.scripts);
 
-    const paymentPolicyId = mintingPolicyToId(validators.mintValidator);
-    console.log("Payment Policy Id: ", paymentPolicyId);
-
     const subscriberUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
         config.subscriber_token,
@@ -40,7 +36,6 @@ export const subscriberWithdraw = (
     );
 
     const paymentValue = paymentUTxO.assets.lovelace;
-    console.log("Payment UTxO Value: ", paymentValue);
 
     const penaltyDatum: PenaltyDatum = {
       service_nft_tn: config.service_nft_tn,

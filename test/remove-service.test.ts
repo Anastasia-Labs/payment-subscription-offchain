@@ -49,112 +49,104 @@ test<LucidContext>("Test 1 - Remove Service", async ({
   users,
   emulator,
 }) => {
-  console.log("Update Subscription Service...TEST!!!!");
+  const program = Effect.gen(function* () {
+    console.log("Remove Subscription Service...TEST!!!!");
 
-  const serviceScript = {
-    spending: serviceValidator.spendService.script,
-    minting: serviceValidator.mintService.script,
-    staking: "",
-  };
+    const serviceScript = {
+      spending: serviceValidator.spendService.script,
+      minting: serviceValidator.mintService.script,
+      staking: "",
+    };
 
-  const createServiceConfig: CreateServiceConfig = {
-    service_fee: ADA,
-    service_fee_qty: 10_000_000n,
-    penalty_fee: ADA,
-    penalty_fee_qty: 1_000_000n,
-    interval_length: 1n,
-    num_intervals: 12n,
-    minimum_ada: 2_000_000n,
-    is_active: true,
-    scripts: serviceScript,
-  };
+    const createServiceConfig: CreateServiceConfig = {
+      service_fee: ADA,
+      service_fee_qty: 10_000_000n,
+      penalty_fee: ADA,
+      penalty_fee_qty: 1_000_000n,
+      interval_length: 1n,
+      num_intervals: 12n,
+      minimum_ada: 2_000_000n,
+      is_active: true,
+      scripts: serviceScript,
+    };
 
-  lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
+    lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
 
-  const merchantUTxO = await lucid.utxosAt(users.merchant.address);
-  console.log("merchantAddress: ", users.merchant.address);
-  console.log("merchantUTxOs before transaction: ", merchantUTxO);
-
-  try {
-    const createServiceUnSigned = await Effect.runPromise(
-      createService(lucid, createServiceConfig),
+    const createServiceUnSigned = yield* createService(
+      lucid,
+      createServiceConfig,
     );
-    const createServiceSigned = await createServiceUnSigned.sign.withWallet()
-      .complete();
-    const createServiceHash = await createServiceSigned.submit();
-    console.log("TxHash: ", createServiceHash);
-  } catch (error) {
-    console.error("Error updating service:", error);
-    throw error;
-  }
-  emulator.awaitBlock(100);
-  const merchantUTxOs = await lucid.utxosAt(users.merchant.address);
-  console.log("merchantAddress: After: ", users.merchant.address);
-  console.log("merchantUTxO: After:", merchantUTxOs);
-
-  const serviceScriptAddress = validatorToAddress(
-    "Custom",
-    serviceValidator.spendService,
-  );
-  console.log("Validator utxos", await lucid.utxosAt(serviceScriptAddress));
-  const serviceUTxO = await lucid.utxosAt(serviceScriptAddress);
-
-  emulator.awaitBlock(50);
-
-  // Find the token names
-  const { refTokenName, userTokenName } = findCip68TokenNames([
-    ...serviceUTxO,
-    ...merchantUTxOs,
-  ], servicePolicyId);
-
-  const refNft = toUnit(
-    servicePolicyId,
-    refTokenName,
-  );
-
-  const userNft = toUnit(
-    servicePolicyId,
-    userTokenName,
-  );
-  const validatorUtxos = await getValidatorDatum(lucid, createServiceConfig);
-
-  const removeServiceConfig: RemoveServiceConfig = {
-    service_fee: validatorUtxos[0].service_fee,
-    service_fee_qty: validatorUtxos[0].service_fee_qty,
-    penalty_fee: validatorUtxos[0].penalty_fee,
-    penalty_fee_qty: validatorUtxos[0].penalty_fee_qty,
-    interval_length: validatorUtxos[0].interval_length,
-    num_intervals: validatorUtxos[0].num_intervals,
-    minimum_ada: validatorUtxos[0].minimum_ada,
-    is_active: false,
-    user_token: userNft,
-    ref_token: refNft,
-    scripts: serviceScript,
-  };
-  console.log("Remove Service Config", removeServiceConfig);
-
-  lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
-
-  try {
-    const updateServiceResult = await Effect.runPromise(
-      removeService(lucid, removeServiceConfig),
+    const createServiceSigned = yield* Effect.promise(() =>
+      createServiceUnSigned.sign.withWallet()
+        .complete()
     );
-    const updateServiceSigned = await updateServiceResult.sign.withWallet()
-      .complete();
-    const updateServiceHash = await updateServiceSigned.submit();
-    console.log("TxHash: ", updateServiceHash);
-  } catch (error) {
-    console.error("Error updating service:", error);
-    throw error; // or handle it as appropriate for your test
-  }
-  emulator.awaitBlock(100);
+    const createServiceHash = yield* Effect.promise(() =>
+      createServiceSigned.submit()
+    );
+    console.log("Create Service TxHash: ", createServiceHash);
 
-  const updatedMerchantUTxO = await lucid.utxosAt(users.merchant.address);
-  console.log("MerchantUTxO After remove service:", updatedMerchantUTxO);
+    yield* Effect.sync(() => emulator.awaitBlock(100));
 
-  const scriptUTxOs = await lucid.utxosAt(serviceScriptAddress);
+    const merchantUTxOs = yield* Effect.promise(() =>
+      lucid.utxosAt(users.merchant.address)
+    );
 
-  console.log("Validator UTxOs after remove service", scriptUTxOs);
+    const serviceScriptAddress = validatorToAddress(
+      "Custom",
+      serviceValidator.spendService,
+    );
 
-  emulator.awaitBlock(100);
+    const serviceUTxO = yield* Effect.promise(() =>
+      lucid.utxosAt(serviceScriptAddress)
+    );
+
+    // Find the token names
+    const { refTokenName, userTokenName } = findCip68TokenNames([
+      ...serviceUTxO,
+      ...merchantUTxOs,
+    ], servicePolicyId);
+
+    const refNft = toUnit(
+      servicePolicyId,
+      refTokenName,
+    );
+
+    const userNft = toUnit(
+      servicePolicyId,
+      userTokenName,
+    );
+    const validatorUtxos = yield* Effect.promise(() =>
+      getValidatorDatum(lucid, createServiceConfig)
+    );
+
+    const removeServiceConfig: RemoveServiceConfig = {
+      service_fee: validatorUtxos[0].service_fee,
+      service_fee_qty: validatorUtxos[0].service_fee_qty,
+      penalty_fee: validatorUtxos[0].penalty_fee,
+      penalty_fee_qty: validatorUtxos[0].penalty_fee_qty,
+      interval_length: validatorUtxos[0].interval_length,
+      num_intervals: validatorUtxos[0].num_intervals,
+      minimum_ada: validatorUtxos[0].minimum_ada,
+      is_active: false,
+      user_token: userNft,
+      ref_token: refNft,
+      scripts: serviceScript,
+    };
+
+    lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
+
+    const removeServiceResult = yield* removeService(
+      lucid,
+      removeServiceConfig,
+    );
+    const removeServiceSigned = yield* Effect.promise(() =>
+      removeServiceResult.sign.withWallet()
+        .complete()
+    );
+    const removeServiceHash = yield* Effect.promise(() =>
+      removeServiceSigned.submit()
+    );
+    console.log("Remove Service TxHash: ", removeServiceHash);
+  });
+  await Effect.runPromise(program);
 });

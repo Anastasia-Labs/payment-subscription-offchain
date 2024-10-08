@@ -4,23 +4,18 @@ import {
     fromText,
     LucidEvolution,
     mintingPolicyToId,
-    Script,
-    SpendingValidator,
     toUnit,
     TxSignBuilder,
     UTxO,
-    validatorToRewardAddress,
 } from "@lucid-evolution/lucid";
 
 import {
     CreateAccountConfig,
     CreateServiceConfig,
     Result,
-    UpdateServiceConfig,
 } from "../core/types.js";
 import {
     AccountDatum,
-    ADA,
     getMultiValidator,
     ServiceDatum,
 } from "../core/index.js";

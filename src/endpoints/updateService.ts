@@ -15,8 +15,7 @@ export const updateService = (
     lucid: LucidEvolution,
     config: UpdateServiceConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
-    Effect.gen(function* () { // return type ,
-        console.log("updateService..........: ");
+    Effect.gen(function* () {
         const merchantAddress: Address = yield* Effect.promise(() =>
             lucid.wallet().address()
         );
@@ -48,7 +47,6 @@ export const updateService = (
         if (!serviceUTxO) {
             throw new Error("Service NFT not found");
         }
-        console.log("serviceNFTUTxO: ", serviceUTxO);
 
         const updatedDatum: ServiceDatum = {
             service_fee: config.new_service_fee,
@@ -65,23 +63,17 @@ export const updateService = (
 
         const wrappedRedeemer = Data.to(new Constr(1, [new Constr(0, [])]));
 
-        console.log("Redeemer updateService: ", wrappedRedeemer);
-        console.log("Datum serviceDatum: ", directDatum);
-        console.log("Datum service_fee_qty: ", config.new_service_fee_qty);
-
         const tx = yield* lucid
             .newTx()
             .collectFrom(merchantUTxO)
             .collectFrom(serviceUTxO, wrappedRedeemer)
             .pay.ToAddress(merchantAddress, {
-                lovelace: 3_000_000n,
                 [config.user_token]: 1n,
             })
             .pay.ToContract(serviceValAddress, {
                 kind: "inline",
                 value: directDatum,
             }, {
-                lovelace: 3_000_000n,
                 [config.ref_token]: 1n,
             })
             .attach.SpendingValidator(validators.spendValidator)

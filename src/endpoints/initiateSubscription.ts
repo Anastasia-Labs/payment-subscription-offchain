@@ -30,7 +30,6 @@ export const initiateSubscription = (
     const validators = getMultiValidator(lucid, config.scripts);
 
     const paymentPolicyId = mintingPolicyToId(validators.mintValidator);
-    console.log("Payment Policy Id: ", paymentPolicyId);
 
     const subscriberUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(subscriberAddress)
@@ -57,7 +56,6 @@ export const initiateSubscription = (
     };
 
     const redeemerData = Data.to(paymentredeemer, InitiatePayment);
-    console.log("REdeemer", redeemerData);
 
     const paymentDatum: PaymentDatum = {
       service_nft_tn: config.service_nft_tn,
@@ -84,29 +82,17 @@ export const initiateSubscription = (
       PaymentValidatorDatum,
     );
 
-    const directDatum = Data.to<PaymentDatum>(
-      paymentDatum,
-      PaymentDatum,
-    );
-
-    console.log("DAtum", directDatum);
-
-    console.log("Subscriber UTxOs :: ", config.subscriberUTxO);
-    console.log("Service UTxOs :: ", config.serviceUTxO);
-
     const accountAssets = config.subscriberUTxO[0].assets;
-    console.log("assets from Account utxs", accountAssets);
 
     const paymentNFT = toUnit(
       paymentPolicyId,
-      tokenName, //tokenNameWithoutFunc,
+      tokenName,
     );
-    console.log("Service Utxo", config.serviceUTxO);
 
     const tx = yield* lucid
       .newTx()
       .readFrom(config.serviceUTxO)
-      .collectFrom(config.subscriberUTxO) // subscriber user nft utxo
+      .collectFrom(config.subscriberUTxO)
       .mintAssets({ [paymentNFT]: 1n }, redeemerData)
       .pay.ToAddress(subscriberAddress, accountAssets)
       .pay.ToAddressWithData(validators.spendValAddress, {

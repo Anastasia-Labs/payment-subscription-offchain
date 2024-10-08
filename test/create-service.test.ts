@@ -48,7 +48,7 @@ export const createServiceTestCase = (
   { lucid, users, emulator }: LucidContext,
 ): Effect.Effect<CreateServiceResult, Error, never> => {
   return Effect.gen(function* () {
-    console.log("createSubscriptionService...TEST!!!!");
+    console.log("Create Subscription Service...TEST!!!!");
 
     const serviceValidator = readMultiValidators(false, []);
 

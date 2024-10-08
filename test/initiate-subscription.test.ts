@@ -1,18 +1,7 @@
-//Input 1 --> Subscriber utxo which has account NFT  - done // create account
-//Input 2 --> service validator with refnft -- done  -- create service
-//purpose -mintAssets(paymentNFT==> Payment validator policyid+tokenname)
-//output1 --> subscriber utxo with account nft
-//output2 --> payment NFt at the payment validator
-
 import {
   ADA,
-  createAccount,
-  CreateAccountConfig,
-  createService,
-  CreateServiceConfig,
   Emulator,
   generateEmulatorAccount,
-  getValidatorDatum,
   initiateSubscription,
   InitPaymentConfig,
   Lucid,
@@ -20,7 +9,6 @@ import {
   mintingPolicyToId,
   PROTOCOL_PARAMETERS_DEFAULT,
   toUnit,
-  Unit,
   UTxO,
   validatorToAddress,
 } from "../src/index.js";
@@ -64,10 +52,6 @@ type InitiateSubscriptionResult = {
     subscriberUTxOs: UTxO[];
     serviceValidatorUTxOs: UTxO[];
     paymentValidatorUTxOs: UTxO[];
-    // accRefNft: Unit;
-    // accUsrNft: Unit;
-    // servcRefNft: Unit;
-    // serviceUserNft: Unit;
   };
 };
 
@@ -75,8 +59,7 @@ export const initiateSubscriptionTestCase = (
   { lucid, users, emulator }: LucidContext,
 ): Effect.Effect<InitiateSubscriptionResult, Error, never> => {
   return Effect.gen(function* () {
-    // Existing test logic goes here
-    console.log("Initiaie Subscription Account...TEST!!!!");
+    console.log("Initiaie Subscription...TEST!!!!");
 
     const validators = readMultiValidators(false, []);
 
@@ -87,15 +70,9 @@ export const initiateSubscriptionTestCase = (
     });
 
     expect(createAccountResult).toBeDefined();
-    expect(typeof createAccountResult.txHash).toBe("string"); // Assuming the createAccountResult is a transaction hash
-    console.log(
-      "Create Account with transaction hash:",
-      createAccountResult.txHash,
-    );
+    expect(typeof createAccountResult.txHash).toBe("string");
 
     yield* Effect.sync(() => emulator.awaitBlock(100));
-
-    console.log("Create Subscription Service...TEST!!!!");
 
     const createServiceResult = yield* createServiceTestCase({
       lucid,
@@ -104,11 +81,7 @@ export const initiateSubscriptionTestCase = (
     });
 
     expect(createServiceResult).toBeDefined();
-    expect(typeof createServiceResult.txHash).toBe("string"); // Assuming the createServiceResult is a transaction hash
-    console.log(
-      "Create Account with transaction hash:",
-      createServiceResult.txHash,
-    );
+    expect(typeof createServiceResult.txHash).toBe("string");
 
     yield* Effect.sync(() => emulator.awaitBlock(100));
 
@@ -119,8 +92,6 @@ export const initiateSubscriptionTestCase = (
       servicePolicyId,
       accountPolicyId,
     ]);
-
-    // console.log("Payment validator address", paymentValidatorAddress);
 
     const paymentScript = {
       spending: paymentValidator.spendPayment.script,
@@ -161,13 +132,6 @@ export const initiateSubscriptionTestCase = (
       serviceUserName,
     );
 
-    const accountNFTUtxo = yield* Effect.promise(() =>
-      lucid.utxosAtWithUnit(
-        users.subscriber.address,
-        accUsrNft,
-      )
-    );
-
     const interval_amount = createServiceResult.serviceConfig.service_fee_qty;
     const interval_length = createServiceResult.serviceConfig.interval_length;
     const num_intervals = createServiceResult.serviceConfig.num_intervals;
@@ -199,7 +163,6 @@ export const initiateSubscriptionTestCase = (
       account_ref_token: accRefNft,
     };
 
-    console.log("Payment config", paymentConfig);
     lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
     const initiateSubscriptionFlow = Effect.gen(function* (_) {
@@ -215,8 +178,6 @@ export const initiateSubscriptionTestCase = (
       const initiateSubscriptionHash = yield* Effect.tryPromise(() =>
         initiateSubscriptionSigned.submit()
       );
-
-      yield* Effect.log(`TxHash: ${initiateSubscriptionHash}`);
 
       yield* Effect.sync(() => emulator.awaitBlock(50));
 
@@ -250,10 +211,6 @@ export const initiateSubscriptionTestCase = (
         Effect.promise(() => lucid.utxosAt(serviceAddress)),
       ]);
     const merchantUTxOs = createServiceResult.outputs.merchantUTxOs;
-    yield* Console.log("Payment Validator Utxos:", paymentValidatorUTxOs);
-    yield* Console.log("Account- Subscriber Utxos:", subscriberUTxOs);
-    yield* Console.log("Service- Validator Utxos:", serviceValidatorUTxOs);
-    yield* Console.log("MerchantUTxOs:", merchantUTxOs);
 
     return {
       txHash: subscriptionResult,
@@ -263,10 +220,6 @@ export const initiateSubscriptionTestCase = (
         subscriberUTxOs,
         serviceValidatorUTxOs,
         paymentValidatorUTxOs,
-        // accRefNft,
-        // accUsrNft,
-        // servcRefNft,
-        // serviceUserNft,
       },
     };
   });
@@ -278,7 +231,6 @@ test<LucidContext>("Test 1 - Initiate subscription", async (
   const result = await Effect.runPromise(initiateSubscriptionTestCase(context));
   expect(result.txHash).toBeDefined();
   expect(typeof result.txHash).toBe("string");
-  // console.log("Subscription initiated with transaction hash:", result);
 
   expect(result.paymentConfig).toBeDefined();
   expect(result.outputs).toBeDefined();

@@ -10,7 +10,6 @@ import {
   TxSignBuilder,
 } from "@lucid-evolution/lucid";
 import { WithdrawPenaltyConfig } from "../core/types.js";
-import { PaymentValidatorDatum, PenaltyDatum } from "../core/contract.types.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
 
@@ -25,9 +24,6 @@ export const merchantPenaltyWithdraw = (
 
     const validators = getMultiValidator(lucid, config.scripts);
 
-    const paymentPolicyId = mintingPolicyToId(validators.mintValidator);
-    console.log("Payment Policy Id: ", paymentPolicyId);
-
     const merchantUTxOs = yield* Effect.promise(() =>
       lucid.utxosAtWithUnit(
         merchantAddress,
@@ -38,10 +34,6 @@ export const merchantPenaltyWithdraw = (
     if (!merchantUTxOs || !merchantUTxOs.length) {
       console.error("No UTxO found at user address: " + merchantAddress);
     }
-
-    const selectedUTxOs = selectUTxOs(config.merchantUTxO, {
-      ["lovelace"]: 5000000n,
-    }, false);
 
     const merchantUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
@@ -81,19 +73,9 @@ export const merchantPenaltyWithdraw = (
       inputs: [merchantUTxO, config.paymentUTxO[0]],
     };
 
-    console.log("Merchant UTxO", merchantUTxOs);
-    console.log("Payment UTxO", config.paymentUTxO);
-    console.log("Selected UTxO", selectedUTxOs);
-    // console.log("Spend UTxO", spendInputs);
-    // console.log("Service PolicyId", config.service_policyId);
-    console.log("Service NFT TN", config.service_nft_tn);
-    console.log("Merchant NFT", config.merchant_token);
-    const terminateRedeemer = Data.to(new Constr(1, [])); // Assuming DeleteAccount is index 1 in your MintAccount enum
-
     const tx = yield* lucid
       .newTx()
       .collectFrom([merchantUTxO])
-      // .collectFrom(selectedUTxOs) // subscriber user nft utxo
       .collectFrom(config.paymentUTxO, merchantWithdrawRedeemer) // subscriber utxos
       .readFrom(config.serviceUTxO)
       .mintAssets(

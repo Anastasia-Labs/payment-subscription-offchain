@@ -50,7 +50,6 @@ export const updateServiceDatum = (
         if (!serviceUTxO) {
             throw new Error("Service NFT not found");
         }
-        console.log("serviceNFTUTxO: ", serviceUTxO);
 
         const updatedDatum: ServiceDatum = {
             service_fee: config.new_service_fee,
@@ -66,10 +65,6 @@ export const updateServiceDatum = (
         const directDatum = Data.to<ServiceDatum>(updatedDatum, ServiceDatum);
 
         const wrappedRedeemer = Data.to(new Constr(1, [new Constr(0, [])]));
-
-        console.log("Redeemer updateService: ", wrappedRedeemer);
-        console.log("Datum serviceDatum: ", directDatum);
-        console.log("Datum service_fee_qty: ", config.new_service_fee_qty);
 
         const tx = yield* lucid
             .newTx()

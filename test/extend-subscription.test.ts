@@ -59,6 +59,9 @@ test<LucidContext>("Test 1 - Extend Service", async (
             initResult.txHash,
         );
 
+        yield* Effect.sync(() => emulator.awaitBlock(100));
+        console.log("Extend Subscription Service...TEST!!!!");
+
         const paymentValidator = readMultiValidators(true, [
             initResult.paymentConfig.service_policyId,
             initResult.paymentConfig.account_policyId,
@@ -82,16 +85,6 @@ test<LucidContext>("Test 1 - Extend Service", async (
         const paymentNFT = toUnit(
             paymentPolicyId,
             payment_token_name, //tokenNameWithoutFunc,
-        );
-
-        // console.log(
-        //     "paymentUTxO2 UTxO:",
-        //     paymentUTxO2,
-        // );
-
-        console.log(
-            "initResult.paymentConfig.account_nft_tn:",
-            initResult.paymentConfig.account_nft_tn,
         );
 
         const extension_intervals = BigInt(1); // Number of intervals to extend
@@ -129,11 +122,6 @@ test<LucidContext>("Test 1 - Extend Service", async (
             paymentUTxO: initResult.outputs.paymentValidatorUTxOs,
         };
 
-        console.log(
-            "ExtendPaymentConfig:",
-            extendPaymentConfig,
-        );
-
         const extendResult = yield* extendSubscription(
             lucid,
             extendPaymentConfig,
@@ -141,22 +129,10 @@ test<LucidContext>("Test 1 - Extend Service", async (
         const extendSigned = yield* Effect.promise(() =>
             extendResult.sign.withWallet().complete()
         );
-        console.log(
-            "We reach here....",
-        );
+
         const extendTxHash = yield* Effect.promise(() => extendSigned.submit());
 
-        console.log(
-            "Subscription extended with transaction hash:",
-            extendTxHash,
-        );
         yield* Effect.sync(() => emulator.awaitBlock(100));
-
-        const extendSubscriberUTxO = yield* Effect.promise(() =>
-            lucid.utxosAt(users.subscriber.address)
-        );
-
-        yield* Effect.log("removeSubscriberUTxO: After:", extendSubscriberUTxO);
 
         return {
             initTxHash: initResult.txHash,

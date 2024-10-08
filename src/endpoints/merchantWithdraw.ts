@@ -8,19 +8,11 @@ import {
   selectUTxOs,
   TransactionError,
   TxSignBuilder,
-  UTxO,
-  utxoToCore,
 } from "@lucid-evolution/lucid";
 import { MerchantWithdrawConfig } from "../core/types.js";
-import {
-  InitiatePayment,
-  MerchantWithdraw,
-  PaymentDatum,
-  PaymentValidatorDatum,
-} from "../core/contract.types.js";
+import { PaymentDatum, PaymentValidatorDatum } from "../core/contract.types.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
-import { u32 } from "@noble/hashes/utils";
 
 export const merchantWithdraw = (
   lucid: LucidEvolution,
@@ -33,18 +25,11 @@ export const merchantWithdraw = (
 
     const validators = getMultiValidator(lucid, config.scripts);
 
-    const paymentPolicyId = mintingPolicyToId(validators.mintValidator);
-    console.log("Payment Policy Id: ", paymentPolicyId);
-
     const merchantUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
         config.merchant_token,
       )
     );
-
-    // if (!merchantUTxO || !merchantUTxO.length) {
-    //   console.error("No UTxO found at user address: " + merchantAddress);
-    // }
 
     const selectedUTxOs = selectUTxOs(config.merchantUTxO, {
       ["lovelace"]: 5000000n,
@@ -66,11 +51,6 @@ export const merchantWithdraw = (
       minimum_ada: config.minimum_ada,
     };
 
-    const directPaymentDatum = Data.to<PaymentDatum>(
-      paymentDatum,
-      PaymentDatum,
-    );
-
     const allDatums: PaymentValidatorDatum = {
       Payment: [paymentDatum],
     };
@@ -79,34 +59,6 @@ export const merchantWithdraw = (
       allDatums,
       PaymentValidatorDatum,
     );
-
-    const inputs = [...config.merchantUTxO, ...config.paymentUTxO];
-
-    // const compareFn = (a: UTxO, b: UTxO) => {
-    //   const c1 = a.txHash.localeCompare(b.txHash);
-    //   if (c1 !== 0) {
-    //     return c1;
-    //   }
-    //   return a.outputIndex - b.outputIndex;
-    // };
-
-    // const ordered = inputs.sort(compareFn);
-
-    // const indexMap = new Map();
-
-    // ordered.forEach((utxo, index) => {
-    //   const key = `${utxo.txHash}:${utxo.outputIndex}`;
-    //   indexMap.set(key, BigInt(index)); // Use BigInt if necessary
-    // });
-
-    // // helper function to get the index of a specific UTxO:
-    // const getIndex = (utxo: UTxO) => {
-    //   const key = `${utxo.txHash}:${utxo.outputIndex}`;
-    //   return indexMap.get(key);
-    // };
-
-    // const merchantIndex = getIndex(merchantUTxO[0]);
-    // const paymentIndex = getIndex(config.paymentUTxO[0]);
 
     const merchantWithdrawRedeemer: RedeemerBuilder = {
       kind: "selected",
@@ -125,25 +77,10 @@ export const merchantWithdraw = (
       inputs: [merchantUTxO, config.paymentUTxO[0]],
     };
 
-    // const wrappedRedeemer = Data.to(
-    //   new Constr(1, [
-    //     new Constr(2, [BigInt(merchantIndex), BigInt(paymentIndex)]),
-    //   ]),
-    // );
-
-    console.log("Merchant UTxO", merchantUTxO);
-    console.log("Payment UTxO", config.paymentUTxO);
-    console.log("Selected UTxO", selectedUTxOs);
-    // console.log("Spend UTxO", spendInputs);
-    // console.log("Service PolicyId", config.service_policyId);
-    // console.log("Service NFT TN", config.service_nft_tn);
-    // console.log("Merchant NFT", config.merchant_token);
-
     const tx = yield* lucid
       .newTx()
-      .collectFrom([merchantUTxO]) // subscriber user nft utxo
-      // .collectFrom(selectedUTxOs) // subscriber user nft utxo
-      .collectFrom(config.paymentUTxO, merchantWithdrawRedeemer) // subscriber utxos
+      .collectFrom([merchantUTxO])
+      .collectFrom(config.paymentUTxO, merchantWithdrawRedeemer)
       .readFrom(config.serviceUTxO)
       .pay.ToAddress(merchantAddress, {
         lovelace: 2_000_000n,
