@@ -33,19 +33,18 @@ export const merchantWithdraw = (
 
     const validators = getMultiValidator(lucid, config.scripts);
 
-    const paymentPolicyId = mintingPolicyToId(config.minting_Policy);
+    const paymentPolicyId = mintingPolicyToId(validators.mintValidator);
     console.log("Payment Policy Id: ", paymentPolicyId);
 
     const merchantUTxO = yield* Effect.promise(() =>
-      lucid.utxosAtWithUnit(
-        merchantAddress,
+      lucid.utxoByUnit(
         config.merchant_token,
       )
     );
 
-    if (!merchantUTxO || !merchantUTxO.length) {
-      console.error("No UTxO found at user address: " + merchantAddress);
-    }
+    // if (!merchantUTxO || !merchantUTxO.length) {
+    //   console.error("No UTxO found at user address: " + merchantAddress);
+    // }
 
     const selectedUTxOs = selectUTxOs(config.merchantUTxO, {
       ["lovelace"]: 5000000n,
@@ -123,7 +122,7 @@ export const merchantWithdraw = (
         );
       },
       // Specify the inputs relevant to the redeemer
-      inputs: [merchantUTxO[0], config.paymentUTxO[0]],
+      inputs: [merchantUTxO, config.paymentUTxO[0]],
     };
 
     // const wrappedRedeemer = Data.to(
@@ -142,7 +141,7 @@ export const merchantWithdraw = (
 
     const tx = yield* lucid
       .newTx()
-      .collectFrom(config.merchantUTxO) // subscriber user nft utxo
+      .collectFrom([merchantUTxO]) // subscriber user nft utxo
       // .collectFrom(selectedUTxOs) // subscriber user nft utxo
       .collectFrom(config.paymentUTxO, merchantWithdrawRedeemer) // subscriber utxos
       .readFrom(config.serviceUTxO)
@@ -150,7 +149,7 @@ export const merchantWithdraw = (
         lovelace: 2_000_000n,
         [config.merchant_token]: 1n,
       })
-      .pay.ToAddressWithData(validators.spendValAddress, {
+      .pay.ToContract(validators.spendValAddress, {
         kind: "inline",
         value: paymentValDatum,
       }, {

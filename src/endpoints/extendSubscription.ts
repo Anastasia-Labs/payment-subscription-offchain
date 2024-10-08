@@ -27,7 +27,7 @@ export const extendSubscription = (
 
     const validators = getMultiValidator(lucid, config.scripts);
 
-    const paymentPolicyId = mintingPolicyToId(config.minting_Policy);
+    const paymentPolicyId = mintingPolicyToId(validators.mintValidator);
     console.log("Payment Policy Id: ", paymentPolicyId);
 
     const subscriberUTxOs = yield* Effect.promise(() =>

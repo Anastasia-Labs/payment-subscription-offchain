@@ -51,7 +51,7 @@ beforeEach<LucidContext>(async (context) => {
   context.emulator = new Emulator([
     context.users.subscriber,
     context.users.merchant,
-  ], { ...PROTOCOL_PARAMETERS_DEFAULT, maxTxSize: 20000 });
+  ], { ...PROTOCOL_PARAMETERS_DEFAULT, maxTxSize: 21000 });
 
   context.lucid = await Lucid(context.emulator, "Custom");
 });
@@ -64,10 +64,10 @@ type InitiateSubscriptionResult = {
     subscriberUTxOs: UTxO[];
     serviceValidatorUTxOs: UTxO[];
     paymentValidatorUTxOs: UTxO[];
-    accRefNft: Unit;
-    accUsrNft: Unit;
-    servcRefNft: Unit;
-    serviceUserNft: Unit;
+    // accRefNft: Unit;
+    // accUsrNft: Unit;
+    // servcRefNft: Unit;
+    // serviceUserNft: Unit;
   };
 };
 
@@ -193,7 +193,10 @@ export const initiateSubscriptionTestCase = (
       scripts: paymentScript,
       subscriberUTxO: createAccountResult.outputs.subscriberUTxOs,
       serviceUTxO: createServiceResult.outputs.serviceUTxOs,
-      minting_Policy: paymentValidator.mintPayment, //MintingPolicy
+      service_user_token: serviceUserNft,
+      service_ref_token: servcRefNft,
+      account_user_token: accUsrNft,
+      account_ref_token: accRefNft,
     };
 
     console.log("Payment config", paymentConfig);
@@ -260,10 +263,10 @@ export const initiateSubscriptionTestCase = (
         subscriberUTxOs,
         serviceValidatorUTxOs,
         paymentValidatorUTxOs,
-        accRefNft,
-        accUsrNft,
-        servcRefNft,
-        serviceUserNft,
+        // accRefNft,
+        // accUsrNft,
+        // servcRefNft,
+        // serviceUserNft,
       },
     };
   });

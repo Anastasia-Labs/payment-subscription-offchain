@@ -9,7 +9,6 @@ import {
   LucidEvolution,
   removeService,
   RemoveServiceConfig,
-  UpdateServiceConfig,
 } from "../src/index.js";
 import { beforeEach, test } from "vitest";
 import {
@@ -101,10 +100,6 @@ test<LucidContext>("Test 1 - Remove Service", async ({
   const serviceUTxO = await lucid.utxosAt(serviceScriptAddress);
 
   emulator.awaitBlock(50);
-  // console.log(
-  //   "UPDATING///////////////////////////>>>>>>>>>>>>>>>>>>",
-  //   serviceUTxO,
-  // );
 
   // Find the token names
   const { refTokenName, userTokenName } = findCip68TokenNames([

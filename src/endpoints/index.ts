@@ -13,3 +13,4 @@ export * from "./extendSubscription.js";
 export * from "./merchantWithdraw.js";
 export * from "./updateServiceDatum.js";
 export * from "./subscriberWithdraw.js";
+export * from "./merchantPenaltyWithdraw.js";

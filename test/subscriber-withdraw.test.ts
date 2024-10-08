@@ -1,10 +1,11 @@
 import {
+    CreatePenaltyConfig,
     Emulator,
     generateEmulatorAccount,
+    InitPaymentConfig,
     Lucid,
     LucidEvolution,
     subscriberWithdraw,
-    SubscriberWithdrawConfig,
     toUnit,
     UpdateServiceConfig,
     updateServiceDatum,
@@ -13,6 +14,7 @@ import { beforeEach, expect, test } from "vitest";
 import {
     mintingPolicyToId,
     PROTOCOL_PARAMETERS_DEFAULT,
+    UTxO,
     validatorToAddress,
 } from "@lucid-evolution/lucid";
 import { readMultiValidators } from "./compiled/validators.js";
@@ -40,15 +42,32 @@ beforeEach<LucidContext>(async (context) => {
     context.emulator = new Emulator([
         context.users.subscriber,
         context.users.merchant,
-    ], { ...PROTOCOL_PARAMETERS_DEFAULT, maxTxSize: 20000 });
+    ], { ...PROTOCOL_PARAMETERS_DEFAULT, maxTxSize: 21000 });
 
     context.lucid = await Lucid(context.emulator, "Custom");
 });
 
-test<LucidContext>("Test 1 - Subscriber Withdraw", async (
+type SubscriberWithdrawResult = {
+    txHash: string;
+    paymentConfig: InitPaymentConfig;
+    penaltyConfig: CreatePenaltyConfig;
+    outputs: { paymentUTxOs: UTxO[] };
+    // outputs: {
+    //     merchantUTxOs: UTxO[];
+    //     subscriberUTxOs: UTxO[];
+    //     serviceValidatorUTxOs: UTxO[];
+    //     paymentValidatorUTxOs: UTxO[];
+    //     accRefNft: Unit;
+    //     accUsrNft: Unit;
+    //     servcRefNft: Unit;
+    //     serviceUserNft: Unit;
+    // };
+};
+
+export const subscriberWithdrawTestCase = (
     { lucid, users, emulator }: LucidContext,
-) => {
-    const program = Effect.gen(function* () {
+): Effect.Effect<SubscriberWithdrawResult, Error, never> => {
+    return Effect.gen(function* () {
         const initResult = yield* initiateSubscriptionTestCase({
             lucid,
             users,
@@ -83,8 +102,8 @@ test<LucidContext>("Test 1 - Subscriber Withdraw", async (
             new_num_intervals: initResult.paymentConfig.num_intervals,
             new_minimum_ada: initResult.paymentConfig.minimum_ada,
             is_active: false,
-            user_token: initResult.outputs.accUsrNft,
-            ref_token: initResult.outputs.servcRefNft,
+            user_token: initResult.paymentConfig.account_user_token,
+            ref_token: initResult.paymentConfig.service_ref_token,
             scripts: serviceScript,
         };
 
@@ -149,18 +168,6 @@ test<LucidContext>("Test 1 - Subscriber Withdraw", async (
         );
 
         const extension_intervals = BigInt(1); // Number of intervals to extend
-        const interval_amount = initResult.paymentConfig.interval_amount *
-            extension_intervals;
-        const newTotalSubscriptionFee =
-            initResult.paymentConfig.total_subscription_fee +
-            (interval_amount * extension_intervals);
-        const newNumIntervals = initResult.paymentConfig.num_intervals +
-            extension_intervals;
-        const extension_period = initResult.paymentConfig.interval_length *
-            extension_intervals;
-
-        const newSubscriptionEnd = initResult.paymentConfig.subscription_end +
-            extension_period;
 
         // Calculate new subscription end time
         const currentTime = BigInt(emulator.now());
@@ -170,17 +177,12 @@ test<LucidContext>("Test 1 - Subscriber Withdraw", async (
             lucid.utxosAt(users.subscriber.address)
         );
 
-        const subscriberWithdrawConfig: SubscriberWithdrawConfig = {
-            ...initResult.paymentConfig,
-            subscription_start: currentTime,
-            subscription_end: newSubscriptionEnd,
-            total_subscription_fee: newTotalSubscriptionFee,
-            num_intervals: newNumIntervals,
-            last_claimed: currentTime,
-            interval_length: initResult.paymentConfig.interval_length,
-            interval_amount: interval_amount,
-            subscriber_token: initResult.outputs.accUsrNft,
-            service_ref_token: initResult.outputs.servcRefNft,
+        const penaltyConfig: CreatePenaltyConfig = {
+            service_nft_tn: initResult.paymentConfig.service_nft_tn, //AssetName,
+            account_nft_tn: initResult.paymentConfig.account_nft_tn,
+            penalty_fee: initResult.paymentConfig.penalty_fee,
+            penalty_fee_qty: initResult.paymentConfig.penalty_fee_qty,
+            subscriber_token: initResult.paymentConfig.account_user_token,
             payment_token: paymentNFT,
             scripts: paymentScript,
             subscriberUTxO: subscriberUTxOs,
@@ -189,54 +191,87 @@ test<LucidContext>("Test 1 - Subscriber Withdraw", async (
         };
 
         console.log(
-            "SubscriberWithdrawConfig:",
-            subscriberWithdrawConfig,
+            "CreatePenaltyConfig:",
+            penaltyConfig,
         );
 
-        const subscriberWithdrawResult = yield* subscriberWithdraw(
-            lucid,
-            subscriberWithdrawConfig,
-        );
-        const subscriberWithdrawSigned = yield* Effect.promise(() =>
-            subscriberWithdrawResult.sign.withWallet().complete()
-        );
+        const subscriberWithdrawFlow = Effect.gen(function* (_) {
+            const subscriberWithdrawUnsigned = yield* subscriberWithdraw(
+                lucid,
+                penaltyConfig,
+            );
+            const subscriberWithdrawSigned = yield* Effect.promise(() =>
+                subscriberWithdrawUnsigned.sign.withWallet().complete()
+            );
 
-        const subscriberWithdrawTxHash = yield* Effect.promise(() =>
-            subscriberWithdrawSigned.submit()
-        );
+            const subscriberWithdrawTxHash = yield* Effect.promise(() =>
+                subscriberWithdrawSigned.submit()
+            );
 
-        console.log(
-            "subscriber withdraws with transaction hash:",
-            subscriberWithdrawTxHash,
+            yield* Effect.log(
+                `Subscriber withdraws with TxHash: ${subscriberWithdrawTxHash}`,
+            );
+
+            yield* Effect.sync(() => emulator.awaitBlock(100));
+            return subscriberWithdrawTxHash;
+        });
+
+        const withdrawResult = yield* subscriberWithdrawFlow.pipe(
+            Effect.tapError((error) =>
+                Effect.log(`Error withdrawing from Payment Contract: ${error}`)
+            ),
+            Effect.map((hash) => {
+                console.log(
+                    "Subscribiption withdrawn successfully. TxHash:",
+                    hash,
+                );
+                return hash;
+            }),
         );
-        yield* Effect.sync(() => emulator.awaitBlock(100));
 
         const subscriberUTxO = yield* Effect.promise(() =>
             lucid.utxosAt(users.subscriber.address)
         );
 
-        yield* Effect.log("subscriberUTxO: After:", subscriberUTxO);
+        const paymentScriptAddress = validatorToAddress(
+            "Custom",
+            paymentValidator.spendPayment,
+        );
+        const paymentUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(paymentScriptAddress)
+        );
+
+        console.log("subscriberUTxO: After:", subscriberUTxO);
+        console.log("paymentUTxO: After:", paymentUTxOs);
+        const paymentConfig = initResult.paymentConfig;
 
         return {
-            initTxHash: initResult.txHash,
-            subscriberWithdrawTxHash,
-            withdrawConfig: subscriberWithdrawConfig,
+            txHash: withdrawResult,
+            paymentConfig,
+            penaltyConfig,
+            outputs: {
+                paymentUTxOs,
+            },
+            // outputs: {
+            //     merchantUTxOs,
+            //     subscriberUTxOs,
+            //     serviceValidatorUTxOs,
+            //     paymentValidatorUTxOs,
+            //     accRefNft,
+            //     accUsrNft,
+            //     servcRefNft,
+            //     serviceUserNft,
+            // },
         };
     });
-    const result = await Effect.runPromise(program);
+};
 
-    expect(result.initTxHash).toBeDefined();
-    expect(result.subscriberWithdrawTxHash).toBeDefined();
-    expect(typeof result.initTxHash).toBe("string");
-    expect(typeof result.subscriberWithdrawTxHash).toBe("string");
-
-    // Add assertions to verify the extended configuration
-    expect(result.withdrawConfig.subscription_end).toBeGreaterThan(
-        result.withdrawConfig.subscription_start,
+test<LucidContext>("Test 1 - Subscriber Withdraw", async (
+    context: LucidContext,
+) => {
+    const result = await Effect.runPromise(
+        subscriberWithdrawTestCase(context),
     );
-    expect(result.withdrawConfig.total_subscription_fee).toBe(
-        result.withdrawConfig.interval_amount *
-            result.withdrawConfig.num_intervals,
-    );
-    expect(result.withdrawConfig.num_intervals).toBe(13n);
+    expect(result.txHash).toBeDefined();
+    expect(typeof result.txHash).toBe("string");
 });

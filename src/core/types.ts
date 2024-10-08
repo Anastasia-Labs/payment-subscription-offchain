@@ -152,7 +152,10 @@ export type InitPaymentConfig = {
   };
   subscriberUTxO: UTxO[];
   serviceUTxO: UTxO[];
-  minting_Policy: MintingPolicy;
+  service_user_token: Unit;
+  service_ref_token: Unit;
+  account_user_token: Unit;
+  account_ref_token: Unit;
 };
 
 export type ExtendPaymentConfig = {
@@ -182,7 +185,6 @@ export type ExtendPaymentConfig = {
   subscriberUTxO: UTxO[];
   serviceUTxO: UTxO[];
   paymentUTxO: UTxO[];
-  minting_Policy: MintingPolicy;
 };
 
 export type MerchantWithdrawConfig = {
@@ -212,7 +214,41 @@ export type MerchantWithdrawConfig = {
   merchantUTxO: UTxO[];
   serviceUTxO: UTxO[];
   paymentUTxO: UTxO[];
-  minting_Policy: MintingPolicy;
+};
+
+export type CreatePenaltyConfig = {
+  service_nft_tn: string; //AssetName,
+  account_nft_tn: string;
+  penalty_fee: AssetClassD;
+  penalty_fee_qty: bigint;
+  subscriber_token: Unit;
+  payment_token: Unit;
+  scripts: {
+    spending: CborHex;
+    minting: CborHex;
+    staking: CborHex;
+  };
+  subscriberUTxO: UTxO[];
+  serviceUTxO: UTxO[];
+  paymentUTxO: UTxO[];
+};
+
+export type WithdrawPenaltyConfig = {
+  service_nft_tn: string; //AssetName,
+  account_nft_tn: string;
+  penalty_fee: AssetClassD;
+  penalty_fee_qty: bigint;
+  merchant_token: Unit;
+  service_ref_token: Unit;
+  payment_token: Unit;
+  scripts: {
+    spending: CborHex;
+    minting: CborHex;
+    staking: CborHex;
+  };
+  merchantUTxO: UTxO[];
+  serviceUTxO: UTxO[];
+  paymentUTxO: UTxO[];
 };
 
 export type SubscriberWithdrawConfig = {

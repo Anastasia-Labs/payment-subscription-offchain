@@ -4,14 +4,13 @@ import {
   Data,
   LucidEvolution,
   mintingPolicyToId,
-  RedeemerBuilder,
   selectUTxOs,
   toUnit,
   TransactionError,
   TxSignBuilder,
 } from "@lucid-evolution/lucid";
 import { getMultiValidator } from "../core/utils/index.js";
-import { CreateServiceConfig, Result } from "../core/types.js";
+import { CreateServiceConfig } from "../core/types.js";
 import { CreateServiceRedeemer, ServiceDatum } from "../core/contract.types.js";
 import { createCip68TokenNames } from "../core/utils/assets.js";
 import { Effect } from "effect";
@@ -29,8 +28,6 @@ export const createService = (
     const validators = getMultiValidator(lucid, config.scripts);
     const servicePolicyId = mintingPolicyToId(validators.mintValidator);
 
-    console.log("servicePolicyId: ", servicePolicyId);
-
     const merchantUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(merchantAddress)
     );
@@ -47,24 +44,6 @@ export const createService = (
     const { refTokenName, userTokenName } = createCip68TokenNames(
       selectedUTxOs[0],
     );
-    console.log("refTokenName: ", refTokenName);
-    console.log("userTokenName: ", userTokenName);
-
-    // Create the redeemer
-    // const rdmrBuilderMint: RedeemerBuilder = {
-    //   kind: "selected",
-    //   makeRedeemer: (inputIndices: bigint[]) => {
-    //     const redeemer: CreateServiceRedeemer = {
-    //       output_reference: {
-    //         txHash: { hash: selectedUTxOs[0].txHash },
-    //         outputIndex: BigInt(selectedUTxOs[0].outputIndex),
-    //       },
-    //       input_index: inputIndices[0],
-    //     };
-    //     return Data.to(redeemer, CreateServiceRedeemer);
-    //   },
-    //   inputs: [selectedUTxOs[0]],
-    // };
 
     const redeemer: CreateServiceRedeemer = {
       output_reference: {
@@ -89,8 +68,6 @@ export const createService = (
     };
 
     const directDatum = Data.to<ServiceDatum>(currDatum, ServiceDatum);
-
-    console.log("Merchant UTxOs :: ", selectedUTxOs);
 
     const refToken = toUnit(
       servicePolicyId,

@@ -29,7 +29,7 @@ export const initiateSubscription = (
 
     const validators = getMultiValidator(lucid, config.scripts);
 
-    const paymentPolicyId = mintingPolicyToId(config.minting_Policy);
+    const paymentPolicyId = mintingPolicyToId(validators.mintValidator);
     console.log("Payment Policy Id: ", paymentPolicyId);
 
     const subscriberUTxOs = yield* Effect.promise(() =>
@@ -116,7 +116,7 @@ export const initiateSubscription = (
         lovelace: config.total_subscription_fee,
         [paymentNFT]: 1n,
       })
-      .attach.MintingPolicy(config.minting_Policy)
+      .attach.MintingPolicy(validators.mintValidator)
       .completeProgram();
 
     return tx;

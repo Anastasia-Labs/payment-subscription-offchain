@@ -5,18 +5,17 @@ import {
   LucidEvolution,
   mintingPolicyToId,
   RedeemerBuilder,
-  selectUTxOs,
   TransactionError,
   TxSignBuilder,
 } from "@lucid-evolution/lucid";
-import { SubscriberWithdrawConfig } from "../core/types.js";
-import { PaymentDatum, PaymentValidatorDatum } from "../core/contract.types.js";
+import { CreatePenaltyConfig } from "../core/types.js";
+import { PaymentValidatorDatum, PenaltyDatum } from "../core/contract.types.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
 
 export const subscriberWithdraw = (
   lucid: LucidEvolution,
-  config: SubscriberWithdrawConfig,
+  config: CreatePenaltyConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
   Effect.gen(function* () { // return type ,
     const subscriberAddress: Address = yield* Effect.promise(() =>
@@ -25,56 +24,36 @@ export const subscriberWithdraw = (
 
     const validators = getMultiValidator(lucid, config.scripts);
 
-    const paymentPolicyId = mintingPolicyToId(config.minting_Policy);
+    const paymentPolicyId = mintingPolicyToId(validators.mintValidator);
     console.log("Payment Policy Id: ", paymentPolicyId);
 
     const subscriberUTxO = yield* Effect.promise(() =>
-      lucid.utxosAtWithUnit(
-        subscriberAddress,
+      lucid.utxoByUnit(
         config.subscriber_token,
       )
     );
 
-    const paymentValue = config.paymentUTxO[0].assets.lovelace;
-    console.log("Payment UTxO Value: ", paymentValue);
-
-    if (!subscriberUTxO || !subscriberUTxO.length) {
-      console.error("No UTxO found at user address: " + subscriberAddress);
-    }
-
-    const selectedUTxOs = selectUTxOs(config.subscriberUTxO, {
-      ["lovelace"]: 5000000n,
-    }, false);
-
-    const serviceDatum = lucid.datumOf(config.serviceUTxO[0]);
-    console.log("Service Datum: ", serviceDatum);
-
-    const paymentDatum: PaymentDatum = {
-      service_nft_tn: config.service_nft_tn,
-      account_nft_tn: config.account_nft_tn,
-      subscription_fee: config.subscription_fee,
-      total_subscription_fee: config.total_subscription_fee,
-      subscription_start: config.subscription_start,
-      subscription_end: config.subscription_end,
-      interval_length: config.interval_length,
-      interval_amount: config.interval_amount,
-      num_intervals: config.num_intervals,
-      last_claimed: config.last_claimed,
-      penalty_fee: config.penalty_fee,
-      penalty_fee_qty: config.penalty_fee_qty,
-      minimum_ada: config.minimum_ada,
-    };
-
-    const directPaymentDatum = Data.to<PaymentDatum>(
-      paymentDatum,
-      PaymentDatum,
+    const paymentUTxO = yield* Effect.promise(() =>
+      lucid.utxoByUnit(
+        config.payment_token,
+      )
     );
 
-    const allDatums: PaymentValidatorDatum = {
-      Payment: [paymentDatum],
+    const paymentValue = paymentUTxO.assets.lovelace;
+    console.log("Payment UTxO Value: ", paymentValue);
+
+    const penaltyDatum: PenaltyDatum = {
+      service_nft_tn: config.service_nft_tn,
+      account_nft_tn: config.account_nft_tn,
+      penalty_fee: config.penalty_fee,
+      penalty_fee_qty: config.penalty_fee_qty,
     };
 
-    const paymentValDatum = Data.to<PaymentValidatorDatum>(
+    const allDatums: PaymentValidatorDatum = {
+      Penalty: [penaltyDatum],
+    };
+
+    const penaltyValDatum = Data.to<PaymentValidatorDatum>(
       allDatums,
       PaymentValidatorDatum,
     );
@@ -93,31 +72,25 @@ export const subscriberWithdraw = (
         );
       },
       // Specify the inputs relevant to the redeemer
-      inputs: [subscriberUTxO[0], config.paymentUTxO[0]],
+      inputs: [subscriberUTxO, paymentUTxO],
     };
-
-    console.log("Merchant UTxO", subscriberUTxO);
-    console.log("Payment UTxO", config.paymentUTxO);
-    console.log("Selected UTxO", selectedUTxOs);
 
     const tx = yield* lucid
       .newTx()
       .collectFrom(config.subscriberUTxO) // subscriber user nft utxo
-      // .collectFrom(selectedUTxOs) // subscriber user nft utxo
       .collectFrom(config.paymentUTxO, subscriberWithdrawRedeemer) // subscriber utxos
       .readFrom(config.serviceUTxO)
       .pay.ToAddress(subscriberAddress, {
-        lovelace: config.paymentUTxO[0].assets.lovelace,
+        lovelace: paymentValue,
         [config.subscriber_token]: 1n,
       })
       .pay.ToAddressWithData(validators.spendValAddress, {
         kind: "inline",
-        value: paymentValDatum,
+        value: penaltyValDatum,
       }, {
-        lovelace: config.total_subscription_fee,
+        lovelace: config.penalty_fee_qty,
         [config.payment_token]: 1n,
       })
-      .validFrom(Number(config.subscription_start))
       .attach.SpendingValidator(validators.spendValidator)
       .completeProgram();
 

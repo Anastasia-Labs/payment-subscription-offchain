@@ -12,7 +12,7 @@ import {
 } from "../src/index.js";
 import { beforeEach, expect, test } from "vitest";
 import { readMultiValidators } from "./compiled/validators.js";
-import { Console, Effect } from "effect";
+import { Effect } from "effect";
 
 type LucidContext = {
   lucid: LucidEvolution;
@@ -84,8 +84,6 @@ export const createServiceTestCase = (
       const createServiceHash = yield* Effect.promise(() =>
         createServiceSigned.submit()
       );
-      console.log("createServiceSigned: ", createServiceSigned.toJSON());
-      console.log("TxHash: ", createServiceHash);
 
       return createServiceHash;
     });
@@ -112,12 +110,6 @@ export const createServiceTestCase = (
       Effect.promise(() => lucid.utxosAt(serviceAddress)),
     ]);
 
-    yield* Console.log("Updated- Merchant Utxos:", merchantUTxOs);
-    yield* Console.log(
-      "Updated- Service Validator Utxos:",
-      serviceUTxOs,
-    );
-
     return {
       txHash: createServiceResult,
       serviceConfig,
@@ -133,7 +125,6 @@ test<LucidContext>("Test 1 - Create Service", async (context) => {
   const result = await Effect.runPromise(createServiceTestCase(context));
   expect(result.txHash).toBeDefined();
   expect(typeof result.txHash).toBe("string");
-  // console.log("Create Account with transaction hash:", result);
 
   expect(result.serviceConfig).toBeDefined();
   expect(result.outputs).toBeDefined();

@@ -40,13 +40,13 @@ beforeEach<LucidContext>(async (context) => {
     context.lucid = await Lucid(context.emulator, "Custom");
 });
 
-test<LucidContext>("Test 1 - Update Service", async ({
+test<LucidContext>("Test 1 - Update Account", async ({
     lucid,
     users,
     emulator,
 }) => {
     const program = Effect.gen(function* () {
-        console.log("Update Subscription Service...TEST!!!!");
+        console.log("Update Subscription Account...TEST!!!!");
 
         const createAccountResult = yield* createAccountTestCase({
             lucid,
