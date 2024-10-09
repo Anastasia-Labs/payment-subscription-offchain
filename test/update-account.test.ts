@@ -13,6 +13,7 @@ import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { findCip68TokenNames } from "../src/core/utils/assets.js";
 import { createAccountTestCase } from "./create-account.test.js";
+import blueprint from "./compiled/plutus.json" assert { type: "json" };
 
 type LucidContext = {
     lucid: LucidEvolution;
@@ -20,7 +21,7 @@ type LucidContext = {
     emulator: Emulator;
 };
 
-const accountValidator = readMultiValidators(false, []);
+const accountValidator = readMultiValidators(blueprint, false, []);
 const accountPolicyId = mintingPolicyToId(accountValidator.mintAccount);
 
 // INITIALIZE EMULATOR + ACCOUNTS
@@ -44,8 +45,6 @@ test<LucidContext>("Test 1 - Update Account", async ({
     emulator,
 }) => {
     const program = Effect.gen(function* () {
-        console.log("Update Subscription Account...TEST!!!!");
-
         const createAccountResult = yield* createAccountTestCase({
             lucid,
             users,
@@ -113,7 +112,6 @@ test<LucidContext>("Test 1 - Update Account", async ({
         const updateAccountHash = yield* Effect.promise(() =>
             updateAccountSigned.submit()
         );
-        console.log("Update Account TxHash: ", updateAccountHash);
     });
 
     await Effect.runPromise(program);

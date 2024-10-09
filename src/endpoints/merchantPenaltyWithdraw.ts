@@ -3,10 +3,9 @@ import {
   Constr,
   Data,
   LucidEvolution,
-  mintingPolicyToId,
   RedeemerBuilder,
-  selectUTxOs,
   TransactionError,
+  TxBuilderError,
   TxSignBuilder,
 } from "@lucid-evolution/lucid";
 import { WithdrawPenaltyConfig } from "../core/types.js";
@@ -17,7 +16,7 @@ export const merchantPenaltyWithdraw = (
   lucid: LucidEvolution,
   config: WithdrawPenaltyConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
-  Effect.gen(function* () { // return type ,
+  Effect.gen(function* () {
     const merchantAddress: Address = yield* Effect.promise(() =>
       lucid.wallet().address()
     );
@@ -32,7 +31,11 @@ export const merchantPenaltyWithdraw = (
     );
 
     if (!merchantUTxOs || !merchantUTxOs.length) {
-      console.error("No UTxO found at user address: " + merchantAddress);
+      yield* Effect.fail(
+        new TxBuilderError({
+          cause: "No UTxO found at user address: " + merchantAddress,
+        }),
+      );
     }
 
     const merchantUTxO = yield* Effect.promise(() =>

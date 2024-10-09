@@ -16,6 +16,7 @@ import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { tokenNameFromUTxO } from "../src/core/utils/assets.js";
 import { subscriberWithdrawTestCase } from "./subscriber-withdraw.test.js";
+import blueprint from "./compiled/plutus.json" assert { type: "json" };
 
 type LucidContext = {
     lucid: LucidEvolution;
@@ -42,10 +43,15 @@ beforeEach<LucidContext>(async (context) => {
     context.lucid = await Lucid(context.emulator, "Custom");
 });
 
-test<LucidContext>("Test 1 - Merchant Penalty Withdraw", async (
+type MerchantPenaltyResult = {
+    txHash: string;
+    withdrawConfig: WithdrawPenaltyConfig;
+};
+
+export const withdrawPenaltyTestCase = (
     { lucid, users, emulator }: LucidContext,
-) => {
-    const program = Effect.gen(function* () {
+): Effect.Effect<MerchantPenaltyResult, Error, never> => {
+    return Effect.gen(function* () {
         const initResult = yield* subscriberWithdrawTestCase({
             lucid,
             users,
@@ -57,7 +63,7 @@ test<LucidContext>("Test 1 - Merchant Penalty Withdraw", async (
 
         yield* Effect.sync(() => emulator.awaitBlock(100));
 
-        const paymentValidator = readMultiValidators(true, [
+        const paymentValidator = readMultiValidators(blueprint, true, [
             initResult.paymentConfig.service_policyId,
             initResult.paymentConfig.account_policyId,
         ]);
@@ -102,30 +108,45 @@ test<LucidContext>("Test 1 - Merchant Penalty Withdraw", async (
             paymentUTxO: initResult.outputs.paymentUTxOs,
         };
 
-        const merchantWithdrawResult = yield* merchantPenaltyWithdraw(
-            lucid,
-            withdrawPenaltyConfig,
-        );
-        const merchantWithdrawSigned = yield* Effect.promise(() =>
-            merchantWithdrawResult.sign.withWallet().complete()
-        );
+        const penaltyWithdrawFlow = Effect.gen(function* (_) {
+            const merchantWithdrawResult = yield* merchantPenaltyWithdraw(
+                lucid,
+                withdrawPenaltyConfig,
+            );
+            const merchantWithdrawSigned = yield* Effect.promise(() =>
+                merchantWithdrawResult.sign.withWallet().complete()
+            );
 
-        const merchantWithdrawTxHash = yield* Effect.promise(() =>
-            merchantWithdrawSigned.submit()
-        );
+            const merchantWithdrawTxHash = yield* Effect.promise(() =>
+                merchantWithdrawSigned.submit()
+            );
 
-        yield* Effect.sync(() => emulator.awaitBlock(100));
+            return merchantWithdrawTxHash;
+        });
+
+        const merchantWithdrawResult = yield* penaltyWithdrawFlow.pipe(
+            Effect.tapError((error) =>
+                Effect.log(`Error creating Account: ${error}`)
+            ),
+            Effect.map((hash) => {
+                return hash;
+            }),
+        );
 
         return {
-            initTxHash: initResult.txHash,
-            merchantWithdrawTxHash,
+            txHash: merchantWithdrawResult,
             withdrawConfig: withdrawPenaltyConfig,
         };
     });
-    const result = await Effect.runPromise(program);
+};
 
-    expect(result.initTxHash).toBeDefined();
-    expect(result.merchantWithdrawTxHash).toBeDefined();
-    expect(typeof result.initTxHash).toBe("string");
-    expect(typeof result.merchantWithdrawTxHash).toBe("string");
+test<LucidContext>("Test 1 - Merchant Penalty Withdraw", async (
+    context: LucidContext,
+) => {
+    const result = await Effect.runPromise(withdrawPenaltyTestCase(context));
+
+    expect(result.txHash).toBeDefined();
+    expect(typeof result.txHash).toBe("string");
+
+    expect(result.withdrawConfig).toBeDefined();
 });

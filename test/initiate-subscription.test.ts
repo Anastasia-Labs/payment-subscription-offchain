@@ -18,6 +18,7 @@ import { Console, Effect } from "effect";
 import { findCip68TokenNames } from "../src/core/utils/assets.js";
 import { createAccountTestCase } from "./create-account.test.js";
 import { createServiceTestCase } from "./create-service.test.js";
+import blueprint from "./compiled/plutus.json" assert { type: "json" };
 
 type LucidContext = {
   lucid: LucidEvolution;
@@ -59,9 +60,7 @@ export const initiateSubscriptionTestCase = (
   { lucid, users, emulator }: LucidContext,
 ): Effect.Effect<InitiateSubscriptionResult, Error, never> => {
   return Effect.gen(function* () {
-    console.log("Initiaie Subscription...TEST!!!!");
-
-    const validators = readMultiValidators(false, []);
+    const validators = readMultiValidators(blueprint, false, []);
 
     const createAccountResult = yield* createAccountTestCase({
       lucid,
@@ -88,7 +87,7 @@ export const initiateSubscriptionTestCase = (
     const servicePolicyId = mintingPolicyToId(validators.mintService);
     const accountPolicyId = mintingPolicyToId(validators.mintAccount);
 
-    const paymentValidator = readMultiValidators(true, [
+    const paymentValidator = readMultiValidators(blueprint, true, [
       servicePolicyId,
       accountPolicyId,
     ]);
@@ -189,7 +188,6 @@ export const initiateSubscriptionTestCase = (
         Effect.log(`Error initiating subscription: ${error}`)
       ),
       Effect.map((hash) => {
-        console.log("Subscription initiated successfully. TxHash:", hash);
         return hash;
       }),
     );

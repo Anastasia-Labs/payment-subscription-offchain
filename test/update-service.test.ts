@@ -18,6 +18,7 @@ import {
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { findCip68TokenNames } from "../src/core/utils/assets.js";
+import blueprint from "./compiled/plutus.json" assert { type: "json" };
 
 type LucidContext = {
   lucid: LucidEvolution;
@@ -25,7 +26,7 @@ type LucidContext = {
   emulator: Emulator;
 };
 
-const serviceValidator = readMultiValidators(false, []);
+const serviceValidator = readMultiValidators(blueprint, false, []);
 const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
 
 beforeEach<LucidContext>(async (context) => {
@@ -48,8 +49,6 @@ test<LucidContext>("Test 1 - Update Service", async ({
   emulator,
 }) => {
   const program = Effect.gen(function* () {
-    console.log("Update Subscription Service...TEST!!!!");
-
     const serviceScript = {
       spending: serviceValidator.spendService.script,
       minting: serviceValidator.mintService.script,
@@ -81,7 +80,6 @@ test<LucidContext>("Test 1 - Update Service", async ({
     const createServiceHash = yield* Effect.promise(() =>
       createServiceSigned.submit()
     );
-    console.log("Create Service TxHash: ", createServiceHash);
 
     yield* Effect.sync(() => emulator.awaitBlock(100));
 
@@ -141,7 +139,6 @@ test<LucidContext>("Test 1 - Update Service", async ({
     const updateServiceHash = yield* Effect.promise(() =>
       updateServiceSigned.submit()
     );
-    console.log("Update Service TxHash: ", updateServiceHash);
   });
   await Effect.runPromise(program);
 });

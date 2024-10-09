@@ -3,9 +3,7 @@ import {
   Constr,
   Data,
   LucidEvolution,
-  mintingPolicyToId,
   RedeemerBuilder,
-  selectUTxOs,
   TransactionError,
   TxSignBuilder,
 } from "@lucid-evolution/lucid";
@@ -18,7 +16,7 @@ export const merchantWithdraw = (
   lucid: LucidEvolution,
   config: MerchantWithdrawConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
-  Effect.gen(function* () { // return type ,
+  Effect.gen(function* () {
     const merchantAddress: Address = yield* Effect.promise(() =>
       lucid.wallet().address()
     );
@@ -30,10 +28,6 @@ export const merchantWithdraw = (
         config.merchant_token,
       )
     );
-
-    const selectedUTxOs = selectUTxOs(config.merchantUTxO, {
-      ["lovelace"]: 5000000n,
-    }, false);
 
     const paymentDatum: PaymentDatum = {
       service_nft_tn: config.service_nft_tn,

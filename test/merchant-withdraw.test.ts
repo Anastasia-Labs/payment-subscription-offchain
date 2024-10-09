@@ -16,6 +16,7 @@ import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { tokenNameFromUTxO } from "../src/core/utils/assets.js";
 import { initiateSubscriptionTestCase } from "./initiate-subscription.test.js";
+import blueprint from "./compiled/plutus.json" assert { type: "json" };
 
 type LucidContext = {
     lucid: LucidEvolution;
@@ -57,9 +58,7 @@ test<LucidContext>("Test 1 - Merchant Withdraw", async (
 
         yield* Effect.sync(() => emulator.awaitBlock(100));
 
-        console.log("Merchant Withdraw...TEST!!!!");
-
-        const paymentValidator = readMultiValidators(true, [
+        const paymentValidator = readMultiValidators(blueprint, true, [
             initResult.paymentConfig.service_policyId,
             initResult.paymentConfig.account_policyId,
         ]);

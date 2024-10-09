@@ -4,6 +4,7 @@ import {
     Data,
     LucidEvolution,
     TransactionError,
+    TxBuilderError,
     TxSignBuilder,
 } from "@lucid-evolution/lucid";
 import { getMultiValidator } from "../core/utils/index.js";
@@ -15,8 +16,7 @@ export const updateServiceDatum = (
     lucid: LucidEvolution,
     config: UpdateServiceConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
-    Effect.gen(function* () { // return type ,
-        console.log("updateServiceDatum..........: ");
+    Effect.gen(function* () {
         const subscriberAddress: Address = yield* Effect.promise(() =>
             lucid.wallet().address()
         );
@@ -28,8 +28,11 @@ export const updateServiceDatum = (
         );
 
         if (!subscriberUTxOs || !subscriberUTxOs.length) {
-            console.error(
-                "No UTxO found at user address: " + subscriberAddress,
+            yield* Effect.fail(
+                new TxBuilderError({
+                    cause: "No UTxO found at user address: " +
+                        subscriberAddress,
+                }),
             );
         }
 
@@ -48,7 +51,11 @@ export const updateServiceDatum = (
         );
 
         if (!serviceUTxO) {
-            throw new Error("Service NFT not found");
+            yield* Effect.fail(
+                new TxBuilderError({
+                    cause: "Service NFT not found ",
+                }),
+            );
         }
 
         const updatedDatum: ServiceDatum = {
@@ -78,7 +85,7 @@ export const updateServiceDatum = (
                 kind: "inline",
                 value: directDatum,
             }, {
-                lovelace: 3_000_000n,
+                lovelace: 2_000_000n,
                 [config.ref_token]: 1n,
             })
             .attach.SpendingValidator(validators.spendValidator)

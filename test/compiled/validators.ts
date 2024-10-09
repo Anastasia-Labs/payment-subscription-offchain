@@ -4,8 +4,6 @@ import {
     MintingPolicy,
     SpendingValidator,
 } from "@lucid-evolution/lucid";
-
-import blueprint from "./plutus.json" assert { type: "json" };
 import { Script } from "@lucid-evolution/lucid";
 
 export type Validators = {
@@ -18,6 +16,7 @@ export type Validators = {
 };
 
 export function readMultiValidators(
+    blueprint: any,
     params: boolean,
     policyIds: string[],
 ): Validators {

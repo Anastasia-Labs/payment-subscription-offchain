@@ -13,6 +13,7 @@ import {
 import { beforeEach, expect, test } from "vitest";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
+import blueprint from "./compiled/plutus.json" assert { type: "json" };
 
 type LucidContext = {
   lucid: LucidEvolution;
@@ -48,9 +49,7 @@ export const createServiceTestCase = (
   { lucid, users, emulator }: LucidContext,
 ): Effect.Effect<CreateServiceResult, Error, never> => {
   return Effect.gen(function* () {
-    console.log("Create Subscription Service...TEST!!!!");
-
-    const serviceValidator = readMultiValidators(false, []);
+    const serviceValidator = readMultiValidators(blueprint, false, []);
 
     const serviceScript = {
       spending: serviceValidator.spendService.script,
@@ -63,7 +62,7 @@ export const createServiceTestCase = (
       service_fee_qty: 10_000_000n,
       penalty_fee: ADA,
       penalty_fee_qty: 1_000_000n,
-      interval_length: 30n * 24n * 60n * 60n * 1000n, // 30 days in seconds,
+      interval_length: 30n * 24n * 60n * 60n * 1000n, // 30 days in milliseconds,
       num_intervals: 12n,
       minimum_ada: 2_000_000n,
       is_active: true,
@@ -93,7 +92,6 @@ export const createServiceTestCase = (
         Effect.log(`Error creating Service: ${error}`)
       ),
       Effect.map((hash) => {
-        console.log("Service created successfully. TxHash:", hash);
         return hash;
       }),
     );

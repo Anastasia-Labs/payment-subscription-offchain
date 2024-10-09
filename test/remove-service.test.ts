@@ -4,7 +4,6 @@ import {
   CreateServiceConfig,
   Emulator,
   generateEmulatorAccount,
-  getValidatorDatum,
   Lucid,
   LucidEvolution,
   removeService,
@@ -19,6 +18,7 @@ import {
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { findCip68TokenNames } from "../src/core/utils/assets.js";
+import blueprint from "./compiled/plutus.json" assert { type: "json" };
 
 type LucidContext = {
   lucid: LucidEvolution;
@@ -26,7 +26,7 @@ type LucidContext = {
   emulator: Emulator;
 };
 
-const serviceValidator = readMultiValidators(false, []);
+const serviceValidator = readMultiValidators(blueprint, false, []);
 const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
 
 // INITIALIZE EMULATOR + ACCOUNTS
@@ -50,8 +50,6 @@ test<LucidContext>("Test 1 - Remove Service", async ({
   emulator,
 }) => {
   const program = Effect.gen(function* () {
-    console.log("Remove Subscription Service...TEST!!!!");
-
     const serviceScript = {
       spending: serviceValidator.spendService.script,
       minting: serviceValidator.mintService.script,
@@ -83,7 +81,6 @@ test<LucidContext>("Test 1 - Remove Service", async ({
     const createServiceHash = yield* Effect.promise(() =>
       createServiceSigned.submit()
     );
-    console.log("Create Service TxHash: ", createServiceHash);
 
     yield* Effect.sync(() => emulator.awaitBlock(100));
 
@@ -115,18 +112,15 @@ test<LucidContext>("Test 1 - Remove Service", async ({
       servicePolicyId,
       userTokenName,
     );
-    const validatorUtxos = yield* Effect.promise(() =>
-      getValidatorDatum(lucid, createServiceConfig)
-    );
 
     const removeServiceConfig: RemoveServiceConfig = {
-      service_fee: validatorUtxos[0].service_fee,
-      service_fee_qty: validatorUtxos[0].service_fee_qty,
-      penalty_fee: validatorUtxos[0].penalty_fee,
-      penalty_fee_qty: validatorUtxos[0].penalty_fee_qty,
-      interval_length: validatorUtxos[0].interval_length,
-      num_intervals: validatorUtxos[0].num_intervals,
-      minimum_ada: validatorUtxos[0].minimum_ada,
+      service_fee: createServiceConfig.service_fee,
+      service_fee_qty: createServiceConfig.service_fee_qty,
+      penalty_fee: createServiceConfig.penalty_fee,
+      penalty_fee_qty: createServiceConfig.penalty_fee_qty,
+      interval_length: createServiceConfig.interval_length,
+      num_intervals: createServiceConfig.num_intervals,
+      minimum_ada: createServiceConfig.minimum_ada,
       is_active: false,
       user_token: userNft,
       ref_token: refNft,
@@ -146,7 +140,6 @@ test<LucidContext>("Test 1 - Remove Service", async ({
     const removeServiceHash = yield* Effect.promise(() =>
       removeServiceSigned.submit()
     );
-    console.log("Remove Service TxHash: ", removeServiceHash);
   });
   await Effect.runPromise(program);
 });

@@ -21,6 +21,7 @@ import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { tokenNameFromUTxO } from "../src/core/utils/assets.js";
 import { initiateSubscriptionTestCase } from "./initiate-subscription.test.js";
+import blueprint from "./compiled/plutus.json" assert { type: "json" };
 
 type LucidContext = {
     lucid: LucidEvolution;
@@ -69,7 +70,7 @@ export const subscriberWithdrawTestCase = (
 
         yield* Effect.sync(() => emulator.awaitBlock(100));
 
-        const serviceValidator = readMultiValidators(false, []);
+        const serviceValidator = readMultiValidators(blueprint, false, []);
 
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
@@ -105,11 +106,6 @@ export const subscriberWithdrawTestCase = (
             updateServiceSigned.submit()
         );
 
-        console.log(
-            "Service updated with transaction hash:",
-            updateServiceTxHash,
-        );
-
         yield* Effect.sync(() => emulator.awaitBlock(100));
 
         const serviceScriptAddress = validatorToAddress(
@@ -117,7 +113,7 @@ export const subscriberWithdrawTestCase = (
             serviceValidator.spendService,
         );
 
-        const paymentValidator = readMultiValidators(true, [
+        const paymentValidator = readMultiValidators(blueprint, true, [
             initResult.paymentConfig.service_policyId,
             initResult.paymentConfig.account_policyId,
         ]);
@@ -187,10 +183,6 @@ export const subscriberWithdrawTestCase = (
                 Effect.log(`Error withdrawing from Payment Contract: ${error}`)
             ),
             Effect.map((hash) => {
-                console.log(
-                    "Subscribiption withdrawn successfully. TxHash:",
-                    hash,
-                );
                 return hash;
             }),
         );

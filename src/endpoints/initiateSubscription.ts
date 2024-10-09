@@ -22,7 +22,7 @@ export const initiateSubscription = (
   lucid: LucidEvolution,
   config: InitPaymentConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
-  Effect.gen(function* () { // return type ,
+  Effect.gen(function* () {
     const subscriberAddress: Address = yield* Effect.promise(() =>
       lucid.wallet().address()
     );
@@ -40,12 +40,13 @@ export const initiateSubscription = (
 
     // Selecting a utxo containing atleast 5 ADA to cover tx fees and min ADA
     // Note: To avoid tx balancing errors, the utxo should only contain lovelaces
+    // TODO: Make into optional function
     const selectedUTxOs = selectUTxOs(subscriberUTxOs, {
-      ["lovelace"]: 5000000n,
+      ["lovelace"]: 2000000n,
     });
     const tokenName = generateUniqueAssetName(selectedUTxOs[0], "");
 
-    const paymentredeemer: InitiatePayment = {
+    const paymentRedeemer: InitiatePayment = {
       output_reference: {
         txHash: {
           hash: subscriberUTxOs[0].txHash,
@@ -55,7 +56,7 @@ export const initiateSubscription = (
       input_index: 0n,
     };
 
-    const redeemerData = Data.to(paymentredeemer, InitiatePayment);
+    const redeemerData = Data.to(paymentRedeemer, InitiatePayment);
 
     const paymentDatum: PaymentDatum = {
       service_nft_tn: config.service_nft_tn,

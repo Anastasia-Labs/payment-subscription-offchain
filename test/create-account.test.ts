@@ -11,7 +11,8 @@ import {
 } from "../src/index.js";
 import { beforeEach, expect, test } from "vitest";
 import { readMultiValidators } from "./compiled/validators.js";
-import { Console, Effect } from "effect";
+import { Effect } from "effect";
+import blueprint from "./compiled/plutus.json" assert { type: "json" };
 
 type LucidContext = {
   lucid: LucidEvolution;
@@ -47,7 +48,7 @@ export const createAccountTestCase = (
   { lucid, users, emulator }: LucidContext,
 ): Effect.Effect<CreateAccountResult, Error, never> => {
   return Effect.gen(function* () {
-    const accountValidator = readMultiValidators(false, []);
+    const accountValidator = readMultiValidators(blueprint, false, []);
 
     const accountScript = {
       spending: accountValidator.spendAccount.script,
@@ -88,7 +89,6 @@ export const createAccountTestCase = (
         Effect.log(`Error creating Account: ${error}`)
       ),
       Effect.map((hash) => {
-        console.log("Account created successfully. TxHash:", hash);
         return hash;
       }),
     );

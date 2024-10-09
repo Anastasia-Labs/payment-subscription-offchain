@@ -16,6 +16,7 @@ import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { tokenNameFromUTxO } from "../src/core/utils/assets.js";
 import { initiateSubscriptionTestCase } from "./initiate-subscription.test.js";
+import blueprint from "./compiled/plutus.json" assert { type: "json" };
 
 type LucidContext = {
     lucid: LucidEvolution;
@@ -54,15 +55,10 @@ test<LucidContext>("Test 1 - Extend Service", async (
 
         expect(initResult).toBeDefined();
         expect(typeof initResult.txHash).toBe("string"); // Assuming the initResult is a transaction hash
-        console.log(
-            "Subscription initiated with transaction hash:",
-            initResult.txHash,
-        );
 
         yield* Effect.sync(() => emulator.awaitBlock(100));
-        console.log("Extend Subscription Service...TEST!!!!");
 
-        const paymentValidator = readMultiValidators(true, [
+        const paymentValidator = readMultiValidators(blueprint, true, [
             initResult.paymentConfig.service_policyId,
             initResult.paymentConfig.account_policyId,
         ]);

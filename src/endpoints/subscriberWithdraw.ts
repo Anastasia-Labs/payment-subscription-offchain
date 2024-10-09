@@ -16,7 +16,7 @@ export const subscriberWithdraw = (
   lucid: LucidEvolution,
   config: CreatePenaltyConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
-  Effect.gen(function* () { // return type ,
+  Effect.gen(function* () {
     const subscriberAddress: Address = yield* Effect.promise(() =>
       lucid.wallet().address()
     );
