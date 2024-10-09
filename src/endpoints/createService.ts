@@ -36,10 +36,10 @@ export const createService = (
       console.error("No UTxO found at user address: " + merchantAddress);
     }
 
-    // Selecting a utxo containing atleast 5 ADA to cover tx fees and min ADA
+    // Selecting a utxo containing atleast 2 ADA to cover tx fees and min ADA
     // Note: To avoid tx balancing errors, the utxo should only contain lovelaces
     const selectedUTxOs = selectUTxOs(merchantUTxOs, {
-      ["lovelace"]: 5000000n,
+      ["lovelace"]: 2000000n,
     });
     const { refTokenName, userTokenName } = createCip68TokenNames(
       selectedUTxOs[0],
