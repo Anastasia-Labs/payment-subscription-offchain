@@ -1,47 +1,16 @@
 import {
-    Emulator,
-    generateEmulatorAccount,
-    Lucid,
-    LucidEvolution,
     merchantPenaltyWithdraw,
     toUnit,
     WithdrawPenaltyConfig,
 } from "../src/index.js";
-import { beforeEach, expect, test } from "vitest";
-import {
-    mintingPolicyToId,
-    PROTOCOL_PARAMETERS_DEFAULT,
-} from "@lucid-evolution/lucid";
+import { expect, test } from "vitest";
+import { mintingPolicyToId } from "@lucid-evolution/lucid";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { tokenNameFromUTxO } from "../src/core/utils/assets.js";
 import { subscriberWithdrawTestCase } from "./subscriber-withdraw.test.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-
-type LucidContext = {
-    lucid: LucidEvolution;
-    users: any;
-    emulator: Emulator;
-};
-
-// INITIALIZE EMULATOR + ACCOUNTS
-beforeEach<LucidContext>(async (context) => {
-    context.users = {
-        subscriber: generateEmulatorAccount({
-            lovelace: BigInt(1000_000_000),
-        }),
-        merchant: generateEmulatorAccount({
-            lovelace: BigInt(1000_000_000),
-        }),
-    };
-
-    context.emulator = new Emulator([
-        context.users.subscriber,
-        context.users.merchant,
-    ], { ...PROTOCOL_PARAMETERS_DEFAULT, maxTxSize: 21000 });
-
-    context.lucid = await Lucid(context.emulator, "Custom");
-});
+import { LucidContext, makeLucidContext } from "./emulator/service.js";
 
 type MerchantPenaltyResult = {
     txHash: string;
@@ -143,10 +112,14 @@ export const withdrawPenaltyTestCase = (
 test<LucidContext>("Test 1 - Merchant Penalty Withdraw", async (
     context: LucidContext,
 ) => {
-    const result = await Effect.runPromise(withdrawPenaltyTestCase(context));
+    const program = Effect.gen(function* ($) {
+        const context = yield* makeLucidContext;
+        const result = yield* withdrawPenaltyTestCase(context);
+        return result;
+    });
+    const result = await Effect.runPromise(program);
 
     expect(result.txHash).toBeDefined();
     expect(typeof result.txHash).toBe("string");
-
     expect(result.withdrawConfig).toBeDefined();
 });

@@ -1,39 +1,14 @@
 import {
   createAccount,
   CreateAccountConfig,
-  Emulator,
-  generateEmulatorAccount,
-  Lucid,
-  LucidEvolution,
-  PROTOCOL_PARAMETERS_DEFAULT,
   UTxO,
   validatorToAddress,
 } from "../src/index.js";
-import { beforeEach, expect, test } from "vitest";
+import { expect, test } from "vitest";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-
-type LucidContext = {
-  lucid: LucidEvolution;
-  users: any;
-  emulator: Emulator;
-};
-
-// INITIALIZE EMULATOR + ACCOUNTS
-beforeEach<LucidContext>(async (context) => {
-  context.users = {
-    subscriber: await generateEmulatorAccount({
-      lovelace: BigInt(100_000_000),
-    }),
-  };
-
-  context.emulator = new Emulator([
-    context.users.subscriber,
-  ], { ...PROTOCOL_PARAMETERS_DEFAULT, maxTxSize: 19000 });
-
-  context.lucid = await Lucid(context.emulator, "Custom");
-});
+import { LucidContext, makeLucidContext } from "./emulator/service.js";
 
 type CreateAccountResult = {
   txHash: string;
@@ -93,7 +68,7 @@ export const createAccountTestCase = (
       }),
     );
 
-    yield* Effect.sync(() => emulator.awaitBlock(100));
+    yield* Effect.sync(() => emulator.awaitBlock(50));
 
     const [subscriberUTxOs, accountUTxOs] = yield* Effect.all([
       Effect.promise(() => lucid.utxosAt(users.subscriber.address)),
@@ -111,11 +86,17 @@ export const createAccountTestCase = (
   });
 };
 
-test<LucidContext>("Test 1 - Create Account", async (context) => {
-  const result = await Effect.runPromise(createAccountTestCase(context));
+test<LucidContext>("Test 1 - Create Account", async () => {
+  const program = Effect.gen(function* ($) {
+    const context = yield* makeLucidContext;
+    const result = yield* createAccountTestCase(context);
+    return result;
+  });
+
+  const result = await Effect.runPromise(program);
+
   expect(result.txHash).toBeDefined();
   expect(typeof result.txHash).toBe("string");
-
   expect(result.accountConfig).toBeDefined();
   expect(result.outputs).toBeDefined();
 });

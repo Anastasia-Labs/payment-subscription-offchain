@@ -1,52 +1,26 @@
 import {
-    Emulator,
-    generateEmulatorAccount,
-    Lucid,
-    LucidEvolution,
     merchantWithdraw,
     MerchantWithdrawConfig,
     toUnit,
 } from "../src/index.js";
-import { beforeEach, expect, test } from "vitest";
-import {
-    mintingPolicyToId,
-    PROTOCOL_PARAMETERS_DEFAULT,
-} from "@lucid-evolution/lucid";
+import { expect, test } from "vitest";
+import { mintingPolicyToId } from "@lucid-evolution/lucid";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { tokenNameFromUTxO } from "../src/core/utils/assets.js";
 import { initiateSubscriptionTestCase } from "./initiate-subscription.test.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
+import { LucidContext, makeLucidContext } from "./emulator/service.js";
 
-type LucidContext = {
-    lucid: LucidEvolution;
-    users: any;
-    emulator: Emulator;
+type MerchantWithdrawResult = {
+    txHash: string;
+    withdrawConfig: MerchantWithdrawConfig;
 };
 
-// INITIALIZE EMULATOR + ACCOUNTS
-beforeEach<LucidContext>(async (context) => {
-    context.users = {
-        subscriber: generateEmulatorAccount({
-            lovelace: BigInt(1000_000_000),
-        }),
-        merchant: generateEmulatorAccount({
-            lovelace: BigInt(1000_000_000),
-        }),
-    };
-
-    context.emulator = new Emulator([
-        context.users.subscriber,
-        context.users.merchant,
-    ], { ...PROTOCOL_PARAMETERS_DEFAULT, maxTxSize: 21000 });
-
-    context.lucid = await Lucid(context.emulator, "Custom");
-});
-
-test<LucidContext>("Test 1 - Merchant Withdraw", async (
+export const merchantWithdrawTestCase = (
     { lucid, users, emulator }: LucidContext,
-) => {
-    const program = Effect.gen(function* () {
+): Effect.Effect<MerchantWithdrawResult, Error, never> => {
+    return Effect.gen(function* () {
         const initResult = yield* initiateSubscriptionTestCase({
             lucid,
             users,
@@ -55,8 +29,6 @@ test<LucidContext>("Test 1 - Merchant Withdraw", async (
 
         expect(initResult).toBeDefined();
         expect(typeof initResult.txHash).toBe("string"); // Assuming the initResult is a transaction hash
-
-        yield* Effect.sync(() => emulator.awaitBlock(100));
 
         const paymentValidator = readMultiValidators(blueprint, true, [
             initResult.paymentConfig.service_policyId,
@@ -119,32 +91,52 @@ test<LucidContext>("Test 1 - Merchant Withdraw", async (
             paymentUTxO: initResult.outputs.paymentValidatorUTxOs,
         };
 
-        const merchantWithdrawResult = yield* merchantWithdraw(
-            lucid,
-            merchantWithdrawConfig,
-        );
-        const merchantWithdrawSigned = yield* Effect.promise(() =>
-            merchantWithdrawResult.sign.withWallet().complete()
+        const merchantWithdrawFlow = Effect.gen(function* (_) {
+            const merchantWithdrawResult = yield* merchantWithdraw(
+                lucid,
+                merchantWithdrawConfig,
+            );
+            const merchantWithdrawSigned = yield* Effect.promise(() =>
+                merchantWithdrawResult.sign.withWallet().complete()
+            );
+
+            const merchantWithdrawTxHash = yield* Effect.promise(() =>
+                merchantWithdrawSigned.submit()
+            );
+
+            return merchantWithdrawTxHash;
+        });
+
+        const merchantWithdrawResult = yield* merchantWithdrawFlow.pipe(
+            Effect.tapError((error) =>
+                Effect.log(`Error withdrawing from merchant: ${error}`)
+            ),
+            Effect.map((hash) => {
+                return hash;
+            }),
         );
 
-        const merchantWithdrawTxHash = yield* Effect.promise(() =>
-            merchantWithdrawSigned.submit()
-        );
-
-        yield* Effect.sync(() => emulator.awaitBlock(100));
+        yield* Effect.sync(() => emulator.awaitBlock(50));
 
         return {
-            initTxHash: initResult.txHash,
-            merchantWithdrawTxHash,
+            txHash: merchantWithdrawResult,
             withdrawConfig: merchantWithdrawConfig,
         };
     });
+};
+
+test<LucidContext>("Test 1 - Merchant Withdraw", async () => {
+    const program = Effect.gen(function* () {
+        const context = yield* makeLucidContext;
+        const result = yield* merchantWithdrawTestCase(context);
+        return result;
+    });
+
     const result = await Effect.runPromise(program);
 
-    expect(result.initTxHash).toBeDefined();
-    expect(result.merchantWithdrawTxHash).toBeDefined();
-    expect(typeof result.initTxHash).toBe("string");
-    expect(typeof result.merchantWithdrawTxHash).toBe("string");
+    expect(result.txHash).toBeDefined();
+    expect(typeof result.txHash).toBe("string");
+    expect(result.withdrawConfig).toBeDefined();
 
     // Add assertions to verify the extended configuration
     expect(result.withdrawConfig.subscription_end).toBeGreaterThan(

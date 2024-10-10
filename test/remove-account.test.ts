@@ -1,50 +1,22 @@
-import {
-    Emulator,
-    generateEmulatorAccount,
-    Lucid,
-    LucidEvolution,
-    removeAccount,
-    RemoveAccountConfig,
-    toUnit,
-} from "../src/index.js";
-import { beforeEach, expect, test } from "vitest";
+import { removeAccount, RemoveAccountConfig, toUnit } from "../src/index.js";
+import { expect, test } from "vitest";
 import { mintingPolicyToId, validatorToAddress } from "@lucid-evolution/lucid";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { findCip68TokenNames } from "../src/core/utils/assets.js";
 import { createAccountTestCase } from "./create-account.test.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-
-type LucidContext = {
-    lucid: LucidEvolution;
-    users: any;
-    emulator: Emulator;
-};
+import { LucidContext, makeLucidContext } from "./emulator/service.js";
 
 const accountValidator = readMultiValidators(blueprint, false, []);
 const accountPolicyId = mintingPolicyToId(accountValidator.mintAccount);
-
-// INITIALIZE EMULATOR + ACCOUNTS
-beforeEach<LucidContext>(async (context) => {
-    context.users = {
-        subscriber: generateEmulatorAccount({
-            lovelace: BigInt(100_000_000),
-        }),
-    };
-
-    context.emulator = new Emulator([
-        context.users.subscriber,
-    ]);
-
-    context.lucid = await Lucid(context.emulator, "Custom");
-});
 
 type RemoveAccountResult = {
     txHash: string;
     removeAccountConfig: RemoveAccountConfig;
 };
 
-export const RemoveAccountTestCase = (
+export const removeAccountTestCase = (
     { lucid, users, emulator }: LucidContext,
 ): Effect.Effect<RemoveAccountResult, Error, never> => {
     return Effect.gen(function* () {
@@ -129,12 +101,15 @@ export const RemoveAccountTestCase = (
     });
 };
 
-test<LucidContext>("Test 1 - Remove Account", async ({
-    lucid,
-    users,
-    emulator,
-}) => {
+test<LucidContext>("Test 1 - Remove Account", async () => {
     const program = Effect.gen(function* () {
+        const context = yield* makeLucidContext;
+        const result = yield* removeAccountTestCase(context);
+        return result;
     });
-    await Effect.runPromise(program);
+    const result = await Effect.runPromise(program);
+
+    expect(result.txHash).toBeDefined();
+    expect(typeof result.txHash).toBe("string");
+    expect(result.removeAccountConfig).toBeDefined();
 });

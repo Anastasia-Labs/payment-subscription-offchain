@@ -1,49 +1,20 @@
 import {
   ADA,
-  Emulator,
-  generateEmulatorAccount,
   initiateSubscription,
   InitPaymentConfig,
-  Lucid,
-  LucidEvolution,
   mintingPolicyToId,
-  PROTOCOL_PARAMETERS_DEFAULT,
   toUnit,
   UTxO,
   validatorToAddress,
 } from "../src/index.js";
-import { beforeEach, expect, test } from "vitest";
+import { expect, test } from "vitest";
 import { readMultiValidators } from "./compiled/validators.js";
-import { Console, Effect } from "effect";
+import { Effect } from "effect";
 import { findCip68TokenNames } from "../src/core/utils/assets.js";
 import { createAccountTestCase } from "./create-account.test.js";
 import { createServiceTestCase } from "./create-service.test.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-
-type LucidContext = {
-  lucid: LucidEvolution;
-  users: any;
-  emulator: Emulator;
-};
-
-// INITIALIZE EMULATOR + ACCOUNTS
-beforeEach<LucidContext>(async (context) => {
-  context.users = {
-    subscriber: await generateEmulatorAccount({
-      lovelace: BigInt(1000_000_000),
-    }),
-    merchant: await generateEmulatorAccount({
-      lovelace: BigInt(1000_000_000),
-    }),
-  };
-
-  context.emulator = new Emulator([
-    context.users.subscriber,
-    context.users.merchant,
-  ], { ...PROTOCOL_PARAMETERS_DEFAULT, maxTxSize: 21000 });
-
-  context.lucid = await Lucid(context.emulator, "Custom");
-});
+import { LucidContext, makeLucidContext } from "./emulator/service.js";
 
 type InitiateSubscriptionResult = {
   txHash: string;
@@ -178,8 +149,6 @@ export const initiateSubscriptionTestCase = (
         initiateSubscriptionSigned.submit()
       );
 
-      yield* Effect.sync(() => emulator.awaitBlock(50));
-
       return initiateSubscriptionHash;
     });
 
@@ -191,6 +160,8 @@ export const initiateSubscriptionTestCase = (
         return hash;
       }),
     );
+
+    yield* Effect.sync(() => emulator.awaitBlock(50));
 
     const paymentValidatorAddress = validatorToAddress(
       "Custom",
@@ -223,10 +194,14 @@ export const initiateSubscriptionTestCase = (
   });
 };
 
-test<LucidContext>("Test 1 - Initiate subscription", async (
-  context,
-) => {
-  const result = await Effect.runPromise(initiateSubscriptionTestCase(context));
+test<LucidContext>("Test 1 - Initiate subscription", async () => {
+  const program = Effect.gen(function* ($) {
+    const context = yield* makeLucidContext;
+    const result = yield* initiateSubscriptionTestCase(context);
+    return result;
+  });
+
+  const result = await Effect.runPromise(program);
   expect(result.txHash).toBeDefined();
   expect(typeof result.txHash).toBe("string");
 

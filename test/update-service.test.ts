@@ -1,15 +1,5 @@
-import {
-  ADA,
-  createService,
-  CreateServiceConfig,
-  Emulator,
-  generateEmulatorAccount,
-  Lucid,
-  LucidEvolution,
-  updateService,
-  UpdateServiceConfig,
-} from "../src/index.js";
-import { beforeEach, test } from "vitest";
+import { ADA, updateService, UpdateServiceConfig } from "../src/index.js";
+import { expect, test } from "vitest";
 import {
   mintingPolicyToId,
   toUnit,
@@ -19,69 +9,27 @@ import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { findCip68TokenNames } from "../src/core/utils/assets.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
+import { LucidContext, makeLucidContext } from "./emulator/service.js";
+import { createServiceTestCase } from "./create-service.test.js";
 
-type LucidContext = {
-  lucid: LucidEvolution;
-  users: any;
-  emulator: Emulator;
+type UpdateServiceResult = {
+  txHash: string;
+  updateServiceConfig: UpdateServiceConfig;
 };
 
 const serviceValidator = readMultiValidators(blueprint, false, []);
 const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
 
-beforeEach<LucidContext>(async (context) => {
-  context.users = {
-    merchant: await generateEmulatorAccount({
-      lovelace: BigInt(100_000_000),
-    }),
-  };
-
-  context.emulator = new Emulator([
-    context.users.merchant,
-  ]);
-
-  context.lucid = await Lucid(context.emulator, "Custom");
-});
-
-test<LucidContext>("Test 1 - Update Service", async ({
-  lucid,
-  users,
-  emulator,
-}) => {
-  const program = Effect.gen(function* () {
-    const serviceScript = {
-      spending: serviceValidator.spendService.script,
-      minting: serviceValidator.mintService.script,
-      staking: "",
-    };
-
-    const createServiceConfig: CreateServiceConfig = {
-      service_fee: ADA,
-      service_fee_qty: 10_000_000n,
-      penalty_fee: ADA,
-      penalty_fee_qty: 1_000_000n,
-      interval_length: 1n,
-      num_intervals: 12n,
-      minimum_ada: 2_000_000n,
-      is_active: true,
-      scripts: serviceScript,
-    };
-
-    lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
-
-    const createServiceUnSigned = yield* createService(
-      lucid,
-      createServiceConfig,
-    );
-    const createServiceSigned = yield* Effect.promise(() =>
-      createServiceUnSigned.sign.withWallet()
-        .complete()
-    );
-    const createServiceHash = yield* Effect.promise(() =>
-      createServiceSigned.submit()
+export const updateServiceTestCase = (
+  { lucid, users, emulator }: LucidContext,
+): Effect.Effect<UpdateServiceResult, Error, never> => {
+  return Effect.gen(function* () {
+    const createServiceResults = yield* createServiceTestCase(
+      { lucid, users, emulator },
     );
 
-    yield* Effect.sync(() => emulator.awaitBlock(100));
+    expect(createServiceResults).toBeDefined();
+    expect(typeof createServiceResults.txHash).toBe("string");
 
     const merchantUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(users.merchant.address)
@@ -123,22 +71,53 @@ test<LucidContext>("Test 1 - Update Service", async ({
       is_active: true,
       user_token: userNft,
       ref_token: refNft,
-      scripts: serviceScript,
+      scripts: createServiceResults.serviceConfig.scripts,
     };
 
     lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
 
-    const updateServiceResult = yield* updateService(
-      lucid,
+    const updateServiceFlow = Effect.gen(function* (_) {
+      const updateServiceResult = yield* updateService(
+        lucid,
+        updateServiceConfig,
+      );
+      const updateServiceSigned = yield* Effect.promise(() =>
+        updateServiceResult.sign.withWallet()
+          .complete()
+      );
+      const updateServiceHash = yield* Effect.promise(() =>
+        updateServiceSigned.submit()
+      );
+      return updateServiceHash;
+    });
+
+    const updateServiceResult = yield* updateServiceFlow.pipe(
+      Effect.tapError((error) =>
+        Effect.log(`Error updating service: ${error}`)
+      ),
+      Effect.map((hash) => {
+        return hash;
+      }),
+    );
+
+    yield* Effect.sync(() => emulator.awaitBlock(50));
+
+    return {
+      txHash: updateServiceResult,
       updateServiceConfig,
-    );
-    const updateServiceSigned = yield* Effect.promise(() =>
-      updateServiceResult.sign.withWallet()
-        .complete()
-    );
-    const updateServiceHash = yield* Effect.promise(() =>
-      updateServiceSigned.submit()
-    );
+    };
   });
-  await Effect.runPromise(program);
+};
+
+test<LucidContext>("Test 1 - Update Service", async () => {
+  const program = Effect.gen(function* () {
+    const context = yield* makeLucidContext;
+    const result = yield* updateServiceTestCase(context);
+    return result;
+  });
+  const result = await Effect.runPromise(program);
+
+  expect(result.txHash).toBeDefined();
+  expect(typeof result.txHash).toBe("string");
+  expect(result.updateServiceConfig).toBeDefined();
 });

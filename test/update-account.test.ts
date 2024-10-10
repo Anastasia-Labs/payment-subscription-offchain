@@ -1,50 +1,25 @@
-import {
-    Emulator,
-    generateEmulatorAccount,
-    Lucid,
-    LucidEvolution,
-    toUnit,
-    updateAccount,
-    UpdateAccountConfig,
-} from "../src/index.js";
-import { beforeEach, expect, test } from "vitest";
+import { toUnit, updateAccount, UpdateAccountConfig } from "../src/index.js";
+import { expect, test } from "vitest";
 import { mintingPolicyToId, validatorToAddress } from "@lucid-evolution/lucid";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { findCip68TokenNames } from "../src/core/utils/assets.js";
 import { createAccountTestCase } from "./create-account.test.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
+import { LucidContext, makeLucidContext } from "./emulator/service.js";
 
-type LucidContext = {
-    lucid: LucidEvolution;
-    users: any;
-    emulator: Emulator;
+type RemoveServiceResult = {
+    txHash: string;
+    updateAccountConfig: UpdateAccountConfig;
 };
 
 const accountValidator = readMultiValidators(blueprint, false, []);
 const accountPolicyId = mintingPolicyToId(accountValidator.mintAccount);
 
-// INITIALIZE EMULATOR + ACCOUNTS
-beforeEach<LucidContext>(async (context) => {
-    context.users = {
-        subscriber: generateEmulatorAccount({
-            lovelace: BigInt(100_000_000),
-        }),
-    };
-
-    context.emulator = new Emulator([
-        context.users.subscriber,
-    ]);
-
-    context.lucid = await Lucid(context.emulator, "Custom");
-});
-
-test<LucidContext>("Test 1 - Update Account", async ({
-    lucid,
-    users,
-    emulator,
-}) => {
-    const program = Effect.gen(function* () {
+export const updateAccountTestCase = (
+    { lucid, users, emulator }: LucidContext,
+): Effect.Effect<RemoveServiceResult, Error, never> => {
+    return Effect.gen(function* () {
         const createAccountResult = yield* createAccountTestCase({
             lucid,
             users,
@@ -99,20 +74,51 @@ test<LucidContext>("Test 1 - Update Account", async ({
 
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
-        const updateAccountResult = yield* Effect.promise(() =>
-            Effect.runPromise(
-                updateAccount(lucid, updateAccountConfig),
-            )
+        const updateAccountFlow = Effect.gen(function* (_) {
+            const updateAccountResult = yield* Effect.promise(() =>
+                Effect.runPromise(
+                    updateAccount(lucid, updateAccountConfig),
+                )
+            );
+            const updateAccountSigned = yield* Effect.promise(() =>
+                updateAccountResult.sign
+                    .withWallet()
+                    .complete()
+            );
+            const updateAccountHash = yield* Effect.promise(() =>
+                updateAccountSigned.submit()
+            );
+            return updateAccountHash;
+        });
+
+        const updateAccountResult = yield* updateAccountFlow.pipe(
+            Effect.tapError((error) =>
+                Effect.log(`Error updating Account: ${error}`)
+            ),
+            Effect.map((hash) => {
+                return hash;
+            }),
         );
-        const updateAccountSigned = yield* Effect.promise(() =>
-            updateAccountResult.sign
-                .withWallet()
-                .complete()
-        );
-        const updateAccountHash = yield* Effect.promise(() =>
-            updateAccountSigned.submit()
-        );
+
+        yield* Effect.sync(() => emulator.awaitBlock(50));
+
+        return {
+            txHash: updateAccountResult,
+            updateAccountConfig,
+        };
+    });
+};
+
+test<LucidContext>("Test 1 - Update Account", async () => {
+    const program = Effect.gen(function* () {
+        const context = yield* makeLucidContext;
+        const result = yield* updateAccountTestCase(context);
+        return result;
     });
 
-    await Effect.runPromise(program);
+    const result = await Effect.runPromise(program);
+
+    expect(result.txHash).toBeDefined();
+    expect(typeof result.txHash).toBe("string");
+    expect(result.updateAccountConfig).toBeDefined();
 });

@@ -1,52 +1,26 @@
 import {
-    Emulator,
     ExtendPaymentConfig,
     extendSubscription,
-    generateEmulatorAccount,
-    Lucid,
-    LucidEvolution,
     toUnit,
 } from "../src/index.js";
-import { beforeEach, expect, test } from "vitest";
-import {
-    mintingPolicyToId,
-    PROTOCOL_PARAMETERS_DEFAULT,
-} from "@lucid-evolution/lucid";
+import { expect, test } from "vitest";
+import { mintingPolicyToId } from "@lucid-evolution/lucid";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { tokenNameFromUTxO } from "../src/core/utils/assets.js";
 import { initiateSubscriptionTestCase } from "./initiate-subscription.test.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
+import { LucidContext, makeLucidContext } from "./emulator/service.js";
 
-type LucidContext = {
-    lucid: LucidEvolution;
-    users: any;
-    emulator: Emulator;
+type ExtendSubscriptionResult = {
+    txHash: string;
+    extendedConfig: ExtendPaymentConfig;
 };
 
-// INITIALIZE EMULATOR + ACCOUNTS
-beforeEach<LucidContext>(async (context) => {
-    context.users = {
-        subscriber: generateEmulatorAccount({
-            lovelace: BigInt(100_000_000),
-        }),
-        merchant: generateEmulatorAccount({
-            lovelace: BigInt(100_000_000),
-        }),
-    };
-
-    context.emulator = new Emulator([
-        context.users.subscriber,
-        context.users.merchant,
-    ], { ...PROTOCOL_PARAMETERS_DEFAULT, maxTxSize: 19000 });
-
-    context.lucid = await Lucid(context.emulator, "Custom");
-});
-
-test<LucidContext>("Test 1 - Extend Service", async (
+export const extendSubscriptionTestCase = (
     { lucid, users, emulator }: LucidContext,
-) => {
-    const program = Effect.gen(function* () {
+): Effect.Effect<ExtendSubscriptionResult, Error, never> => {
+    return Effect.gen(function* () {
         const initResult = yield* initiateSubscriptionTestCase({
             lucid,
             users,
@@ -117,31 +91,51 @@ test<LucidContext>("Test 1 - Extend Service", async (
             subscriberUTxO: initResult.outputs.subscriberUTxOs,
             paymentUTxO: initResult.outputs.paymentValidatorUTxOs,
         };
+        const extendPaymentFlow = Effect.gen(function* (_) {
+            const extendResult = yield* extendSubscription(
+                lucid,
+                extendPaymentConfig,
+            );
+            const extendSigned = yield* Effect.promise(() =>
+                extendResult.sign.withWallet().complete()
+            );
 
-        const extendResult = yield* extendSubscription(
-            lucid,
-            extendPaymentConfig,
+            const extendTxHash = yield* Effect.promise(() =>
+                extendSigned.submit()
+            );
+
+            yield* Effect.sync(() => emulator.awaitBlock(100));
+
+            return extendTxHash;
+        });
+
+        const extendPaymentResult = yield* extendPaymentFlow.pipe(
+            Effect.tapError((error) =>
+                Effect.log(`Error creating Account: ${error}`)
+            ),
+            Effect.map((hash) => {
+                return hash;
+            }),
         );
-        const extendSigned = yield* Effect.promise(() =>
-            extendResult.sign.withWallet().complete()
-        );
-
-        const extendTxHash = yield* Effect.promise(() => extendSigned.submit());
-
-        yield* Effect.sync(() => emulator.awaitBlock(100));
 
         return {
-            initTxHash: initResult.txHash,
-            extendTxHash,
+            txHash: extendPaymentResult,
             extendedConfig: extendPaymentConfig,
         };
     });
+};
+
+test<LucidContext>("Test 1 - Extend Service", async () => {
+    const program = Effect.gen(function* ($) {
+        const context = yield* makeLucidContext;
+        const result = yield* extendSubscriptionTestCase(context);
+        return result;
+    });
+
     const result = await Effect.runPromise(program);
 
-    expect(result.initTxHash).toBeDefined();
-    expect(result.extendTxHash).toBeDefined();
-    expect(typeof result.initTxHash).toBe("string");
-    expect(typeof result.extendTxHash).toBe("string");
+    expect(result.txHash).toBeDefined();
+    expect(typeof result.txHash).toBe("string");
 
     // Add assertions to verify the extended configuration
     expect(result.extendedConfig.subscription_end).toBeGreaterThan(

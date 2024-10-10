@@ -1,19 +1,14 @@
 import {
     CreatePenaltyConfig,
-    Emulator,
-    generateEmulatorAccount,
     InitPaymentConfig,
-    Lucid,
-    LucidEvolution,
     subscriberWithdraw,
     toUnit,
     UpdateServiceConfig,
     updateServiceDatum,
 } from "../src/index.js";
-import { beforeEach, expect, test } from "vitest";
+import { expect, test } from "vitest";
 import {
     mintingPolicyToId,
-    PROTOCOL_PARAMETERS_DEFAULT,
     UTxO,
     validatorToAddress,
 } from "@lucid-evolution/lucid";
@@ -22,31 +17,7 @@ import { Effect } from "effect";
 import { tokenNameFromUTxO } from "../src/core/utils/assets.js";
 import { initiateSubscriptionTestCase } from "./initiate-subscription.test.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-
-type LucidContext = {
-    lucid: LucidEvolution;
-    users: any;
-    emulator: Emulator;
-};
-
-// INITIALIZE EMULATOR + ACCOUNTS
-beforeEach<LucidContext>(async (context) => {
-    context.users = {
-        subscriber: generateEmulatorAccount({
-            lovelace: BigInt(1000_000_000),
-        }),
-        merchant: generateEmulatorAccount({
-            lovelace: BigInt(1000_000_000),
-        }),
-    };
-
-    context.emulator = new Emulator([
-        context.users.subscriber,
-        context.users.merchant,
-    ], { ...PROTOCOL_PARAMETERS_DEFAULT, maxTxSize: 21000 });
-
-    context.lucid = await Lucid(context.emulator, "Custom");
-});
+import { LucidContext, makeLucidContext } from "./emulator/service.js";
 
 type SubscriberWithdrawResult = {
     txHash: string;
@@ -180,7 +151,9 @@ export const subscriberWithdrawTestCase = (
 
         const withdrawResult = yield* subscriberWithdrawFlow.pipe(
             Effect.tapError((error) =>
-                Effect.log(`Error withdrawing from Payment Contract: ${error}`)
+                Effect.log(
+                    `Error subscriber withdrawing from Payment Contract: ${error}`,
+                )
             ),
             Effect.map((hash) => {
                 return hash;
@@ -208,13 +181,18 @@ export const subscriberWithdrawTestCase = (
     });
 };
 
-test<LucidContext>("Test 1 - Subscriber Withdraw", async (
-    context: LucidContext,
-) => {
-    const result = await Effect.runPromise(
-        subscriberWithdrawTestCase(context),
-    );
+test<LucidContext>("Test 1 - Subscriber Withdraw", async () => {
+    const program = Effect.gen(function* ($) {
+        const context = yield* makeLucidContext;
+        const result = yield* subscriberWithdrawTestCase(context);
+        return result;
+    });
+
+    const result = await Effect.runPromise(program);
 
     expect(result.txHash).toBeDefined();
     expect(typeof result.txHash).toBe("string");
+    expect(result.paymentConfig).toBeDefined();
+    expect(result.penaltyConfig).toBeDefined();
+    expect(result.outputs).toBeDefined();
 });
