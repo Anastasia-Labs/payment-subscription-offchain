@@ -6,7 +6,7 @@ import { Effect } from "effect";
 import { findCip68TokenNames } from "../src/core/utils/assets.js";
 import { createAccountTestCase } from "./create-account.test.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-import { LucidContext, makeLucidContext } from "./emulator/service.js";
+import { LucidContext, makeEmulatorContext } from "./emulator/service.js";
 
 type RemoveServiceResult = {
     txHash: string;
@@ -111,7 +111,7 @@ export const updateAccountTestCase = (
 
 test<LucidContext>("Test 1 - Update Account", async () => {
     const program = Effect.gen(function* () {
-        const context = yield* makeLucidContext;
+        const context = yield* makeEmulatorContext;
         const result = yield* updateAccountTestCase(context);
         return result;
     });

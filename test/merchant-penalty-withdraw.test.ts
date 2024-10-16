@@ -10,7 +10,7 @@ import { Effect } from "effect";
 import { tokenNameFromUTxO } from "../src/core/utils/assets.js";
 import { subscriberWithdrawTestCase } from "./subscriber-withdraw.test.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-import { LucidContext, makeLucidContext } from "./emulator/service.js";
+import { LucidContext, makeEmulatorContext } from "./emulator/service.js";
 
 type MerchantPenaltyResult = {
     txHash: string;
@@ -113,7 +113,7 @@ test<LucidContext>("Test 1 - Merchant Penalty Withdraw", async (
     context: LucidContext,
 ) => {
     const program = Effect.gen(function* ($) {
-        const context = yield* makeLucidContext;
+        const context = yield* makeEmulatorContext;
         const result = yield* withdrawPenaltyTestCase(context);
         return result;
     });

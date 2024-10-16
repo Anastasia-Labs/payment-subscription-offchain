@@ -10,7 +10,7 @@ import { Effect } from "effect";
 import { tokenNameFromUTxO } from "../src/core/utils/assets.js";
 import { initiateSubscriptionTestCase } from "./initiate-subscription.test.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-import { LucidContext, makeLucidContext } from "./emulator/service.js";
+import { LucidContext, makeEmulatorContext } from "./emulator/service.js";
 
 type ExtendSubscriptionResult = {
     txHash: string;
@@ -127,7 +127,7 @@ export const extendSubscriptionTestCase = (
 
 test<LucidContext>("Test 1 - Extend Service", async () => {
     const program = Effect.gen(function* ($) {
-        const context = yield* makeLucidContext;
+        const context = yield* makeEmulatorContext;
         const result = yield* extendSubscriptionTestCase(context);
         return result;
     });

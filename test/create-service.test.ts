@@ -9,7 +9,7 @@ import { beforeEach, expect, test } from "vitest";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-import { LucidContext, makeLucidContext } from "./emulator/service.js";
+import { LucidContext, makeEmulatorContext } from "./emulator/service.js";
 
 type CreateServiceResult = {
   txHash: string;
@@ -96,7 +96,7 @@ export const createServiceTestCase = (
 
 test<LucidContext>("Test 1 - Create Service", async () => {
   const program = Effect.gen(function* ($) {
-    const context = yield* makeLucidContext;
+    const context = yield* makeEmulatorContext;
     const result = yield* createServiceTestCase(context);
     return result;
   });

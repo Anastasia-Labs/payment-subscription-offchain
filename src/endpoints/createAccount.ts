@@ -35,11 +35,20 @@ export const createAccount = (
       console.error("No UTxO found at user address: " + subscriberAddress);
     }
 
+    const accountUTxOs = yield* Effect.promise(() =>
+      lucid.utxosAt(validators.mintValAddress)
+    );
+    console.log("Subscriber UTxOs: ", subscriberUTxOs);
+    console.log("Account UTxOs: ", accountUTxOs);
+
     // Selecting a utxo containing atleast 2 ADA to cover tx fees and min ADA
     // Note: To avoid tx balancing errors, the utxo should only contain lovelaces
     const selectedUTxOs = selectUTxOs(subscriberUTxOs, {
       ["lovelace"]: 2000000n,
     });
+
+    console.log("selectedUTxOs UTxOs: ", selectedUTxOs);
+
     const { refTokenName, userTokenName } = createCip68TokenNames(
       selectedUTxOs[0],
     );
@@ -47,11 +56,11 @@ export const createAccount = (
     const redeemer: CreateAccountRedeemer = {
       output_reference: {
         txHash: {
-          hash: subscriberUTxOs[0].txHash,
+          hash: selectedUTxOs[0].txHash,
         },
-        outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
+        outputIndex: BigInt(selectedUTxOs[0].outputIndex),
       },
-      input_index: BigInt(subscriberUTxOs[0].outputIndex),
+      input_index: BigInt(selectedUTxOs[0].outputIndex),
     };
     const redeemerData = Data.to(redeemer, CreateAccountRedeemer);
 
@@ -77,6 +86,11 @@ export const createAccount = (
       [refToken]: 1n,
       [userToken]: 1n,
     };
+
+    console.log(`accountPolicyId: ${accountPolicyId}`);
+    console.log(`refToken: ${refToken}`);
+    console.log(`userToken: ${userToken}`);
+    console.log(`mintingAssets: ${mintingAssets}`);
 
     const tx = yield* lucid
       .newTx()

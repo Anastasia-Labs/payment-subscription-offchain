@@ -33,6 +33,10 @@ export const getMultiValidator = (
     spendValidator,
   );
 
+  console.log("This network: ", network);
+  console.log("mintAddress: ", mintAddress);
+  console.log("spendValidatorAddress: ", spendValidatorAddress);
+
   return {
     spendValidator: spendValidator,
     spendValAddress: spendValidatorAddress,

@@ -9,7 +9,7 @@ import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { findCip68TokenNames } from "../src/core/utils/assets.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-import { LucidContext, makeLucidContext } from "./emulator/service.js";
+import { LucidContext, makeEmulatorContext } from "./emulator/service.js";
 import { createServiceTestCase } from "./create-service.test.js";
 
 type UpdateServiceResult = {
@@ -111,7 +111,7 @@ export const updateServiceTestCase = (
 
 test<LucidContext>("Test 1 - Update Service", async () => {
   const program = Effect.gen(function* () {
-    const context = yield* makeLucidContext;
+    const context = yield* makeEmulatorContext;
     const result = yield* updateServiceTestCase(context);
     return result;
   });

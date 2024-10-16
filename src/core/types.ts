@@ -116,12 +116,11 @@ export type UpdateAccountConfig = {
   };
 };
 
+// TODO: Remove the tokens and replace with similar part of tokenname.
+// TODO: Remove all datum fields and query from the UTxO
 export type RemoveAccountConfig = {
-  email: string;
-  phone: string;
-  account_created: bigint;
-  user_token: Unit;
-  ref_token: Unit;
+  // user_token: Unit;
+  // ref_token: Unit;
   scripts: {
     spending: CborHex;
     minting: CborHex;
