@@ -4,6 +4,7 @@ import {
     AccountDatum,
     getMultiValidator,
     parseSafeDatum,
+    ServiceDatum,
     toUnit,
     UTxO,
     validatorToAddress,
@@ -83,7 +84,7 @@ export const logWalletUTxOs = (
     });
 };
 
-export const getValidatorDatum = async (
+export const getAccountValidatorDatum = async (
     utxos: UTxO[],
 ): Promise<AccountDatum[]> => {
     return utxos.flatMap((utxo) => {
@@ -94,6 +95,29 @@ export const getValidatorDatum = async (
                 email: result.value.email,
                 phone: result.value.phone,
                 account_created: result.value.account_created,
+            };
+        } else {
+            return [];
+        }
+    });
+};
+
+export const getServiceValidatorDatum = async (
+    utxos: UTxO[],
+): Promise<ServiceDatum[]> => {
+    return utxos.flatMap((utxo) => {
+        const result = parseSafeDatum<ServiceDatum>(utxo.datum, ServiceDatum);
+
+        if (result.type == "right") {
+            return {
+                service_fee: result.value.service_fee,
+                service_fee_qty: result.value.service_fee_qty,
+                penalty_fee: result.value.penalty_fee,
+                penalty_fee_qty: result.value.penalty_fee_qty,
+                interval_length: result.value.interval_length,
+                num_intervals: result.value.num_intervals,
+                minimum_ada: result.value.minimum_ada,
+                is_active: result.value.is_active,
             };
         } else {
             return [];

@@ -53,7 +53,17 @@ export const makeMaestroContext = (
     network: Network,
 ) => Effect.gen(function* ($) {
     const API_KEY = process.env.API_KEY!;
-    const WALLET_SEED = process.env.SUBSCRIBER_WALLET_SEED!;
+    const SUBSCRIBER_WALLET_SEED = process.env.SUBSCRIBER_WALLET_SEED!;
+    const MERCHANT_WALLET_SEED = process.env.MERCHANT_WALLET_SEED!;
+
+    const users = {
+        subscriber: {
+            seedPhrase: SUBSCRIBER_WALLET_SEED,
+        },
+        merchant: {
+            seedPhrase: MERCHANT_WALLET_SEED,
+        },
+    };
 
     if (!API_KEY) {
         throw new Error(
@@ -75,7 +85,7 @@ export const makeMaestroContext = (
     );
     console.log("Seed: ", seed);
 
-    const users = lucid.selectWallet.fromSeed(WALLET_SEED);
+    // const users = lucid.selectWallet.fromSeed(WALLET_SEED);
 
     console.log("Maestro API Key: ", API_KEY);
 

@@ -3,6 +3,7 @@ import {
   Assets,
   MintingPolicy,
   OutRef,
+  PolicyId,
   Script,
   Unit,
   UTxO,
@@ -46,8 +47,7 @@ export type UpdateServiceConfig = {
   new_num_intervals: bigint;
   new_minimum_ada: bigint;
   is_active: boolean;
-  user_token: Unit;
-  ref_token: Unit;
+  service_cs: PolicyId;
   scripts: {
     spending: CborHex;
     minting: CborHex;
@@ -55,24 +55,24 @@ export type UpdateServiceConfig = {
   };
 };
 
-export type UpdateServiceDatumConfig = {
-  new_service_fee: AssetClassD;
-  new_service_fee_qty: bigint;
-  new_penalty_fee: AssetClassD;
-  new_penalty_fee_qty: bigint;
-  new_interval_length: bigint;
-  new_num_intervals: bigint;
-  new_minimum_ada: bigint;
-  is_active: boolean;
-  user_token: Unit;
-  ref_token: Unit;
-  scripts: {
-    spending: CborHex;
-    minting: CborHex;
-    staking: CborHex;
-  };
-  serviceUTxOs: UTxO[];
-};
+// export type UpdateServiceDatumConfig = {
+//   new_service_fee: AssetClassD;
+//   new_service_fee_qty: bigint;
+//   new_penalty_fee: AssetClassD;
+//   new_penalty_fee_qty: bigint;
+//   new_interval_length: bigint;
+//   new_num_intervals: bigint;
+//   new_minimum_ada: bigint;
+//   is_active: boolean;
+//   user_token: Unit;
+//   ref_token: Unit;
+//   scripts: {
+//     spending: CborHex;
+//     minting: CborHex;
+//     staking: CborHex;
+//   };
+//   serviceUTxOs: UTxO[];
+// };
 
 export type RemoveServiceConfig = {
   service_fee: AssetClassD;
@@ -83,8 +83,7 @@ export type RemoveServiceConfig = {
   num_intervals: bigint;
   minimum_ada: bigint;
   is_active: boolean;
-  user_token: Unit;
-  ref_token: Unit;
+  service_cs: PolicyId;
   scripts: {
     spending: CborHex;
     minting: CborHex;

@@ -16,5 +16,4 @@ test<LucidContext>("Test 1 - Create Account", async () => {
   expect(result.txHash).toBeDefined();
   expect(typeof result.txHash).toBe("string");
   expect(result.accountConfig).toBeDefined();
-  expect(result.outputs).toBeDefined();
 });

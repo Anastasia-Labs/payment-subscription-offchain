@@ -11,10 +11,16 @@ import { expect, test } from "vitest";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { findCip68TokenNames } from "../src/core/utils/assets.js";
-import { createAccountTestCase } from "./create-account.test.js";
-import { createServiceTestCase } from "./create-service.test.js";
+// import { createAccountTestCase } from "./create-account.test.js";
+// import { createServiceTestCase } from "./create-service.test.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-import { LucidContext, makeEmulatorContext } from "./emulator/service.js";
+import {
+  LucidContext,
+  makeEmulatorContext,
+  makeLucidContext,
+} from "./emulator/service.js";
+import { createAccountTestCase } from "./createAccountTestCase.js";
+import { createServiceTestCase } from "./createServiceTestCase.js";
 
 type InitiateSubscriptionResult = {
   txHash: string;
@@ -42,7 +48,7 @@ export const initiateSubscriptionTestCase = (
     expect(createAccountResult).toBeDefined();
     expect(typeof createAccountResult.txHash).toBe("string");
 
-    yield* Effect.sync(() => emulator.awaitBlock(100));
+    yield* Effect.sync(() => emulator.awaitBlock(50));
 
     const createServiceResult = yield* createServiceTestCase({
       lucid,
@@ -196,7 +202,7 @@ export const initiateSubscriptionTestCase = (
 
 test<LucidContext>("Test 1 - Initiate subscription", async () => {
   const program = Effect.gen(function* ($) {
-    const context = yield* makeEmulatorContext;
+    const context = yield* makeLucidContext();
     const result = yield* initiateSubscriptionTestCase(context);
     return result;
   });

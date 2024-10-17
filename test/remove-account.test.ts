@@ -14,7 +14,10 @@ import {
     makeEmulatorContext,
     makeLucidContext,
 } from "./emulator/service.js";
-import { extractTokens, getValidatorDatum } from "../src/endpoints/utils.js";
+import {
+    extractTokens,
+    getAccountValidatorDatum,
+} from "../src/endpoints/utils.js";
 import { createAccountTestCase } from "./createAccountTestCase.js";
 
 const accountValidator = readMultiValidators(blueprint, false, []);
@@ -34,8 +37,9 @@ export const removeAccountTestCase = (
     { lucid, users, emulator }: LucidContext,
 ): Effect.Effect<RemoveAccountResult, Error, never> => {
     return Effect.gen(function* () {
-        // let removeAccountConfig: RemoveAccountConfig;
+        lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
         let accountAddress: Address;
+
         if (emulator && lucid.config().network === "Custom") {
             const createAccountResult = yield* createAccountTestCase({
                 lucid,
@@ -46,7 +50,6 @@ export const removeAccountTestCase = (
             expect(createAccountResult).toBeDefined();
             expect(typeof createAccountResult.txHash).toBe("string"); // Assuming the createAccountResult is a transaction hash
             yield* Effect.sync(() => emulator.awaitBlock(50));
-            lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
             accountAddress = validatorToAddress(
                 "Custom",

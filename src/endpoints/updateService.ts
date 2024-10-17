@@ -10,6 +10,7 @@ import { getMultiValidator } from "../core/utils/index.js";
 import { UpdateServiceConfig } from "../core/types.js";
 import { ServiceDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
+import { extractTokens } from "./utils.js";
 
 export const updateService = (
     lucid: LucidEvolution,
@@ -25,22 +26,37 @@ export const updateService = (
         const merchantUTxOs = yield* Effect.promise(() =>
             lucid.utxosAt(merchantAddress)
         );
+        const serviceUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(serviceValAddress)
+        );
 
         if (!merchantUTxOs || !merchantUTxOs.length) {
             console.error("No UTxO found at user address: " + merchantAddress);
         }
 
+        console.log("merchantUTxOs: ", merchantUTxOs);
+        console.log("serviceUTxOs: ", serviceUTxOs);
+
+        let { user_token, ref_token } = extractTokens(
+            config.service_cs,
+            serviceUTxOs,
+            merchantUTxOs,
+        );
+
+        console.log("user_token: ", user_token);
+        console.log("ref_token: ", ref_token);
+
         const serviceUTxO = yield* Effect.promise(() =>
             lucid.utxosAtWithUnit(
                 serviceValAddress,
-                config.ref_token,
+                ref_token,
             )
         );
 
         const merchantUTxO = yield* Effect.promise(() =>
             lucid.utxosAtWithUnit(
                 merchantAddress,
-                config.user_token,
+                user_token,
             )
         );
 
@@ -63,18 +79,23 @@ export const updateService = (
 
         const wrappedRedeemer = Data.to(new Constr(1, [new Constr(0, [])]));
 
+        // console.log("merchantUTxOs: ", merchantUTxOs);
+        // console.log("serviceUTxOs: ", serviceUTxOs[0]);
+        // console.log("user_token: ", user_token);
+        // console.log("ref_token: ", ref_token);
+
         const tx = yield* lucid
             .newTx()
-            .collectFrom(merchantUTxO)
-            .collectFrom(serviceUTxO, wrappedRedeemer)
+            .collectFrom(merchantUTxOs)
+            .collectFrom(serviceUTxOs, wrappedRedeemer)
             .pay.ToAddress(merchantAddress, {
-                [config.user_token]: 1n,
+                [user_token]: 1n,
             })
             .pay.ToContract(serviceValAddress, {
                 kind: "inline",
                 value: directDatum,
             }, {
-                [config.ref_token]: 1n,
+                [ref_token]: 1n,
             })
             .attach.SpendingValidator(validators.spendValidator)
             .completeProgram();

@@ -1,20 +1,16 @@
-import { ADA, updateService, UpdateServiceConfig } from "../src/index.js";
+import { updateService, UpdateServiceConfig } from "../src/index.js";
 import { expect, test } from "vitest";
 import {
+  Address,
   mintingPolicyToId,
-  toUnit,
   validatorToAddress,
 } from "@lucid-evolution/lucid";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
-import { findCip68TokenNames } from "../src/core/utils/assets.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-import {
-  LucidContext,
-  makeEmulatorContext,
-  makeLucidContext,
-} from "./emulator/service.js";
-import { createServiceTestCase } from "./create-service.test.js";
+import { LucidContext, makeLucidContext } from "./emulator/service.js";
+import { createServiceTestCase } from "./createServiceTestCase.js";
+import { getServiceValidatorDatum } from "../src/endpoints/utils.js";
 
 type UpdateServiceResult = {
   txHash: string;
@@ -24,61 +20,71 @@ type UpdateServiceResult = {
 const serviceValidator = readMultiValidators(blueprint, false, []);
 const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
 
+const serviceScript = {
+  spending: serviceValidator.spendService.script,
+  minting: serviceValidator.mintService.script,
+  staking: "",
+};
+
 export const updateServiceTestCase = (
   { lucid, users, emulator }: LucidContext,
 ): Effect.Effect<UpdateServiceResult, Error, never> => {
   return Effect.gen(function* () {
-    const createServiceResults = yield* createServiceTestCase(
-      { lucid, users, emulator },
+    lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
+    let serviceAddress: Address;
+
+    if (emulator && lucid.config().network === "Custom") {
+      const createServiceResults = yield* createServiceTestCase(
+        { lucid, users, emulator },
+      );
+      expect(createServiceResults).toBeDefined();
+      expect(typeof createServiceResults.txHash).toBe("string");
+      yield* Effect.sync(() => emulator.awaitBlock(50));
+
+      serviceAddress = validatorToAddress(
+        "Custom",
+        serviceValidator.spendService,
+      );
+    } else {
+      serviceAddress = validatorToAddress(
+        "Preprod",
+        serviceValidator.spendService,
+      );
+    }
+
+    const merchantAddress: Address = yield* Effect.promise(() =>
+      lucid.wallet().address()
     );
 
-    expect(createServiceResults).toBeDefined();
-    expect(typeof createServiceResults.txHash).toBe("string");
+    const serviceUTxOs = yield* Effect.promise(() =>
+      lucid.config().provider.getUtxos(serviceAddress)
+    );
 
     const merchantUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(users.merchant.address)
+      lucid.config().provider.getUtxos(merchantAddress)
     );
 
-    const serviceScriptAddress = validatorToAddress(
-      "Custom",
-      serviceValidator.spendService,
-    );
+    console.log("merchantAddress: ", merchantAddress);
+    console.log("merchantUTxOs: ", merchantUTxOs);
+    console.log("Service Address: ", serviceAddress);
+    console.log("serviceUTxOs: ", serviceUTxOs);
 
-    const serviceUTxO = yield* Effect.promise(() =>
-      lucid.utxosAt(serviceScriptAddress)
-    );
-
-    // Find the token names
-    const { refTokenName, userTokenName } = findCip68TokenNames([
-      ...serviceUTxO,
-      ...merchantUTxOs,
-    ], servicePolicyId);
-
-    const refNft = toUnit(
-      servicePolicyId,
-      refTokenName,
-    );
-
-    const userNft = toUnit(
-      servicePolicyId,
-      userTokenName,
+    const serviceData = yield* Effect.promise(
+      () => (getServiceValidatorDatum(serviceUTxOs)),
     );
 
     const updateServiceConfig: UpdateServiceConfig = {
-      new_service_fee: ADA,
+      new_service_fee: serviceData[0].service_fee,
       new_service_fee_qty: 9_500_000n,
-      new_penalty_fee: ADA,
+      new_penalty_fee: serviceData[0].penalty_fee,
       new_penalty_fee_qty: 1_000_000n,
       new_interval_length: 1n,
       new_num_intervals: 12n,
       new_minimum_ada: 2_000_000n,
-      is_active: true,
-      user_token: userNft,
-      ref_token: refNft,
-      scripts: createServiceResults.serviceConfig.scripts,
+      is_active: serviceData[0].is_active,
+      service_cs: servicePolicyId,
+      scripts: serviceScript,
     };
-
-    lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
 
     const updateServiceFlow = Effect.gen(function* (_) {
       const updateServiceResult = yield* updateService(
@@ -104,8 +110,6 @@ export const updateServiceTestCase = (
       }),
     );
 
-    // yield* Effect.sync(() => emulator.awaitBlock(50));
-
     return {
       txHash: updateServiceResult,
       updateServiceConfig,
@@ -115,7 +119,7 @@ export const updateServiceTestCase = (
 
 test<LucidContext>("Test 1 - Update Service", async () => {
   const program = Effect.gen(function* () {
-    const context = yield* makeLucidContext();
+    const context = yield* makeLucidContext("Preprod");
     const result = yield* updateServiceTestCase(context);
     return result;
   });
