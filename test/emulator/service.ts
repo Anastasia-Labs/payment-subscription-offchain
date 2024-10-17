@@ -19,36 +19,35 @@ export type LucidContext = {
 
 export type Network = "Mainnet" | "Preprod" | "Preview";
 
-export const makeEmulatorContext = () =>
-    Effect.gen(function* ($) {
-        const WALLET_SEED = process.env.SUBSCRIBER_WALLET_SEED!;
-        const users = {
-            subscriber: yield* Effect.sync(() =>
-                generateEmulatorAccount({ lovelace: BigInt(1_000_000_000) })
-            ),
-            merchant: yield* Effect.sync(() =>
-                generateEmulatorAccount({ lovelace: BigInt(1_000_000_000) })
-            ),
-        };
+export const makeEmulatorContext = Effect.gen(function* ($) {
+    const WALLET_SEED = process.env.SUBSCRIBER_WALLET_SEED!;
+    const users = {
+        subscriber: yield* Effect.sync(() =>
+            generateEmulatorAccount({ lovelace: BigInt(1_000_000_000) })
+        ),
+        merchant: yield* Effect.sync(() =>
+            generateEmulatorAccount({ lovelace: BigInt(1_000_000_000) })
+        ),
+    };
 
-        const emulator = new Emulator([users.subscriber, users.merchant], {
-            ...PROTOCOL_PARAMETERS_DEFAULT,
-            maxTxSize: 21000,
-        });
-
-        const network = "Custom";
-        const lucid = yield* Effect.promise(() => Lucid(emulator, network));
-        lucid.selectWallet.fromSeed(WALLET_SEED);
-
-        // const getCurrentTime = BigInt(emulator.now());
-        // const selectSubscriberWallet = lucid.selectWallet.fromSeed(
-        //     users.subscriber.seedPhrase,
-        // );
-
-        // const awaitTx = yield* Effect.sync(() => emulator.awaitBlock(50));
-
-        return { lucid, users, emulator } as LucidContext;
+    const emulator = new Emulator([users.subscriber, users.merchant], {
+        ...PROTOCOL_PARAMETERS_DEFAULT,
+        maxTxSize: 21000,
     });
+
+    const network = "Custom";
+    const lucid = yield* Effect.promise(() => Lucid(emulator, network));
+    lucid.selectWallet.fromSeed(WALLET_SEED);
+
+    // const getCurrentTime = BigInt(emulator.now());
+    // const selectSubscriberWallet = lucid.selectWallet.fromSeed(
+    //     users.subscriber.seedPhrase,
+    // );
+
+    // const awaitTx = yield* Effect.sync(() => emulator.awaitBlock(50));
+
+    return { lucid, users, emulator } as LucidContext;
+});
 
 export const makeMaestroContext = (
     network: Network,
@@ -98,6 +97,6 @@ export const makeLucidContext = (
     } else {
         // Use Emulator context
         console.log("Emuletor Target: ");
-        return yield* $(makeEmulatorContext());
+        return yield* $(makeEmulatorContext);
     }
 });

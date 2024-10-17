@@ -38,8 +38,8 @@ export const createAccount = (
     const accountUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(validators.mintValAddress)
     );
-    console.log("Subscriber UTxOs: ", subscriberUTxOs);
-    console.log("Account UTxOs: ", accountUTxOs);
+    // console.log("Subscriber UTxOs: ", subscriberUTxOs);
+    // console.log("Account UTxOs: ", accountUTxOs);
 
     // Selecting a utxo containing atleast 2 ADA to cover tx fees and min ADA
     // Note: To avoid tx balancing errors, the utxo should only contain lovelaces

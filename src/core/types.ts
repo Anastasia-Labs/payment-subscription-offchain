@@ -107,8 +107,6 @@ export type UpdateAccountConfig = {
   new_email: string;
   new_phone: string;
   account_created: bigint;
-  user_token: Unit;
-  ref_token: Unit;
   scripts: {
     spending: CborHex;
     minting: CborHex;
@@ -121,6 +119,8 @@ export type UpdateAccountConfig = {
 export type RemoveAccountConfig = {
   // user_token: Unit;
   // ref_token: Unit;
+  // subscriberUTxOs: UTxO[];
+  // accountUTxOs: UTxO[];
   scripts: {
     spending: CborHex;
     minting: CborHex;

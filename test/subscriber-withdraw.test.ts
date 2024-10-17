@@ -17,7 +17,11 @@ import { Effect } from "effect";
 import { tokenNameFromUTxO } from "../src/core/utils/assets.js";
 import { initiateSubscriptionTestCase } from "./initiate-subscription.test.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-import { LucidContext, makeEmulatorContext } from "./emulator/service.js";
+import {
+    LucidContext,
+    makeEmulatorContext,
+    makeLucidContext,
+} from "./emulator/service.js";
 
 type SubscriberWithdrawResult = {
     txHash: string;
@@ -183,7 +187,7 @@ export const subscriberWithdrawTestCase = (
 
 test<LucidContext>("Test 1 - Subscriber Withdraw", async () => {
     const program = Effect.gen(function* ($) {
-        const context = yield* makeEmulatorContext;
+        const context = yield* makeLucidContext();
         const result = yield* subscriberWithdrawTestCase(context);
         return result;
     });

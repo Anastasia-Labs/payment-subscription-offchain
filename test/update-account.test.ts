@@ -1,12 +1,21 @@
 import { toUnit, updateAccount, UpdateAccountConfig } from "../src/index.js";
 import { expect, test } from "vitest";
-import { mintingPolicyToId, validatorToAddress } from "@lucid-evolution/lucid";
+import {
+    Address,
+    mintingPolicyToId,
+    validatorToAddress,
+} from "@lucid-evolution/lucid";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import { findCip68TokenNames } from "../src/core/utils/assets.js";
-import { createAccountTestCase } from "./create-account.test.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-import { LucidContext, makeEmulatorContext } from "./emulator/service.js";
+import {
+    LucidContext,
+    makeEmulatorContext,
+    makeLucidContext,
+} from "./emulator/service.js";
+import { createAccountTestCase } from "./createAccountTestCase.js";
+import { getValidatorDatum } from "../src/endpoints/utils.js";
 
 type RemoveServiceResult = {
     txHash: string;
@@ -16,63 +25,132 @@ type RemoveServiceResult = {
 const accountValidator = readMultiValidators(blueprint, false, []);
 const accountPolicyId = mintingPolicyToId(accountValidator.mintAccount);
 
+const accountScript = {
+    spending: accountValidator.spendAccount.script,
+    minting: accountValidator.mintAccount.script,
+    staking: "",
+};
+
 export const updateAccountTestCase = (
     { lucid, users, emulator }: LucidContext,
 ): Effect.Effect<RemoveServiceResult, Error, never> => {
     return Effect.gen(function* () {
-        const createAccountResult = yield* createAccountTestCase({
-            lucid,
-            users,
-            emulator,
-        });
+        let accountAddress: Address;
 
-        expect(createAccountResult).toBeDefined();
-        expect(typeof createAccountResult.txHash).toBe("string"); // Assuming the createAccountResult is a transaction hash
+        if (emulator && lucid.config().network === "Custom") {
+            const createAccountResult = yield* createAccountTestCase({
+                lucid,
+                users,
+                emulator,
+            });
 
-        yield* Effect.sync(() => emulator.awaitBlock(100));
+            expect(createAccountResult).toBeDefined();
+            expect(typeof createAccountResult.txHash).toBe("string"); // Assuming the createAccountResult is a transaction hash
 
-        const subscriberUTxOAfter = yield* Effect.promise(() =>
-            lucid.utxosAt(
-                users.subscriber.address,
-            )
+            yield* Effect.sync(() => emulator.awaitBlock(50));
+            lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
+
+            // const subscriberUTxOAfter = yield* Effect.promise(() =>
+            //     lucid.utxosAt(
+            //         users.subscriber.address,
+            //     )
+            // );
+
+            accountAddress = validatorToAddress(
+                "Custom",
+                accountValidator.spendAccount,
+            );
+
+            yield* Effect.sync(() => emulator.awaitBlock(100));
+
+            // const cip68TokenNames = findCip68TokenNames(
+            //     [...accountUTxOs, ...subscriberUTxOAfter],
+            //     accountPolicyId,
+            // );
+            // const { refTokenName, userTokenName } = cip68TokenNames;
+
+            // const refNft = toUnit(
+            //     accountPolicyId,
+            //     refTokenName,
+            // );
+
+            // const userNft = toUnit(
+            //     accountPolicyId,
+            //     userTokenName,
+            // );
+
+            // const accountData = yield* Effect.promise(
+            //     () => (getValidatorDatum(accountUTxOs)),
+            // );
+
+            // const updateAccountConfig: UpdateAccountConfig = {
+            //     new_email: "new_business@web3.ada",
+            //     new_phone: "(288) 481-2686",
+            //     account_created: accountData[0].account_created,
+            //     scripts: createAccountResult.accountConfig.scripts,
+            // };
+        } else {
+            accountAddress = validatorToAddress(
+                "Preprod",
+                accountValidator.mintAccount,
+            );
+
+            // const accountUTxOs = yield* Effect.promise(() =>
+            //     lucid.utxosAt(accountAddress)
+            // );
+            // const subscriberAddress: Address = yield* Effect.promise(() =>
+            //     lucid.wallet().address()
+            // );
+
+            // const subscriberUTxOs = yield* Effect.promise(() =>
+            //     lucid.utxosAt(subscriberAddress)
+            // );
+
+            // const cip68TokenNames = findCip68TokenNames(
+            //     [...accountUTxOs, ...subscriberUTxOs],
+            //     accountPolicyId,
+            // );
+            // const { refTokenName, userTokenName } = cip68TokenNames;
+
+            // const refNft = toUnit(
+            //     accountPolicyId,
+            //     refTokenName,
+            // );
+
+            // const userNft = toUnit(
+            //     accountPolicyId,
+            //     userTokenName,
+            // );
+        }
+
+        const subscriberAddress: Address = yield* Effect.promise(() =>
+            lucid.wallet().address()
         );
 
-        const accountScriptAddress = validatorToAddress(
-            "Custom",
-            accountValidator.spendAccount,
+        const subscriberUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(subscriberAddress)
         );
 
-        const accountUTxO = yield* Effect.promise(() =>
-            lucid.utxosAt(accountScriptAddress)
+        const accountUTxOs = yield* Effect.promise(() =>
+            lucid.config().provider.getUtxos(accountAddress)
         );
 
-        yield* Effect.sync(() => emulator.awaitBlock(100));
-
-        const cip68TokenNames = findCip68TokenNames(
-            [...accountUTxO, ...subscriberUTxOAfter],
-            accountPolicyId,
-        );
-        const { refTokenName, userTokenName } = cip68TokenNames;
-
-        const refNft = toUnit(
-            accountPolicyId,
-            refTokenName,
+        const accountData = yield* Effect.promise(
+            () => (getValidatorDatum(accountUTxOs)),
         );
 
-        const userNft = toUnit(
-            accountPolicyId,
-            userTokenName,
-        );
+        console.log("Address: ", subscriberAddress);
+        console.log("subscriberUTxOs: ", subscriberUTxOs);
+        console.log("Account Address: ", accountAddress);
+        console.log("AccountUTxOs: ", accountUTxOs);
+        console.log("accountData: ", accountData);
 
         const updateAccountConfig: UpdateAccountConfig = {
-            ...createAccountResult.accountConfig,
             new_email: "new_business@web3.ada",
-            new_phone: "(288) 481-2686",
-            user_token: userNft,
-            ref_token: refNft,
+            new_phone: "(288) 481-2686-999",
+            account_created: accountData[0].account_created,
+            scripts: accountScript,
         };
-
-        lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
         const updateAccountFlow = Effect.gen(function* (_) {
             const updateAccountResult = yield* Effect.promise(() =>
@@ -100,7 +178,30 @@ export const updateAccountTestCase = (
             }),
         );
 
-        yield* Effect.sync(() => emulator.awaitBlock(50));
+        // if (emulator) {
+        //     yield* Effect.sync(() => emulator.awaitBlock(100));
+
+        //     const subscriberAddress: Address = yield* Effect.promise(() =>
+        //         lucid.wallet().address()
+        //     );
+
+        //     const subscriberUTxOs = yield* Effect.promise(() =>
+        //         lucid.utxosAt(subscriberAddress)
+        //     );
+
+        //     const accountUTxOs = yield* Effect.promise(() =>
+        //         lucid.config().provider.getUtxos(accountAddress)
+        //     );
+
+        //     const accountData = yield* Effect.promise(
+        //         () => (getValidatorDatum(accountUTxOs)),
+        //     );
+        //     console.log("Address: ", subscriberAddress);
+        //     console.log("subscriberUTxOs After: ", subscriberUTxOs);
+        //     console.log("Account Address After: ", accountAddress);
+        //     console.log("AccountUTxOs After: ", accountUTxOs);
+        //     console.log("AccountData After: ", accountData);
+        // }
 
         return {
             txHash: updateAccountResult,
@@ -111,7 +212,7 @@ export const updateAccountTestCase = (
 
 test<LucidContext>("Test 1 - Update Account", async () => {
     const program = Effect.gen(function* () {
-        const context = yield* makeEmulatorContext;
+        const context = yield* makeLucidContext("Preprod");
         const result = yield* updateAccountTestCase(context);
         return result;
     });

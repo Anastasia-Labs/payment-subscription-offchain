@@ -34,16 +34,9 @@ export const removeAccountTestCase = (
     { lucid, users, emulator }: LucidContext,
 ): Effect.Effect<RemoveAccountResult, Error, never> => {
     return Effect.gen(function* () {
-        console.log(
-            `removeAccountTestCase: emulator is ${
-                emulator ? "defined" : "undefined"
-            }, network is ${lucid.config().network}`,
-        );
-        let removeAccountConfig: RemoveAccountConfig;
-
+        // let removeAccountConfig: RemoveAccountConfig;
+        let accountAddress: Address;
         if (emulator && lucid.config().network === "Custom") {
-            console.log("Emulator is being Triggerred...: ");
-
             const createAccountResult = yield* createAccountTestCase({
                 lucid,
                 users,
@@ -55,80 +48,39 @@ export const removeAccountTestCase = (
             yield* Effect.sync(() => emulator.awaitBlock(50));
             lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
-            const accountAddress = validatorToAddress(
+            accountAddress = validatorToAddress(
                 "Custom",
                 accountValidator.mintAccount,
             );
-
-            const accountUTxOs = yield* Effect.promise(() =>
-                lucid.utxosAt(accountAddress)
-            );
-            const subscriberAddress: Address = yield* Effect.promise(() =>
-                lucid.wallet().address()
-            );
-
-            const subscriberUTxOs = yield* Effect.promise(() =>
-                lucid.utxosAt(subscriberAddress)
-            );
-
-            // let { userNft, refNft } = extractTokens(
-            //     accountUTxOs,
-            //     subscriberUTxOs,
-            // );
-
-            // userNft = createAccountResult.outputs.userNft;
-            // refNft = createAccountResult.outputs.refNft;
-
-            removeAccountConfig = {
-                // ...createAccountResult.accountConfig,
-                // user_token: userNft,
-                // ref_token: refNft,
-                scripts: accountScript,
-            };
         } else {
-            const accountAddress = validatorToAddress(
+            accountAddress = validatorToAddress(
                 "Preprod",
                 accountValidator.mintAccount,
             );
-
-            const accountUTxOs = yield* Effect.promise(() =>
-                lucid.utxosAt(accountAddress)
-            );
-            const subscriberAddress: Address = yield* Effect.promise(() =>
-                lucid.wallet().address()
-            );
-
-            const subscriberUTxOs = yield* Effect.promise(() =>
-                lucid.utxosAt(subscriberAddress)
-            );
-
-            console.log("Address: ", subscriberAddress);
-            console.log("subscriberUTxOs: ", subscriberUTxOs);
-            console.log("Account Address: ", accountAddress);
-            console.log("AccountUTxOs: ", accountUTxOs);
-
-            // const accountData = yield* Effect.promise(
-            //     () => (getValidatorDatum(accountUTxOs)),
-            // );
-
-            // email: accountData[0].email,
-            // phone: accountData[0].phone,
-            // account_created: accountData[0].account_created,
-
-            removeAccountConfig = {
-                // user_token: userNft,
-                // ref_token: refNft,
-                scripts: accountScript,
-            };
         }
+        // console.log("Provider: ", lucid.config().provider);
+        const accountUTxOs = yield* Effect.promise(() =>
+            lucid.config().provider.getUtxos(accountAddress)
+        );
+
+        const subscriberAddress: Address = yield* Effect.promise(() =>
+            lucid.wallet().address()
+        );
+
+        const subscriberUTxOs = yield* Effect.promise(() =>
+            lucid.config().provider.getUtxos(subscriberAddress)
+        );
 
         // console.log("Address: ", subscriberAddress);
         // console.log("subscriberUTxOs: ", subscriberUTxOs);
-        // console.log("userNft: ", userNft);
-        // console.log("refNft: ", refNft);
-        // console.log("removeAccountConfig: ", removeAccountConfig);
-        // console.log("Account Address: ", validators.mintValAddress);
+        // console.log("Account Address: ", accountAddress);
+        // console.log("AccountUTxOs: ", accountUTxOs);
 
+        const removeAccountConfig: RemoveAccountConfig = {
+            scripts: accountScript,
+        };
+
+        console.log("Provider: ", lucid.config().provider);
         const removeAccountFlow = Effect.gen(function* (_) {
             const removeAccountResult = yield* removeAccount(
                 lucid,
