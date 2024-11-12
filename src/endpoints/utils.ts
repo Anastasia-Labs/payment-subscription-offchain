@@ -8,7 +8,6 @@ import {
     PaymentValidatorDatum,
     PenaltyDatum,
     ServiceDatum,
-    toUnit,
     UTxO,
     validatorToAddress,
 } from "../index.js"; // Adjust the import path as necessary
@@ -17,6 +16,7 @@ import {
     LucidEvolution,
     mintingPolicyToId,
     PolicyId,
+    toUnit,
     Unit,
 } from "@lucid-evolution/lucid";
 import { findCip68TokenNames } from "../core/utils/assets.js";
