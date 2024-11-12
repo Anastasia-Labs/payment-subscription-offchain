@@ -1,15 +1,14 @@
 import { expect, test } from "vitest";
-
 import { Effect } from "effect";
-
 import { LucidContext, makeLucidContext } from "./service/lucidContext.js";
+import { unsubscribeTestCase } from "./unsubscribeTestCase.js";
 import { setupTest } from "./setupTest.js";
-import { subscriberWithdrawTestCase } from "./subscriberWithdrawTestCase.js";
 
-test<LucidContext>("Test 1 - Subscriber Withdraw", async () => {
+test<LucidContext>("Test 1 - Unsubscribe", async () => {
     const program = Effect.gen(function* ($) {
         const setupContext = yield* setupTest();
-        const result = yield* subscriberWithdrawTestCase(setupContext);
+
+        const result = yield* unsubscribeTestCase(setupContext);
         return result;
     });
 

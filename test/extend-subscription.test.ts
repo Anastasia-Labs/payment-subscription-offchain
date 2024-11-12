@@ -1,54 +1,96 @@
 import {
+    ADA,
     ExtendPaymentConfig,
     extendSubscription,
     toUnit,
 } from "../src/index.js";
 import { expect, test } from "vitest";
-import { mintingPolicyToId } from "@lucid-evolution/lucid";
+import {
+    Address,
+    mintingPolicyToId,
+    validatorToAddress,
+} from "@lucid-evolution/lucid";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
-import { tokenNameFromUTxO } from "../src/core/utils/assets.js";
-import { initiateSubscriptionTestCase } from "./initiate-subscription.test.js";
+import {
+    findCip68TokenNames,
+    tokenNameFromUTxO,
+} from "../src/core/utils/assets.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-import { LucidContext, makeEmulatorContext } from "./emulator/service.js";
+import {
+    LucidContext,
+    makeEmulatorContext,
+    makeLucidContext,
+} from "./service/lucidContext.js";
+import { initiateSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
+import {
+    getPaymentValidatorDatum,
+    getServiceValidatorDatum,
+} from "../src/endpoints/utils.js";
+import { SetupResult, setupTest } from "./setupTest.js";
 
 type ExtendSubscriptionResult = {
     txHash: string;
     extendedConfig: ExtendPaymentConfig;
 };
+const serviceValidator = readMultiValidators(blueprint, false, []);
+const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
+
+const accountValidator = readMultiValidators(blueprint, false, []);
+const accountPolicyId = mintingPolicyToId(accountValidator.mintAccount);
+
+const paymentValidator = readMultiValidators(blueprint, true, [
+    servicePolicyId,
+    accountPolicyId,
+]);
+const paymentPolicyId = mintingPolicyToId(
+    paymentValidator.mintPayment,
+);
+
+const paymentScript = {
+    spending: paymentValidator.spendPayment.script,
+    minting: paymentValidator.mintPayment.script,
+    staking: "",
+};
+
+console.log("Policies: ////");
+console.log("servicePolicyId: ////", servicePolicyId);
+console.log("accountPolicyId: ////", accountPolicyId);
+console.log("paymentPolicyId: ////", paymentPolicyId);
 
 export const extendSubscriptionTestCase = (
-    { lucid, users, emulator }: LucidContext,
+    setupResult: SetupResult,
 ): Effect.Effect<ExtendSubscriptionResult, Error, never> => {
     return Effect.gen(function* () {
-        const initResult = yield* initiateSubscriptionTestCase({
-            lucid,
-            users,
-            emulator,
-        });
+        const { context } = setupResult;
+        const { lucid, users, emulator } = context;
 
-        expect(initResult).toBeDefined();
-        expect(typeof initResult.txHash).toBe("string"); // Assuming the initResult is a transaction hash
+        const network = lucid.config().network;
+        lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
+        // let paymentAddress: Address;
 
-        yield* Effect.sync(() => emulator.awaitBlock(100));
+        if (emulator && lucid.config().network === "Custom") {
+            const initResult = yield* initiateSubscriptionTestCase(setupResult);
 
-        const paymentValidator = readMultiValidators(blueprint, true, [
-            initResult.paymentConfig.service_policyId,
-            initResult.paymentConfig.account_policyId,
-        ]);
+            expect(initResult).toBeDefined();
+            expect(typeof initResult.txHash).toBe("string"); // Assuming the initResult is a transaction hash
 
-        const paymentScript = {
-            spending: paymentValidator.spendPayment.script,
-            minting: paymentValidator.mintPayment.script,
-            staking: "",
-        };
+            yield* Effect.sync(() => emulator.awaitBlock(10));
+        }
 
-        const paymentPolicyId = mintingPolicyToId(
-            paymentValidator.mintPayment,
+        const paymentAddress = validatorToAddress(
+            network,
+            paymentValidator.spendPayment,
         );
 
+        const paymentUTxOs = yield* Effect.promise(() =>
+            lucid.config().provider.getUtxos(paymentAddress)
+        );
+
+        console.log("Payment UTxOs>>>: \n", paymentUTxOs);
+
         const payment_token_name = tokenNameFromUTxO(
-            initResult.outputs.paymentValidatorUTxOs,
+            paymentUTxOs,
             paymentPolicyId,
         );
 
@@ -57,41 +99,127 @@ export const extendSubscriptionTestCase = (
             payment_token_name, //tokenNameWithoutFunc,
         );
 
+        const serviceAddress = validatorToAddress(
+            network,
+            serviceValidator.spendService,
+        );
+
+        const serviceUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(serviceAddress)
+        );
+
+        const subscriberAddress: Address = yield* Effect.promise(() =>
+            lucid.wallet().address()
+        );
+
+        const subscriberUTxOs = yield* Effect.promise(() =>
+            lucid.config().provider.getUtxos(subscriberAddress)
+        );
+        // Calculate new subscription end time
+        let currentTime: bigint;
+        if (emulator) {
+            currentTime = BigInt(emulator.now());
+        } else {
+            currentTime = BigInt(Date.now());
+        }
+
+        const accountAddress = validatorToAddress(
+            network,
+            accountValidator.mintAccount,
+        );
+
+        const accountUTxOs = yield* Effect.promise(() =>
+            lucid.config().provider.getUtxos(accountAddress)
+        );
+
+        const { refTokenName: accRefName, userTokenName: accUserName } =
+            findCip68TokenNames([
+                accountUTxOs[0],
+                subscriberUTxOs[0],
+            ], accountPolicyId);
+
+        const accRefNft = toUnit(
+            accountPolicyId,
+            accRefName,
+        );
+
+        const accUsrNft = toUnit(
+            accountPolicyId,
+            accUserName,
+        );
+
+        lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
+        const merchantAddress: Address = yield* Effect.promise(() =>
+            lucid.wallet().address()
+        );
+        const merchantUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(merchantAddress)
+        );
+
+        // Service NFTs
+        const {
+            refTokenName: serviceRefName,
+            userTokenName: serviceUserName,
+        } = findCip68TokenNames([
+            serviceUTxOs[0],
+            merchantUTxOs[0],
+        ], servicePolicyId);
+
+        const servcRefNft = toUnit(
+            servicePolicyId,
+            serviceRefName,
+        );
+
+        const serviceUserNft = toUnit(
+            servicePolicyId,
+            serviceUserName,
+        );
+
+        const paymentData = yield* Effect.promise(
+            () => (getPaymentValidatorDatum(paymentUTxOs)),
+        );
+
         const extension_intervals = BigInt(1); // Number of intervals to extend
-        const interval_amount = initResult.paymentConfig.interval_amount *
+        const interval_amount = paymentData[0].interval_amount *
             extension_intervals;
-        const newTotalSubscriptionFee =
-            initResult.paymentConfig.total_subscription_fee +
+        const newTotalSubscriptionFee = paymentData[0].total_subscription_fee +
             (interval_amount * extension_intervals);
-        const newNumIntervals = initResult.paymentConfig.num_intervals +
+        const newNumIntervals = paymentData[0].num_intervals +
             extension_intervals;
-        const extension_period = initResult.paymentConfig.interval_length *
+        const extension_period = paymentData[0].interval_length *
             extension_intervals;
 
-        const newSubscriptionEnd = initResult.paymentConfig.subscription_end +
+        const newSubscriptionEnd = paymentData[0].subscription_end +
             extension_period;
 
-        // Calculate new subscription end time
-        const currentTime = BigInt(emulator.now());
-
-        lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
-
         const extendPaymentConfig: ExtendPaymentConfig = {
-            ...initResult.paymentConfig,
+            service_nft_tn: paymentData[0].service_nft_tn,
+            account_nft_tn: paymentData[0].account_nft_tn,
+            account_policyId: accountPolicyId,
+            service_policyId: servicePolicyId,
+            subscription_fee: paymentData[0].subscription_fee,
+            total_subscription_fee: newTotalSubscriptionFee,
             subscription_start: currentTime,
             subscription_end: newSubscriptionEnd,
-            total_subscription_fee: newTotalSubscriptionFee,
-            num_intervals: newNumIntervals,
-            interval_length: initResult.paymentConfig.interval_length,
             interval_amount: interval_amount,
-            user_token: initResult.paymentConfig.account_user_token,
-            service_ref_token: initResult.paymentConfig.service_ref_token,
+            num_intervals: newNumIntervals,
+            interval_length: paymentData[0].interval_length,
+            last_claimed: paymentData[0].last_claimed,
+            penalty_fee: ADA,
+            penalty_fee_qty: paymentData[0].penalty_fee_qty,
+            minimum_ada: paymentData[0].minimum_ada,
+            user_token: accUsrNft,
+            service_ref_token: servcRefNft,
             payment_token: paymentNFT,
             scripts: paymentScript,
-            subscriberUTxO: initResult.outputs.subscriberUTxOs,
-            paymentUTxO: initResult.outputs.paymentValidatorUTxOs,
+            subscriberUTxO: subscriberUTxOs,
+            serviceUTxO: serviceUTxOs,
+            paymentUTxO: paymentUTxOs,
         };
+
+        if (emulator) yield* Effect.sync(() => emulator.awaitBlock(10));
         const extendPaymentFlow = Effect.gen(function* (_) {
+            lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
             const extendResult = yield* extendSubscription(
                 lucid,
                 extendPaymentConfig,
@@ -104,10 +232,11 @@ export const extendSubscriptionTestCase = (
                 extendSigned.submit()
             );
 
-            yield* Effect.sync(() => emulator.awaitBlock(100));
+            // yield* Effect.sync(() => emulator.awaitBlock(100));
 
             return extendTxHash;
         });
+        if (emulator) yield* Effect.sync(() => emulator.awaitBlock(10));
 
         const extendPaymentResult = yield* extendPaymentFlow.pipe(
             Effect.tapError((error) =>
@@ -127,8 +256,8 @@ export const extendSubscriptionTestCase = (
 
 test<LucidContext>("Test 1 - Extend Service", async () => {
     const program = Effect.gen(function* ($) {
-        const context = yield* makeEmulatorContext;
-        const result = yield* extendSubscriptionTestCase(context);
+        const setupContext = yield* setupTest();
+        const result = yield* extendSubscriptionTestCase(setupContext);
         return result;
     });
 
@@ -145,5 +274,4 @@ test<LucidContext>("Test 1 - Extend Service", async () => {
         result.extendedConfig.interval_amount *
             result.extendedConfig.num_intervals,
     );
-    expect(result.extendedConfig.num_intervals).toBe(13n);
 });

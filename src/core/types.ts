@@ -5,10 +5,11 @@ import {
   OutRef,
   PolicyId,
   Script,
+  TxSignBuilder,
   Unit,
   UTxO,
 } from "@lucid-evolution/lucid";
-import { AssetClassD, Value } from "./contract.types.js";
+import { AssetClassD, PaymentDatum, Value } from "./contract.types.js";
 
 export type CborHex = string;
 export type RawHex = string;
@@ -21,6 +22,12 @@ export type Result<T> =
 export type Either<L, R> =
   | { type: "left"; value: L }
   | { type: "right"; value: R };
+
+export type ReadableUTxO<T> = {
+  outRef: OutRef;
+  datum: T;
+  assets: Assets;
+};
 
 export type CreateServiceConfig = {
   service_fee: AssetClassD;
@@ -47,32 +54,12 @@ export type UpdateServiceConfig = {
   new_num_intervals: bigint;
   new_minimum_ada: bigint;
   is_active: boolean;
-  service_cs: PolicyId;
   scripts: {
     spending: CborHex;
     minting: CborHex;
     staking: CborHex;
   };
 };
-
-// export type UpdateServiceDatumConfig = {
-//   new_service_fee: AssetClassD;
-//   new_service_fee_qty: bigint;
-//   new_penalty_fee: AssetClassD;
-//   new_penalty_fee_qty: bigint;
-//   new_interval_length: bigint;
-//   new_num_intervals: bigint;
-//   new_minimum_ada: bigint;
-//   is_active: boolean;
-//   user_token: Unit;
-//   ref_token: Unit;
-//   scripts: {
-//     spending: CborHex;
-//     minting: CborHex;
-//     staking: CborHex;
-//   };
-//   serviceUTxOs: UTxO[];
-// };
 
 export type RemoveServiceConfig = {
   service_fee: AssetClassD;
@@ -148,8 +135,8 @@ export type InitPaymentConfig = {
     minting: CborHex;
     staking: CborHex;
   };
-  subscriberUTxO: UTxO[];
-  serviceUTxO: UTxO[];
+  // subscriberUTxO: UTxO[];
+  // serviceUTxO: UTxO[];
   service_user_token: Unit;
   service_ref_token: Unit;
   account_user_token: Unit;
@@ -204,14 +191,31 @@ export type MerchantWithdrawConfig = {
   merchant_token: Unit;
   service_ref_token: Unit;
   payment_token: Unit;
+  serviceUTxOs: UTxO[];
   scripts: {
     spending: CborHex;
     minting: CborHex;
     staking: CborHex;
   };
-  merchantUTxO: UTxO[];
-  serviceUTxO: UTxO[];
-  paymentUTxO: UTxO[];
+};
+
+export type UnsubscribeConfig = {
+  service_nft_tn: string; //AssetName,
+  account_nft_tn: string;
+  subscription_start: bigint;
+  service_fee: AssetClassD;
+  service_fee_qty: bigint;
+  penalty_fee: AssetClassD;
+  penalty_fee_qty: bigint;
+  refund_amount: bigint;
+  user_token: Unit;
+  ref_token: Unit;
+  payment_token: Unit;
+  payment_scripts: {
+    spending: CborHex;
+    minting: CborHex;
+    staking: CborHex;
+  };
 };
 
 export type CreatePenaltyConfig = {
@@ -221,14 +225,14 @@ export type CreatePenaltyConfig = {
   penalty_fee_qty: bigint;
   subscriber_token: Unit;
   payment_token: Unit;
+  service_ref_nft: Unit;
   scripts: {
     spending: CborHex;
     minting: CborHex;
     staking: CborHex;
   };
-  subscriberUTxO: UTxO[];
-  serviceUTxO: UTxO[];
-  paymentUTxO: UTxO[];
+  // subscriberUTxO: UTxO[];
+  // paymentUTxO: UTxO[];
 };
 
 export type WithdrawPenaltyConfig = {
@@ -239,44 +243,41 @@ export type WithdrawPenaltyConfig = {
   merchant_token: Unit;
   service_ref_token: Unit;
   payment_token: Unit;
+  merchantUTxOs: UTxO[];
+  serviceUTxOs: UTxO[];
   scripts: {
     spending: CborHex;
     minting: CborHex;
     staking: CborHex;
   };
-  merchantUTxO: UTxO[];
-  serviceUTxO: UTxO[];
-  paymentUTxO: UTxO[];
 };
 
 export type SubscriberWithdrawConfig = {
-  service_nft_tn: string; //AssetName,
-  account_nft_tn: string;
-  account_policyId: string;
-  service_policyId: string;
-  subscription_fee: AssetClassD;
-  total_subscription_fee: bigint;
-  subscription_start: bigint;
-  subscription_end: bigint;
-  interval_length: bigint;
-  interval_amount: bigint;
-  num_intervals: bigint;
-  last_claimed: bigint;
-  penalty_fee: AssetClassD;
-  penalty_fee_qty: bigint;
-  minimum_ada: bigint;
+  // service_nft_tn: string; //AssetName,
+  // account_nft_tn: string;
+  // subscription_fee: AssetClassD;
+  // total_subscription_fee: bigint;
+  // subscription_start: bigint;
+  // subscription_end: bigint;
+  // interval_length: bigint;
+  // interval_amount: bigint;
+  // num_intervals: bigint;
+  // last_claimed: bigint;
+  // penalty_fee: AssetClassD;
+  // penalty_fee_qty: bigint;
+  // minimum_ada: bigint;
+  // // is_active: boolean;
   subscriber_token: Unit;
-  service_ref_token: Unit;
+  // service_ref_token: Unit;
   payment_token: Unit;
+  paymentDatum: PaymentDatum;
+  paymentUTxOs: UTxO[];
+  serviceUTxOs: UTxO[];
   scripts: {
     spending: CborHex;
     minting: CborHex;
     staking: CborHex;
   };
-  subscriberUTxO: UTxO[];
-  serviceUTxO: UTxO[];
-  paymentUTxO: UTxO[];
-  minting_Policy: MintingPolicy;
 };
 
 export type MultiValidator = {
@@ -286,38 +287,22 @@ export type MultiValidator = {
   mintValAddress: Address;
 };
 
-export type CancelOfferConfig = {
-  offerOutRef: OutRef;
+export type Deploy = {
+  tx: TxSignBuilder;
+  deployPolicyId: string;
+};
+
+export type DeployRefScriptsConfig = {
+  tknName: string;
   scripts: {
     spending: CborHex;
+    minting: CborHex;
     staking: CborHex;
   };
-};
-
-export type AcceptOfferConfig = {
-  offerOutRef: OutRef;
-  scripts: {
+  alwaysFails: {
     spending: CborHex;
+    minting: CborHex;
     staking: CborHex;
   };
-};
-
-export type OfferValidators = {
-  directOfferVal: Script;
-  directOfferValAddress: Address;
-  stakingVal: Script;
-  rewardAddress: Address;
-};
-
-export type ReadableUTxO<T> = {
-  outRef: OutRef;
-  datum: T;
-  assets: Assets;
-};
-
-export type OfferInfo = {
-  creator: Address;
-  toBuy: Value;
-  offer: Value;
-  offerUTxO: UTxO;
+  currentTime: BigInt;
 };

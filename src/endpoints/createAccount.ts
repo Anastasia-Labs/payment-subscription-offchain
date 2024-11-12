@@ -5,6 +5,7 @@ import {
   fromText,
   LucidEvolution,
   mintingPolicyToId,
+  RedeemerBuilder,
   selectUTxOs,
   toUnit,
   TransactionError,
@@ -53,16 +54,28 @@ export const createAccount = (
       selectedUTxOs[0],
     );
 
-    const redeemer: CreateAccountRedeemer = {
-      output_reference: {
-        txHash: {
-          hash: selectedUTxOs[0].txHash,
-        },
-        outputIndex: BigInt(selectedUTxOs[0].outputIndex),
+    const createAccountRedeemer: RedeemerBuilder = {
+      kind: "selected",
+      makeRedeemer: (inputIndices: bigint[]) => {
+        // Construct the redeemer using the input indices
+        const subscriberIndex = inputIndices[0];
+
+        const redeemer: CreateAccountRedeemer = {
+          output_reference: {
+            txHash: {
+              hash: selectedUTxOs[0].txHash,
+            },
+            outputIndex: BigInt(selectedUTxOs[0].outputIndex),
+          },
+          input_index: subscriberIndex,
+        };
+        const redeemerData = Data.to(redeemer, CreateAccountRedeemer);
+
+        return redeemerData;
       },
-      input_index: BigInt(selectedUTxOs[0].outputIndex),
+      // Specify the inputs relevant to the redeemer
+      inputs: [selectedUTxOs[0]],
     };
-    const redeemerData = Data.to(redeemer, CreateAccountRedeemer);
 
     const currDatum: AccountDatum = {
       email: fromText(config.email),
@@ -97,7 +110,7 @@ export const createAccount = (
       .collectFrom(selectedUTxOs)
       .mintAssets(
         mintingAssets,
-        redeemerData,
+        createAccountRedeemer,
       )
       .pay.ToAddress(subscriberAddress, {
         [userToken]: 1n,

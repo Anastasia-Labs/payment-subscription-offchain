@@ -5,6 +5,7 @@ import {
     Data,
     LucidEvolution,
     mintingPolicyToId,
+    RedeemerBuilder,
     TransactionError,
     TxSignBuilder,
 } from "@lucid-evolution/lucid";
@@ -38,20 +39,6 @@ export const removeAccount = (
             subscriberUTxOs,
         );
 
-        // const accountUTxOs = yield* Effect.promise(() =>
-        //     lucid.utxosAtWithUnit(
-        //         validators.spendValAddress,
-        //         config.ref_token,
-        //     )
-        // );
-
-        // const subscriberUTxOs = yield* Effect.promise(() =>
-        //     lucid.utxosAtWithUnit(
-        //         subscriberAddress,
-        //         config.user_token,
-        //     )
-        // );
-
         const mintingAssets: Assets = {
             [ref_token]: -1n,
             [user_token]: -1n,
@@ -62,18 +49,44 @@ export const removeAccount = (
                 "No UTxO found at user address: " + validators.spendValAddress,
             );
         }
-        console.log("subscriberUTxOs: ", subscriberUTxOs);
-        console.log("accountUTxOs: ", accountUTxOs[0]);
-        console.log("user_token: ", user_token);
-        console.log("ref_token: ", ref_token);
+
+        const subscriberUTxO = yield* Effect.promise(() =>
+            lucid.utxoByUnit(
+                user_token,
+            )
+        );
+
+        const accountUTxO = yield* Effect.promise(() =>
+            lucid.utxoByUnit(
+                ref_token,
+            )
+        );
 
         const deleteAccRedeemer = Data.to(new Constr(1, [])); // Assuming DeleteAccount is index 1 in your MintAccount enum
-        const removeAccRedeemer = Data.to(new Constr(1, [new Constr(1, [])])); // Wrapped redeemer for multi-validator spend endpoint
+        const removeAccountRedeemer: RedeemerBuilder = {
+            kind: "selected",
+            makeRedeemer: (inputIndices: bigint[]) => {
+                // Construct the redeemer using the input indices
+                const userIndex = inputIndices[0];
+                const accountIndex = inputIndices[1];
+
+                return Data.to(
+                    new Constr(1, [
+                        new Constr(1, [
+                            BigInt(userIndex),
+                            BigInt(accountIndex),
+                        ]),
+                    ]),
+                );
+            },
+            // Specify the inputs relevant to the redeemer
+            inputs: [subscriberUTxO, accountUTxO],
+        };
 
         const tx = yield* lucid
             .newTx()
             .collectFrom(subscriberUTxOs)
-            .collectFrom(accountUTxOs, removeAccRedeemer)
+            .collectFrom([accountUTxO], removeAccountRedeemer)
             .mintAssets(
                 mintingAssets,
                 deleteAccRedeemer,

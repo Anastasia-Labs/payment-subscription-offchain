@@ -8,7 +8,7 @@ import {
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-import { LucidContext, makeLucidContext } from "./emulator/service.js";
+import { LucidContext, makeLucidContext } from "./service/lucidContext.js";
 import { createAccountTestCase } from "./createAccountTestCase.js";
 import { getAccountValidatorDatum } from "../src/endpoints/utils.js";
 
@@ -43,7 +43,7 @@ export const updateAccountTestCase = (
             expect(createAccountResult).toBeDefined();
             expect(typeof createAccountResult.txHash).toBe("string"); // Assuming the createAccountResult is a transaction hash
 
-            yield* Effect.sync(() => emulator.awaitBlock(50));
+            yield* Effect.sync(() => emulator.awaitBlock(10));
 
             accountAddress = validatorToAddress(
                 "Custom",

@@ -29,6 +29,18 @@ export const merchantWithdraw = (
       )
     );
 
+    const paymentUTxO = yield* Effect.promise(() =>
+      lucid.utxoByUnit(
+        config.payment_token,
+      )
+    );
+
+    const serviceUTxO = yield* Effect.promise(() =>
+      lucid.utxoByUnit(
+        config.service_ref_token,
+      )
+    );
+
     const paymentDatum: PaymentDatum = {
       service_nft_tn: config.service_nft_tn,
       account_nft_tn: config.account_nft_tn,
@@ -63,19 +75,22 @@ export const merchantWithdraw = (
 
         return Data.to(
           new Constr(1, [
-            new Constr(2, [BigInt(merchantIndex), BigInt(paymentIndex)]),
+            new Constr(1, [BigInt(merchantIndex), BigInt(paymentIndex)]),
           ]),
         );
       },
       // Specify the inputs relevant to the redeemer
-      inputs: [merchantUTxO, config.paymentUTxO[0]],
+      inputs: [merchantUTxO, paymentUTxO],
     };
+
+    console.log("Subscription Start>>>: \n", config.subscription_start);
+    console.log("Last Claimed>>>: \n", config.last_claimed);
 
     const tx = yield* lucid
       .newTx()
       .collectFrom([merchantUTxO])
-      .collectFrom(config.paymentUTxO, merchantWithdrawRedeemer)
-      .readFrom(config.serviceUTxO)
+      .collectFrom([paymentUTxO], merchantWithdrawRedeemer)
+      .readFrom([serviceUTxO])
       .pay.ToAddress(merchantAddress, {
         lovelace: 2_000_000n,
         [config.merchant_token]: 1n,
@@ -87,7 +102,7 @@ export const merchantWithdraw = (
         lovelace: config.total_subscription_fee,
         [config.payment_token]: 1n,
       })
-      .validFrom(Number(config.subscription_start))
+      .validFrom(Number(config.subscription_start) + Number(1000 * 60)) // 1 minute
       .attach.SpendingValidator(validators.spendValidator)
       .completeProgram();
 

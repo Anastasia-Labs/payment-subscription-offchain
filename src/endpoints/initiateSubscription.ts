@@ -3,6 +3,7 @@ import {
   Data,
   LucidEvolution,
   mintingPolicyToId,
+  RedeemerBuilder,
   selectUTxOs,
   toUnit,
   TransactionError,
@@ -44,19 +45,34 @@ export const initiateSubscription = (
     const selectedUTxOs = selectUTxOs(subscriberUTxOs, {
       ["lovelace"]: 2000000n,
     });
+
+    console.log("selectedUTxOs UTxOs: ", selectedUTxOs);
+    console.log("subscriberUTxOs UTxOs: ", subscriberUTxOs);
     const tokenName = generateUniqueAssetName(selectedUTxOs[0], "");
 
-    const paymentRedeemer: InitiatePayment = {
-      output_reference: {
-        txHash: {
-          hash: subscriberUTxOs[0].txHash,
-        },
-        outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
-      },
-      input_index: 0n,
-    };
+    const initiateSubscriptionRedeemer: RedeemerBuilder = {
+      kind: "selected",
+      makeRedeemer: (inputIndices: bigint[]) => {
+        // Construct the redeemer using the input indices
+        const subscriberIndex = inputIndices[0];
 
-    const redeemerData = Data.to(paymentRedeemer, InitiatePayment);
+        const paymentRedeemer: InitiatePayment = {
+          output_reference: {
+            txHash: {
+              hash: subscriberUTxOs[0].txHash,
+            },
+            outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
+          },
+          input_index: 0n,
+        };
+
+        const redeemerData = Data.to(paymentRedeemer, InitiatePayment);
+
+        return redeemerData;
+      },
+      // Specify the inputs relevant to the redeemer
+      inputs: [selectedUTxOs[0]],
+    };
 
     const paymentDatum: PaymentDatum = {
       service_nft_tn: config.service_nft_tn,
@@ -83,18 +99,30 @@ export const initiateSubscription = (
       PaymentValidatorDatum,
     );
 
-    const accountAssets = config.subscriberUTxO[0].assets;
-
     const paymentNFT = toUnit(
       paymentPolicyId,
       tokenName,
     );
 
+    const serviceUTxO = yield* Effect.promise(() =>
+      lucid.utxoByUnit(
+        config.service_ref_token,
+      )
+    );
+
+    const subscriberUTxO = yield* Effect.promise(() =>
+      lucid.utxoByUnit(
+        config.account_user_token,
+      )
+    );
+
+    const accountAssets = subscriberUTxO.assets;
+
     const tx = yield* lucid
       .newTx()
-      .readFrom(config.serviceUTxO)
-      .collectFrom(config.subscriberUTxO)
-      .mintAssets({ [paymentNFT]: 1n }, redeemerData)
+      .readFrom([serviceUTxO])
+      .collectFrom(subscriberUTxOs)
+      .mintAssets({ [paymentNFT]: 1n }, initiateSubscriptionRedeemer)
       .pay.ToAddress(subscriberAddress, accountAssets)
       .pay.ToAddressWithData(validators.spendValAddress, {
         kind: "inline",

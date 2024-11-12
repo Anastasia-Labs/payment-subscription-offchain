@@ -13,6 +13,7 @@ export type Validators = {
     mintAccount: MintingPolicy;
     spendPayment: SpendingValidator;
     mintPayment: MintingPolicy;
+    alwaysFails: SpendingValidator;
 };
 
 export function readMultiValidators(
@@ -43,5 +44,6 @@ export function readMultiValidators(
         mintAccount: getValidator("account_multi_validator.mint_account"),
         spendPayment: getValidator("payment_multi_validator.spend_payment"),
         mintPayment: getValidator("payment_multi_validator.mint_payment"),
+        alwaysFails: getValidator("always_fails_validator.always_fails"),
     };
 }

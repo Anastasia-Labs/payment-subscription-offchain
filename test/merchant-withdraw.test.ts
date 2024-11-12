@@ -1,52 +1,104 @@
 import {
+    ADA,
     merchantWithdraw,
     MerchantWithdrawConfig,
     toUnit,
 } from "../src/index.js";
 import { expect, test } from "vitest";
-import { mintingPolicyToId } from "@lucid-evolution/lucid";
+import {
+    Address,
+    mintingPolicyToId,
+    validatorToAddress,
+} from "@lucid-evolution/lucid";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
-import { tokenNameFromUTxO } from "../src/core/utils/assets.js";
-import { initiateSubscriptionTestCase } from "./initiate-subscription.test.js";
+import {
+    findCip68TokenNames,
+    tokenNameFromUTxO,
+} from "../src/core/utils/assets.js";
+// import { initiateSubscriptionTestCase } from "./initiate-subscription.test.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-import { LucidContext, makeEmulatorContext } from "./emulator/service.js";
+import {
+    LucidContext,
+    makeEmulatorContext,
+    makeLucidContext,
+} from "./service/lucidContext.js";
+import { initiateSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
+import { getPaymentValidatorDatum } from "../src/endpoints/utils.js";
+import { SetupResult, setupTest } from "./setupTest.js";
 
 type MerchantWithdrawResult = {
     txHash: string;
     withdrawConfig: MerchantWithdrawConfig;
 };
 
+const serviceValidator = readMultiValidators(blueprint, false, []);
+const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
+
+const accountValidator = readMultiValidators(blueprint, false, []);
+const accountPolicyId = mintingPolicyToId(accountValidator.mintAccount);
+
+const paymentValidator = readMultiValidators(blueprint, true, [
+    servicePolicyId,
+    accountPolicyId,
+]);
+const paymentPolicyId = mintingPolicyToId(
+    paymentValidator.mintPayment,
+);
+
+const paymentScript = {
+    spending: paymentValidator.spendPayment.script,
+    minting: paymentValidator.mintPayment.script,
+    staking: "",
+};
+
 export const merchantWithdrawTestCase = (
-    { lucid, users, emulator }: LucidContext,
+    setupResult: SetupResult,
 ): Effect.Effect<MerchantWithdrawResult, Error, never> => {
+    const { context } = setupResult;
+    const { lucid, users, emulator } = context;
+
+    const network = lucid.config().network;
+    lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
+
     return Effect.gen(function* () {
-        const initResult = yield* initiateSubscriptionTestCase({
-            lucid,
-            users,
-            emulator,
-        });
+        if (emulator && lucid.config().network === "Custom") {
+            const initResult = yield* initiateSubscriptionTestCase(setupResult);
 
-        expect(initResult).toBeDefined();
-        expect(typeof initResult.txHash).toBe("string"); // Assuming the initResult is a transaction hash
+            expect(initResult).toBeDefined();
+            expect(typeof initResult.txHash).toBe("string"); // Assuming the initResult is a transaction hash
 
-        const paymentValidator = readMultiValidators(blueprint, true, [
-            initResult.paymentConfig.service_policyId,
-            initResult.paymentConfig.account_policyId,
-        ]);
+            yield* Effect.sync(() => emulator.awaitBlock(10));
+        }
 
-        const paymentScript = {
-            spending: paymentValidator.spendPayment.script,
-            minting: paymentValidator.mintPayment.script,
-            staking: "",
-        };
+        // // const paymentValidator = readMultiValidators(blueprint, true, [
+        // //     initResult.paymentConfig.service_policyId,
+        // //     initResult.paymentConfig.account_policyId,
+        // // ]);
 
-        const paymentPolicyId = mintingPolicyToId(
-            paymentValidator.mintPayment,
+        // // const paymentScript = {
+        // //     spending: paymentValidator.spendPayment.script,
+        // //     minting: paymentValidator.mintPayment.script,
+        // //     staking: "",
+        // // };
+
+        // const paymentPolicyId = mintingPolicyToId(
+        //     paymentValidator.mintPayment,
+        // );
+
+        const paymentAddress = validatorToAddress(
+            network,
+            paymentValidator.spendPayment,
         );
 
+        const paymentUTxOs = yield* Effect.promise(() =>
+            lucid.config().provider.getUtxos(paymentAddress)
+        );
+
+        console.log("Payment UTxOs>>>: \n", paymentUTxOs);
+
         const payment_token_name = tokenNameFromUTxO(
-            initResult.outputs.paymentValidatorUTxOs,
+            paymentUTxOs,
             paymentPolicyId,
         );
 
@@ -55,40 +107,89 @@ export const merchantWithdrawTestCase = (
             payment_token_name, //tokenNameWithoutFunc,
         );
 
-        const extension_intervals = BigInt(1); // Number of intervals to extend
-        const interval_amount = initResult.paymentConfig.interval_amount *
-            extension_intervals;
-        const newTotalSubscriptionFee =
-            initResult.paymentConfig.total_subscription_fee +
-            (interval_amount * extension_intervals);
-        const newNumIntervals = initResult.paymentConfig.num_intervals +
-            extension_intervals;
-        const extension_period = initResult.paymentConfig.interval_length *
-            extension_intervals;
+        const serviceAddress = validatorToAddress(
+            network,
+            serviceValidator.spendService,
+        );
 
-        const newSubscriptionEnd = initResult.paymentConfig.subscription_end +
-            extension_period;
-
-        // Calculate new subscription end time
-        const currentTime = BigInt(emulator.now());
+        const serviceUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(serviceAddress)
+        );
 
         lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
+        const merchantAddress: Address = yield* Effect.promise(() =>
+            lucid.wallet().address()
+        );
 
+        const merchantUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(merchantAddress)
+        );
+
+        console.log("Merchant UTxOs>>>: \n", merchantUTxOs);
+
+        const {
+            refTokenName: serviceRefName,
+            userTokenName: serviceUserName,
+        } = findCip68TokenNames([
+            serviceUTxOs[0],
+            merchantUTxOs[0],
+        ], servicePolicyId);
+
+        const serviceRefNft = toUnit(
+            servicePolicyId,
+            serviceRefName,
+        );
+
+        const serviceUserNft = toUnit(
+            servicePolicyId,
+            serviceUserName,
+        );
+
+        // Calculate new subscription end time
+        let currentTime: bigint;
+        if (emulator) {
+            currentTime = BigInt(emulator.now());
+        } else {
+            currentTime = BigInt(Date.now()); // Defaults to 1 hours
+        }
+
+        const paymentData = yield* Effect.promise(
+            () => (getPaymentValidatorDatum(paymentUTxOs)),
+        );
+
+        const extension_intervals = BigInt(1); // Number of intervals to extend
+        const interval_amount = paymentData[0].interval_amount *
+            extension_intervals;
+        const newTotalSubscriptionFee = paymentData[0].total_subscription_fee +
+            (interval_amount * extension_intervals);
+        const newNumIntervals = paymentData[0].num_intervals +
+            extension_intervals;
+        const extension_period = paymentData[0].interval_length *
+            extension_intervals;
+
+        const newSubscriptionEnd = paymentData[0].subscription_end +
+            extension_period;
         const merchantWithdrawConfig: MerchantWithdrawConfig = {
-            ...initResult.paymentConfig,
-            subscription_start: currentTime,
-            subscription_end: newSubscriptionEnd,
+            service_nft_tn: paymentData[0].service_nft_tn,
+            account_nft_tn: paymentData[0].account_nft_tn,
+            account_policyId: accountPolicyId,
+            service_policyId: servicePolicyId,
+            subscription_fee: paymentData[0].subscription_fee,
             total_subscription_fee: newTotalSubscriptionFee,
-            num_intervals: newNumIntervals,
-            last_claimed: currentTime,
-            interval_length: initResult.paymentConfig.interval_length,
+            subscription_start: paymentData[0].subscription_start,
+            subscription_end: newSubscriptionEnd,
             interval_amount: interval_amount,
-            merchant_token: initResult.paymentConfig.service_user_token,
-            service_ref_token: initResult.paymentConfig.service_ref_token,
+            num_intervals: newNumIntervals,
+            interval_length: paymentData[0].interval_length,
+            last_claimed: currentTime,
+            penalty_fee: paymentData[0].penalty_fee,
+            penalty_fee_qty: paymentData[0].penalty_fee_qty,
+            minimum_ada: paymentData[0].minimum_ada,
+            merchant_token: serviceUserNft,
+            service_ref_token: serviceRefNft,
             payment_token: paymentNFT,
+            serviceUTxOs: serviceUTxOs,
             scripts: paymentScript,
-            merchantUTxO: initResult.outputs.merchantUTxOs,
-            paymentUTxO: initResult.outputs.paymentValidatorUTxOs,
         };
 
         const merchantWithdrawFlow = Effect.gen(function* (_) {
@@ -116,7 +217,7 @@ export const merchantWithdrawTestCase = (
             }),
         );
 
-        yield* Effect.sync(() => emulator.awaitBlock(50));
+        // yield* Effect.sync(() => emulator.awaitBlock(10));
 
         return {
             txHash: merchantWithdrawResult,
@@ -127,8 +228,8 @@ export const merchantWithdrawTestCase = (
 
 test<LucidContext>("Test 1 - Merchant Withdraw", async () => {
     const program = Effect.gen(function* () {
-        const context = yield* makeEmulatorContext;
-        const result = yield* merchantWithdrawTestCase(context);
+        const setupContext = yield* setupTest();
+        const result = yield* merchantWithdrawTestCase(setupContext);
         return result;
     });
 

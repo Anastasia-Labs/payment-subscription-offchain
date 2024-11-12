@@ -1,9 +1,11 @@
 import {
   Address,
   Assets,
+  Constr,
   Data,
   LucidEvolution,
   mintingPolicyToId,
+  RedeemerBuilder,
   selectUTxOs,
   toUnit,
   TransactionError,
@@ -45,16 +47,30 @@ export const createService = (
       selectedUTxOs[0],
     );
 
-    const redeemer: CreateServiceRedeemer = {
-      output_reference: {
-        txHash: {
-          hash: selectedUTxOs[0].txHash,
-        },
-        outputIndex: BigInt(selectedUTxOs[0].outputIndex),
+    const createServiceRedeemer: RedeemerBuilder = {
+      kind: "selected",
+      makeRedeemer: (inputIndices: bigint[]) => {
+        // Construct the redeemer using the input indices
+        const merchantIndex = inputIndices[0];
+
+        const redeemer: CreateServiceRedeemer = {
+          output_reference: {
+            txHash: {
+              hash: selectedUTxOs[0].txHash,
+            },
+            outputIndex: BigInt(selectedUTxOs[0].outputIndex),
+          },
+          input_index: merchantIndex,
+        };
+        const redeemerData = Data.to(redeemer, CreateServiceRedeemer);
+
+        return redeemerData;
       },
-      input_index: 0n,
+      // Specify the inputs relevant to the redeemer
+      inputs: [selectedUTxOs[0]],
     };
-    const redeemerData = Data.to(redeemer, CreateServiceRedeemer);
+
+    // console.log("CreateServiceRedeemer: ", redeemer);
 
     const currDatum: ServiceDatum = {
       service_fee: ADA,
@@ -94,7 +110,7 @@ export const createService = (
       .collectFrom(selectedUTxOs)
       .mintAssets(
         mintingAssets,
-        redeemerData,
+        createServiceRedeemer,
       )
       .pay.ToAddress(merchantAddress, {
         lovelace: config.minimum_ada,

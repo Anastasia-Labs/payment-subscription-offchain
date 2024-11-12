@@ -1,14 +1,19 @@
-import { updateService, UpdateServiceConfig } from "../src/index.js";
+import {
+  ServiceDatum,
+  updateService,
+  UpdateServiceConfig,
+} from "../src/index.js";
 import { expect, test } from "vitest";
 import {
   Address,
+  Data,
   mintingPolicyToId,
   validatorToAddress,
 } from "@lucid-evolution/lucid";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-import { LucidContext, makeLucidContext } from "./emulator/service.js";
+import { LucidContext, makeLucidContext } from "./service/lucidContext.js";
 import { createServiceTestCase } from "./createServiceTestCase.js";
 import { getServiceValidatorDatum } from "../src/endpoints/utils.js";
 
@@ -30,8 +35,8 @@ export const updateServiceTestCase = (
   { lucid, users, emulator }: LucidContext,
 ): Effect.Effect<UpdateServiceResult, Error, never> => {
   return Effect.gen(function* () {
+    const network = lucid.config().network;
     lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
-    let serviceAddress: Address;
 
     if (emulator && lucid.config().network === "Custom") {
       const createServiceResults = yield* createServiceTestCase(
@@ -39,18 +44,13 @@ export const updateServiceTestCase = (
       );
       expect(createServiceResults).toBeDefined();
       expect(typeof createServiceResults.txHash).toBe("string");
-      yield* Effect.sync(() => emulator.awaitBlock(50));
-
-      serviceAddress = validatorToAddress(
-        "Custom",
-        serviceValidator.spendService,
-      );
-    } else {
-      serviceAddress = validatorToAddress(
-        "Preprod",
-        serviceValidator.spendService,
-      );
+      yield* Effect.sync(() => emulator.awaitBlock(10));
     }
+
+    const serviceAddress: Address = validatorToAddress(
+      network,
+      serviceValidator.spendService,
+    );
 
     const merchantAddress: Address = yield* Effect.promise(() =>
       lucid.wallet().address()
@@ -59,6 +59,16 @@ export const updateServiceTestCase = (
     const serviceUTxOs = yield* Effect.promise(() =>
       lucid.config().provider.getUtxos(serviceAddress)
     );
+
+    // Get utxos where is_active in datum is set to true
+    const activeServiceUTxOs = serviceUTxOs.filter((utxo) => {
+      if (!utxo.datum) return false;
+
+      const datum = Data.from<ServiceDatum>(utxo.datum, ServiceDatum);
+      console.log("datum.is_active: ", datum.is_active);
+
+      return datum.is_active === true;
+    });
 
     const merchantUTxOs = yield* Effect.promise(() =>
       lucid.config().provider.getUtxos(merchantAddress)
@@ -70,7 +80,7 @@ export const updateServiceTestCase = (
     console.log("serviceUTxOs: ", serviceUTxOs);
 
     const serviceData = yield* Effect.promise(
-      () => (getServiceValidatorDatum(serviceUTxOs)),
+      () => (getServiceValidatorDatum(activeServiceUTxOs)),
     );
 
     const updateServiceConfig: UpdateServiceConfig = {
@@ -82,7 +92,6 @@ export const updateServiceTestCase = (
       new_num_intervals: 12n,
       new_minimum_ada: 2_000_000n,
       is_active: serviceData[0].is_active,
-      service_cs: servicePolicyId,
       scripts: serviceScript,
     };
 
@@ -119,7 +128,7 @@ export const updateServiceTestCase = (
 
 test<LucidContext>("Test 1 - Update Service", async () => {
   const program = Effect.gen(function* () {
-    const context = yield* makeLucidContext("Preprod");
+    const context = yield* makeLucidContext();
     const result = yield* updateServiceTestCase(context);
     return result;
   });

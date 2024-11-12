@@ -22,6 +22,9 @@ export type Network = "Mainnet" | "Preprod" | "Preview";
 export const makeEmulatorContext = Effect.gen(function* ($) {
     const WALLET_SEED = process.env.SUBSCRIBER_WALLET_SEED!;
     const users = {
+        dappProvider: yield* Effect.sync(() =>
+            generateEmulatorAccount({ lovelace: BigInt(1_000_000_000) })
+        ),
         subscriber: yield* Effect.sync(() =>
             generateEmulatorAccount({ lovelace: BigInt(1_000_000_000) })
         ),
@@ -30,21 +33,25 @@ export const makeEmulatorContext = Effect.gen(function* ($) {
         ),
     };
 
-    const emulator = new Emulator([users.subscriber, users.merchant], {
+    const emulator = new Emulator([
+        users.dappProvider,
+        users.subscriber,
+        users.merchant,
+    ], {
         ...PROTOCOL_PARAMETERS_DEFAULT,
         maxTxSize: 21000,
     });
 
     const network = "Custom";
     const lucid = yield* Effect.promise(() => Lucid(emulator, network));
-    lucid.selectWallet.fromSeed(WALLET_SEED);
+    // lucid.selectWallet.fromSeed(WALLET_SEED);
 
     // const getCurrentTime = BigInt(emulator.now());
     // const selectSubscriberWallet = lucid.selectWallet.fromSeed(
     //     users.subscriber.seedPhrase,
     // );
 
-    // const awaitTx = yield* Effect.sync(() => emulator.awaitBlock(50));
+    // const awaitTx = yield* Effect.sync(() => emulator.awaitBlock(10));
 
     return { lucid, users, emulator } as LucidContext;
 });
@@ -53,10 +60,14 @@ export const makeMaestroContext = (
     network: Network,
 ) => Effect.gen(function* ($) {
     const API_KEY = process.env.API_KEY!;
+    const DAPP_PROVIDER_SEED = process.env.DAPP_PROVIDER_SEED!;
     const SUBSCRIBER_WALLET_SEED = process.env.SUBSCRIBER_WALLET_SEED!;
     const MERCHANT_WALLET_SEED = process.env.MERCHANT_WALLET_SEED!;
 
     const users = {
+        dappProvider: {
+            seedPhrase: DAPP_PROVIDER_SEED,
+        },
         subscriber: {
             seedPhrase: SUBSCRIBER_WALLET_SEED,
         },

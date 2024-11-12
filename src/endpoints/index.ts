@@ -7,6 +7,7 @@ export * from "./removeAccount.js";
 export * from "./initiateSubscription.js";
 export * from "./extendSubscription.js";
 export * from "./merchantWithdraw.js";
-export * from "./updateServiceDatum.js";
+export * from "./unsubscribeService.js";
 export * from "./subscriberWithdraw.js";
 export * from "./merchantPenaltyWithdraw.js";
+export * from "./deployScripts.js";

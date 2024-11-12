@@ -1,54 +1,96 @@
 import {
     merchantPenaltyWithdraw,
+    PaymentDatum,
+    PaymentValidatorDatum,
+    PenaltyDatum,
     toUnit,
     WithdrawPenaltyConfig,
 } from "../src/index.js";
 import { expect, test } from "vitest";
-import { mintingPolicyToId } from "@lucid-evolution/lucid";
+import {
+    Data,
+    mintingPolicyToId,
+    validatorToAddress,
+} from "@lucid-evolution/lucid";
 import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
-import { tokenNameFromUTxO } from "../src/core/utils/assets.js";
-import { subscriberWithdrawTestCase } from "./subscriber-withdraw.test.js";
+import {
+    findCip68TokenNames,
+    tokenNameFromUTxO,
+} from "../src/core/utils/assets.js";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-import { LucidContext, makeEmulatorContext } from "./emulator/service.js";
+import {
+    LucidContext,
+    makeEmulatorContext,
+    makeLucidContext,
+} from "./service/lucidContext.js";
+import {
+    getPaymentValidatorDatum,
+    getPenaltyDatum,
+} from "../src/endpoints/utils.js";
+import { SetupResult, setupTest } from "./setupTest.js";
+import { subscriberWithdrawTestCase } from "./subscriberWithdrawTestCase.js";
+import { unsubscribeTestCase } from "./unsubscribeTestCase.js";
 
 type MerchantPenaltyResult = {
     txHash: string;
     withdrawConfig: WithdrawPenaltyConfig;
 };
 
+const serviceValidator = readMultiValidators(blueprint, false, []);
+const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
+
+const accountValidator = readMultiValidators(blueprint, false, []);
+const accountPolicyId = mintingPolicyToId(accountValidator.mintAccount);
+
+const paymentValidator = readMultiValidators(blueprint, true, [
+    servicePolicyId,
+    accountPolicyId,
+]);
+const paymentPolicyId = mintingPolicyToId(
+    paymentValidator.mintPayment,
+);
+
+const paymentScript = {
+    spending: paymentValidator.spendPayment.script,
+    minting: paymentValidator.mintPayment.script,
+    staking: "",
+};
+
 export const withdrawPenaltyTestCase = (
-    { lucid, users, emulator }: LucidContext,
+    setupResult: SetupResult,
 ): Effect.Effect<MerchantPenaltyResult, Error, never> => {
     return Effect.gen(function* () {
-        const initResult = yield* subscriberWithdrawTestCase({
-            lucid,
-            users,
-            emulator,
-        });
+        const { context } = setupResult;
+        const { serviceUTxOs } = setupResult;
+        const { serviceRefName } = setupResult;
+        const { serviceUserName } = setupResult;
+        const { merchantUTxOs } = setupResult;
 
-        expect(initResult).toBeDefined();
-        expect(typeof initResult.txHash).toBe("string");
+        const { lucid, users, emulator } = context;
 
-        yield* Effect.sync(() => emulator.awaitBlock(100));
+        const network = lucid.config().network;
 
-        const paymentValidator = readMultiValidators(blueprint, true, [
-            initResult.paymentConfig.service_policyId,
-            initResult.paymentConfig.account_policyId,
-        ]);
+        if (emulator && lucid.config().network === "Custom") {
+            const initResult = yield* unsubscribeTestCase(setupResult);
 
-        const paymentScript = {
-            spending: paymentValidator.spendPayment.script,
-            minting: paymentValidator.mintPayment.script,
-            staking: "",
-        };
+            expect(initResult).toBeDefined();
+            expect(typeof initResult.txHash).toBe("string");
 
-        const paymentPolicyId = mintingPolicyToId(
-            paymentValidator.mintPayment,
+            yield* Effect.sync(() => emulator.awaitBlock(10));
+        }
+
+        const paymentAddress = validatorToAddress(
+            network,
+            paymentValidator.spendPayment,
+        );
+
+        const paymentUTxOs = yield* Effect.promise(() =>
+            lucid.config().provider.getUtxos(paymentAddress)
         );
 
         const payment_token_name = tokenNameFromUTxO(
-            initResult.penaltyConfig.paymentUTxO,
+            paymentUTxOs,
             paymentPolicyId,
         );
 
@@ -57,25 +99,57 @@ export const withdrawPenaltyTestCase = (
             payment_token_name, //tokenNameWithoutFunc,
         );
 
-        lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
-
-        const merchantUTxOs = yield* Effect.promise(() =>
-            lucid.utxosAt(users.merchant.address)
+        const serviceRefNft = toUnit(
+            servicePolicyId,
+            serviceRefName,
         );
 
+        const serviceUserNft = toUnit(
+            servicePolicyId,
+            serviceUserName,
+        );
+        console.log(`paymentUTxOs (raw):`, paymentUTxOs);
+
+        const penaltyUTxOs = paymentUTxOs.filter((utxo) => {
+            if (!utxo.datum) return false;
+            console.log(`UTxO Datum (raw):`, utxo.datum);
+
+            const validatorDatum = Data.from<PaymentValidatorDatum>(
+                utxo.datum,
+                PaymentValidatorDatum,
+            );
+
+            let datum: PenaltyDatum;
+            if ("Penalty" in validatorDatum) {
+                datum = validatorDatum.Penalty[0];
+            } else {
+                throw new Error("Expected Penalty variant");
+            }
+
+            console.log("datum.service_nft_tn: ", datum.service_nft_tn);
+            console.log("serviceRefName: ", serviceRefName);
+
+            return datum.penalty_fee_qty > 0;
+        });
+
+        const penaltyData = yield* Effect.promise(
+            () => (getPenaltyDatum(penaltyUTxOs)),
+        );
+        console.log(`penaltyFee: ${penaltyData[0].penalty_fee_qty}`);
+
         const withdrawPenaltyConfig: WithdrawPenaltyConfig = {
-            service_nft_tn: initResult.penaltyConfig.service_nft_tn, //AssetName,
-            account_nft_tn: initResult.penaltyConfig.account_nft_tn,
-            penalty_fee: initResult.penaltyConfig.penalty_fee,
-            penalty_fee_qty: initResult.penaltyConfig.penalty_fee_qty,
-            merchant_token: initResult.paymentConfig.service_user_token,
-            service_ref_token: initResult.paymentConfig.service_ref_token,
+            service_nft_tn: penaltyData[0].service_nft_tn, //AssetName,
+            account_nft_tn: penaltyData[0].account_nft_tn,
+            penalty_fee: penaltyData[0].penalty_fee,
+            penalty_fee_qty: penaltyData[0].penalty_fee_qty,
+            merchant_token: serviceUserNft,
+            service_ref_token: serviceRefNft,
             payment_token: paymentNFT,
+            merchantUTxOs: merchantUTxOs,
+            serviceUTxOs: serviceUTxOs,
             scripts: paymentScript,
-            merchantUTxO: merchantUTxOs,
-            serviceUTxO: initResult.penaltyConfig.serviceUTxO,
-            paymentUTxO: initResult.outputs.paymentUTxOs,
         };
+        lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
 
         const penaltyWithdrawFlow = Effect.gen(function* (_) {
             const merchantWithdrawResult = yield* merchantPenaltyWithdraw(
@@ -109,12 +183,10 @@ export const withdrawPenaltyTestCase = (
     });
 };
 
-test<LucidContext>("Test 1 - Merchant Penalty Withdraw", async (
-    context: LucidContext,
-) => {
+test<LucidContext>("Test 1 - Merchant Penalty Withdraw", async () => {
     const program = Effect.gen(function* ($) {
-        const context = yield* makeEmulatorContext;
-        const result = yield* withdrawPenaltyTestCase(context);
+        const setupContext = yield* setupTest();
+        const result = yield* withdrawPenaltyTestCase(setupContext);
         return result;
     });
     const result = await Effect.runPromise(program);

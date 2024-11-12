@@ -30,7 +30,7 @@ export const merchantPenaltyWithdraw = (
       )
     );
 
-    if (!merchantUTxOs || !merchantUTxOs.length) {
+    if (!config.merchantUTxOs || !config.merchantUTxOs.length) {
       yield* Effect.fail(
         new TxBuilderError({
           cause: "No UTxO found at user address: " + merchantAddress,
@@ -44,6 +44,18 @@ export const merchantPenaltyWithdraw = (
       )
     );
 
+    const paymentUTxO = yield* Effect.promise(() =>
+      lucid.utxoByUnit(
+        config.payment_token,
+      )
+    );
+
+    const serviceUTxO = yield* Effect.promise(() =>
+      lucid.utxoByUnit(
+        config.service_ref_token,
+      )
+    );
+
     const merchantWithdrawRedeemer: RedeemerBuilder = {
       kind: "selected",
       makeRedeemer: (inputIndices: bigint[]) => {
@@ -53,12 +65,12 @@ export const merchantPenaltyWithdraw = (
 
         return Data.to(
           new Constr(1, [
-            new Constr(2, [BigInt(merchantIndex), BigInt(paymentIndex)]),
+            new Constr(1, [BigInt(merchantIndex), BigInt(paymentIndex)]),
           ]),
         );
       },
       // Specify the inputs relevant to the redeemer
-      inputs: [merchantUTxOs[0], config.paymentUTxO[0]],
+      inputs: [merchantUTxO, paymentUTxO],
     };
 
     const terminateSubscriptionRedeemer: RedeemerBuilder = {
@@ -73,14 +85,14 @@ export const merchantPenaltyWithdraw = (
         );
       },
       // Specify the inputs relevant to the redeemer
-      inputs: [merchantUTxO, config.paymentUTxO[0]],
+      inputs: [merchantUTxO, paymentUTxO],
     };
 
     const tx = yield* lucid
       .newTx()
-      .collectFrom([merchantUTxO])
-      .collectFrom(config.paymentUTxO, merchantWithdrawRedeemer) // subscriber utxos
-      .readFrom(config.serviceUTxO)
+      .collectFrom(merchantUTxOs)
+      .collectFrom([paymentUTxO], merchantWithdrawRedeemer) // subscriber utxos
+      .readFrom([serviceUTxO])
       .mintAssets(
         { [config.payment_token]: -1n },
         terminateSubscriptionRedeemer,

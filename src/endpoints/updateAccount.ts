@@ -5,6 +5,7 @@ import {
     fromText,
     LucidEvolution,
     mintingPolicyToId,
+    RedeemerBuilder,
     TransactionError,
     TxSignBuilder,
 } from "@lucid-evolution/lucid";
@@ -46,15 +47,13 @@ export const updateAccount = (
         );
 
         const accountUTxO = yield* Effect.promise(() =>
-            lucid.utxosAtWithUnit(
-                validators.spendValAddress,
+            lucid.utxoByUnit(
                 ref_token,
             )
         );
 
         const subscriberUTxO = yield* Effect.promise(() =>
-            lucid.utxosAtWithUnit(
-                subscriberAddress,
+            lucid.utxoByUnit(
                 user_token,
             )
         );
@@ -71,12 +70,32 @@ export const updateAccount = (
 
         const directDatum = Data.to<AccountDatum>(updatedDatum, AccountDatum);
 
-        const wrappedRedeemer = Data.to(new Constr(1, [new Constr(0, [])]));
+        // const wrappedRedeemer = Data.to(new Constr(1, [new Constr(0, [])]));
+
+        const updateAccountRedeemer: RedeemerBuilder = {
+            kind: "selected",
+            makeRedeemer: (inputIndices: bigint[]) => {
+                // Construct the redeemer using the input indices
+                const userIndex = inputIndices[0];
+                const accountIndex = inputIndices[1];
+
+                return Data.to(
+                    new Constr(1, [
+                        new Constr(0, [
+                            BigInt(userIndex),
+                            BigInt(accountIndex),
+                        ]),
+                    ]),
+                );
+            },
+            // Specify the inputs relevant to the redeemer
+            inputs: [subscriberUTxO, accountUTxO],
+        };
 
         const tx = yield* lucid
             .newTx()
-            .collectFrom(subscriberUTxO)
-            .collectFrom(accountUTxO, wrappedRedeemer)
+            .collectFrom(subscriberUTxOs)
+            .collectFrom([accountUTxO], updateAccountRedeemer)
             .pay.ToAddress(subscriberAddress, {
                 [user_token]: 1n,
             })

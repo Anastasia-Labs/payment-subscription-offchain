@@ -13,7 +13,7 @@ import {
     LucidContext,
     makeEmulatorContext,
     makeLucidContext,
-} from "./emulator/service.js";
+} from "./service/lucidContext.js";
 import {
     extractTokens,
     getAccountValidatorDatum,
@@ -37,9 +37,14 @@ export const removeAccountTestCase = (
     { lucid, users, emulator }: LucidContext,
 ): Effect.Effect<RemoveAccountResult, Error, never> => {
     return Effect.gen(function* () {
+        const network = lucid.config().network;
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
-        let accountAddress: Address;
+        // let accountAddress: Address;
 
+        const accountAddress: Address = validatorToAddress(
+            network,
+            accountValidator.mintAccount,
+        );
         if (emulator && lucid.config().network === "Custom") {
             const createAccountResult = yield* createAccountTestCase({
                 lucid,
@@ -49,17 +54,12 @@ export const removeAccountTestCase = (
 
             expect(createAccountResult).toBeDefined();
             expect(typeof createAccountResult.txHash).toBe("string"); // Assuming the createAccountResult is a transaction hash
-            yield* Effect.sync(() => emulator.awaitBlock(50));
-
-            accountAddress = validatorToAddress(
-                "Custom",
-                accountValidator.mintAccount,
-            );
+            yield* Effect.sync(() => emulator.awaitBlock(10));
         } else {
-            accountAddress = validatorToAddress(
-                "Preprod",
-                accountValidator.mintAccount,
-            );
+            // accountAddress = validatorToAddress(
+            //     "Preprod",
+            //     accountValidator.mintAccount,
+            // );
         }
         // console.log("Provider: ", lucid.config().provider);
         const accountUTxOs = yield* Effect.promise(() =>

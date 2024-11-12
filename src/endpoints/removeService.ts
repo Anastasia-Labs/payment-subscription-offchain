@@ -3,6 +3,7 @@ import {
     Constr,
     Data,
     LucidEvolution,
+    RedeemerBuilder,
     TransactionError,
     TxSignBuilder,
 } from "@lucid-evolution/lucid";
@@ -41,19 +42,31 @@ export const removeService = (
             merchantUTxOs,
         );
 
+        // const serviceUTxO = yield* Effect.promise(() =>
+        //     lucid.utxosAtWithUnit(
+        //         serviceValAddress,
+        //         ref_token,
+        //     )
+        // );
+
         const serviceUTxO = yield* Effect.promise(() =>
-            lucid.utxosAtWithUnit(
-                serviceValAddress,
+            lucid.utxoByUnit(
                 ref_token,
             )
         );
 
         const merchantUTxO = yield* Effect.promise(() =>
-            lucid.utxosAtWithUnit(
-                merchantAddress,
+            lucid.utxoByUnit(
                 user_token,
             )
         );
+
+        // const merchantUTxO = yield* Effect.promise(() =>
+        //     lucid.utxosAtWithUnit(
+        //         merchantAddress,
+        //         user_token,
+        //     )
+        // );
 
         if (!serviceUTxO) {
             throw new Error("Service NFT not found");
@@ -72,12 +85,32 @@ export const removeService = (
 
         const directDatum = Data.to<ServiceDatum>(updatedDatum, ServiceDatum);
 
-        const wrappedRedeemer = Data.to(new Constr(1, [new Constr(1, [])]));
+        // const wrappedRedeemer = Data.to(new Constr(1, [new Constr(1, [])]));
+
+        const removeServiceRedeemer: RedeemerBuilder = {
+            kind: "selected",
+            makeRedeemer: (inputIndices: bigint[]) => {
+                // Construct the redeemer using the input indices
+                const merchantIndex = inputIndices[0];
+                const serviceIndex = inputIndices[1];
+
+                return Data.to(
+                    new Constr(1, [
+                        new Constr(1, [
+                            BigInt(merchantIndex),
+                            BigInt(serviceIndex),
+                        ]),
+                    ]),
+                );
+            },
+            // Specify the inputs relevant to the redeemer
+            inputs: [merchantUTxO, serviceUTxO],
+        };
 
         const tx = yield* lucid
             .newTx()
-            .collectFrom(merchantUTxO)
-            .collectFrom(serviceUTxO, wrappedRedeemer)
+            .collectFrom(merchantUTxOs)
+            .collectFrom([serviceUTxO], removeServiceRedeemer)
             .pay.ToContract(serviceValAddress, {
                 kind: "inline",
                 value: directDatum,

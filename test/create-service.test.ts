@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { Effect } from "effect";
-import { LucidContext, makeLucidContext } from "./emulator/service.js";
+import { LucidContext, makeLucidContext } from "./service/lucidContext.js";
 import { createServiceTestCase } from "./createServiceTestCase.js";
 
 test<LucidContext>("Test 1 - Create Service", async () => {

@@ -4,6 +4,9 @@ import {
     AccountDatum,
     getMultiValidator,
     parseSafeDatum,
+    PaymentDatum,
+    PaymentValidatorDatum,
+    PenaltyDatum,
     ServiceDatum,
     toUnit,
     UTxO,
@@ -105,20 +108,93 @@ export const getAccountValidatorDatum = async (
 export const getServiceValidatorDatum = async (
     utxos: UTxO[],
 ): Promise<ServiceDatum[]> => {
+    return utxos.flatMap((utxo, index) => {
+        console.log(`Processing UTxO ${index}:`, utxo);
+
+        if (!utxo.datum) {
+            console.error(`UTxO ${index} has no datum.`);
+            return [];
+        }
+
+        try {
+            const result = parseSafeDatum<ServiceDatum>(
+                utxo.datum,
+                ServiceDatum,
+            );
+
+            if (result.type == "right") {
+                console.log(
+                    `Successfully parsed datum for UTxO ${index}:`,
+                    result.value,
+                );
+                return [result.value]; // Return as array to match flatMap expectations
+            } else {
+                console.error(
+                    `Failed to parse datum for UTxO ${index}:`,
+                    result.type,
+                );
+                return [];
+            }
+        } catch (error) {
+            console.error(
+                `Exception while parsing datum for UTxO ${index}:`,
+                error,
+            );
+            return [];
+        }
+    });
+};
+
+export const getPaymentValidatorDatum = async (
+    utxos: UTxO[],
+): Promise<PaymentDatum[]> => {
     return utxos.flatMap((utxo) => {
-        const result = parseSafeDatum<ServiceDatum>(utxo.datum, ServiceDatum);
+        const result = parseSafeDatum<PaymentValidatorDatum>(
+            utxo.datum,
+            PaymentValidatorDatum,
+        );
 
         if (result.type == "right") {
-            return {
-                service_fee: result.value.service_fee,
-                service_fee_qty: result.value.service_fee_qty,
-                penalty_fee: result.value.penalty_fee,
-                penalty_fee_qty: result.value.penalty_fee_qty,
-                interval_length: result.value.interval_length,
-                num_intervals: result.value.num_intervals,
-                minimum_ada: result.value.minimum_ada,
-                is_active: result.value.is_active,
-            };
+            const paymentValidatorDatum = result.value;
+
+            // Check if it's a Payment or Penalty
+            if ("Payment" in paymentValidatorDatum) {
+                const paymentDatum = paymentValidatorDatum.Payment[0];
+                return [paymentDatum];
+            } else {
+                console.error(
+                    `UTxO ${utxo.txHash} contains Penalty datum, skipping.`,
+                );
+                return [];
+            }
+        } else {
+            return [];
+        }
+    });
+};
+
+export const getPenaltyDatum = async (
+    utxos: UTxO[],
+): Promise<PenaltyDatum[]> => {
+    return utxos.flatMap((utxo) => {
+        const result = parseSafeDatum<PaymentValidatorDatum>(
+            utxo.datum,
+            PaymentValidatorDatum,
+        );
+
+        if (result.type == "right") {
+            const paymentValidatorDatum = result.value;
+
+            // Check if it's a Payment or Penalty
+            if ("Penalty" in paymentValidatorDatum) {
+                const penaltyDatum = paymentValidatorDatum.Penalty[0];
+                return [penaltyDatum];
+            } else {
+                console.error(
+                    `UTxO ${utxo.txHash} contains Penalty datum, skipping.`,
+                );
+                return [];
+            }
         } else {
             return [];
         }

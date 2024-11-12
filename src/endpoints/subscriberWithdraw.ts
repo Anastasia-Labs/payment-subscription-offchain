@@ -7,14 +7,14 @@ import {
   TransactionError,
   TxSignBuilder,
 } from "@lucid-evolution/lucid";
-import { CreatePenaltyConfig } from "../core/types.js";
-import { PaymentValidatorDatum, PenaltyDatum } from "../core/contract.types.js";
+import { SubscriberWithdrawConfig } from "../core/types.js";
+import { PaymentDatum, PaymentValidatorDatum } from "../core/contract.types.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
 
 export const subscriberWithdraw = (
   lucid: LucidEvolution,
-  config: CreatePenaltyConfig,
+  config: SubscriberWithdrawConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
   Effect.gen(function* () {
     const subscriberAddress: Address = yield* Effect.promise(() =>
@@ -29,26 +29,54 @@ export const subscriberWithdraw = (
       )
     );
 
-    const paymentUTxO = yield* Effect.promise(() =>
-      lucid.utxoByUnit(
-        config.payment_token,
+    const subscriberUTxOs = yield* Effect.promise(() =>
+      lucid.utxosAt(
+        subscriberAddress,
       )
     );
+    // const serviceUTxOs = yield* Effect.promise(() =>
+    //   lucid.utxosAt(validators.spendValAddress)
+    // );
 
-    const paymentValue = paymentUTxO.assets.lovelace;
+    if (!config.paymentUTxOs.length) {
+      throw new Error("No payment UTxOs found");
+    }
 
-    const penaltyDatum: PenaltyDatum = {
-      service_nft_tn: config.service_nft_tn,
-      account_nft_tn: config.account_nft_tn,
-      penalty_fee: config.penalty_fee,
-      penalty_fee_qty: config.penalty_fee_qty,
+    // const paymentUTxO = yield* Effect.promise(() =>
+    //   lucid.utxoByUnit(
+    //     config.payment_token,
+    //   )
+    // );
+
+    // const serviceUTxO = yield* Effect.promise(() =>
+    //   lucid.utxoByUnit(
+    //     config.service_ref_token,
+    //   )
+    // );
+
+    const paymentValue = config.paymentUTxOs[0].assets.lovelace;
+
+    const paymentDatum: PaymentDatum = {
+      service_nft_tn: config.paymentDatum.service_nft_tn,
+      account_nft_tn: config.paymentDatum.account_nft_tn,
+      subscription_fee: config.paymentDatum.subscription_fee,
+      total_subscription_fee: config.paymentDatum.total_subscription_fee,
+      subscription_start: config.paymentDatum.subscription_start,
+      subscription_end: config.paymentDatum.subscription_end,
+      interval_length: config.paymentDatum.interval_length,
+      interval_amount: config.paymentDatum.interval_amount,
+      num_intervals: config.paymentDatum.num_intervals,
+      last_claimed: config.paymentDatum.last_claimed,
+      penalty_fee: config.paymentDatum.penalty_fee,
+      penalty_fee_qty: config.paymentDatum.penalty_fee_qty,
+      minimum_ada: config.paymentDatum.minimum_ada,
     };
 
     const allDatums: PaymentValidatorDatum = {
-      Penalty: [penaltyDatum],
+      Payment: [paymentDatum],
     };
 
-    const penaltyValDatum = Data.to<PaymentValidatorDatum>(
+    const paymentValDatum = Data.to<PaymentValidatorDatum>(
       allDatums,
       PaymentValidatorDatum,
     );
@@ -67,23 +95,22 @@ export const subscriberWithdraw = (
         );
       },
       // Specify the inputs relevant to the redeemer
-      inputs: [subscriberUTxO, paymentUTxO],
+      inputs: [subscriberUTxO, config.paymentUTxOs[0]],
     };
 
     const tx = yield* lucid
       .newTx()
-      .collectFrom(config.subscriberUTxO) // subscriber user nft utxo
-      .collectFrom(config.paymentUTxO, subscriberWithdrawRedeemer) // subscriber utxos
-      .readFrom(config.serviceUTxO)
+      .collectFrom(subscriberUTxOs) // subscriber user nft utxo
+      .readFrom(config.serviceUTxOs)
+      .collectFrom(config.paymentUTxOs, subscriberWithdrawRedeemer) // subscriber utxos
       .pay.ToAddress(subscriberAddress, {
         lovelace: paymentValue,
         [config.subscriber_token]: 1n,
       })
       .pay.ToAddressWithData(validators.spendValAddress, {
         kind: "inline",
-        value: penaltyValDatum,
+        value: paymentValDatum,
       }, {
-        lovelace: config.penalty_fee_qty,
         [config.payment_token]: 1n,
       })
       .attach.SpendingValidator(validators.spendValidator)

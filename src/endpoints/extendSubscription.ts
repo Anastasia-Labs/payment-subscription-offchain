@@ -3,6 +3,7 @@ import {
   Constr,
   Data,
   LucidEvolution,
+  RedeemerBuilder,
   TransactionError,
   TxSignBuilder,
 } from "@lucid-evolution/lucid";
@@ -25,9 +26,22 @@ export const extendSubscription = (
     const subscriberUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(subscriberAddress)
     );
+
     if (!subscriberUTxOs || !subscriberUTxOs.length) {
       console.error("No UTxO found at user address: " + subscriberAddress);
     }
+
+    const subscriberUTxO = yield* Effect.promise(() =>
+      lucid.utxoByUnit(
+        config.user_token,
+      )
+    );
+
+    const paymentUTxO = yield* Effect.promise(() =>
+      lucid.utxoByUnit(
+        config.payment_token,
+      )
+    );
 
     const paymentDatum: PaymentDatum = {
       service_nft_tn: config.service_nft_tn,
@@ -54,13 +68,33 @@ export const extendSubscription = (
       PaymentValidatorDatum,
     );
 
-    const wrappedRedeemer = Data.to(new Constr(1, [new Constr(0, [])]));
+    // const wrappedRedeemer = Data.to(new Constr(1, [new Constr(0, [])]));
+
+    const extendRedeemer: RedeemerBuilder = {
+      kind: "selected",
+      makeRedeemer: (inputIndices: bigint[]) => {
+        // Construct the redeemer using the input indices
+        const subscriberIndex = inputIndices[0];
+        const paymentIndex = inputIndices[1];
+
+        return Data.to(
+          new Constr(1, [
+            new Constr(0, [
+              BigInt(subscriberIndex),
+              BigInt(paymentIndex),
+            ]),
+          ]),
+        );
+      },
+      // Specify the inputs relevant to the redeemer
+      inputs: [subscriberUTxO, paymentUTxO],
+    };
 
     const tx = yield* lucid
       .newTx()
       .readFrom(config.serviceUTxO)
-      .collectFrom(config.subscriberUTxO) // subscriber user nft utxo
-      .collectFrom(config.paymentUTxO, wrappedRedeemer) // subscriber utxos
+      .collectFrom([subscriberUTxO]) // subscriber user nft utxo
+      .collectFrom(config.paymentUTxO, extendRedeemer) // subscriber utxos
       .pay.ToAddress(subscriberAddress, {
         [config.user_token]: 1n,
       })
