@@ -1,90 +1,40 @@
 import { updateAccount, UpdateAccountConfig } from "../src/index.js";
 import { expect, test } from "vitest";
-import {
-    Address,
-    mintingPolicyToId,
-    validatorToAddress,
-} from "@lucid-evolution/lucid";
-import { readMultiValidators } from "./compiled/validators.js";
+import { Address, validatorToAddress } from "@lucid-evolution/lucid";
 import { Effect } from "effect";
-import blueprint from "./compiled/plutus.json" assert { type: "json" };
 import { LucidContext, makeLucidContext } from "./service/lucidContext.js";
 import { createAccountTestCase } from "./createAccountTestCase.js";
 import { getAccountValidatorDatum } from "../src/endpoints/utils.js";
+import {
+    accountPolicyId,
+    accountScript,
+    accountValidator,
+} from "./common/constants.js";
+import { SetupResult, setupTest } from "./setupTest.js";
 
 type RemoveServiceResult = {
     txHash: string;
     updateAccountConfig: UpdateAccountConfig;
 };
 
-const accountValidator = readMultiValidators(blueprint, false, []);
-const accountPolicyId = mintingPolicyToId(accountValidator.mintAccount);
-
-const accountScript = {
-    spending: accountValidator.spendAccount.script,
-    minting: accountValidator.mintAccount.script,
-    staking: "",
-};
-
 export const updateAccountTestCase = (
-    { lucid, users, emulator }: LucidContext,
+    setupResult: SetupResult,
 ): Effect.Effect<RemoveServiceResult, Error, never> => {
     return Effect.gen(function* () {
-        lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
-        let accountAddress: Address;
-
-        if (emulator && lucid.config().network === "Custom") {
-            const createAccountResult = yield* createAccountTestCase({
-                lucid,
-                users,
-                emulator,
-            });
-
-            expect(createAccountResult).toBeDefined();
-            expect(typeof createAccountResult.txHash).toBe("string"); // Assuming the createAccountResult is a transaction hash
-
-            yield* Effect.sync(() => emulator.awaitBlock(10));
-
-            accountAddress = validatorToAddress(
-                "Custom",
-                accountValidator.spendAccount,
-            );
-        } else {
-            accountAddress = validatorToAddress(
-                "Preprod",
-                accountValidator.mintAccount,
-            );
-        }
-
-        // const subscriberAddress: Address = yield* Effect.promise(() =>
-        //     lucid.wallet().address()
-        // );
-
-        // const subscriberUTxOs = yield* Effect.promise(() =>
-        //     lucid.utxosAt(subscriberAddress)
-        // );
-
-        const accountUTxOs = yield* Effect.promise(() =>
-            lucid.config().provider.getUtxos(accountAddress)
-        );
-
-        const accountData = yield* Effect.promise(
-            () => (getAccountValidatorDatum(accountUTxOs)),
-        );
-
-        // console.log("Address: ", subscriberAddress);
-        // console.log("subscriberUTxOs: ", subscriberUTxOs);
-        // console.log("Account Address: ", accountAddress);
-        // console.log("AccountUTxOs: ", accountUTxOs);
-        // console.log("accountData: ", accountData);
+        const {
+            context: { lucid, users },
+            accRefName,
+            accUserName,
+        } = setupResult;
 
         const updateAccountConfig: UpdateAccountConfig = {
-            new_email: "new_business@web3.ada",
-            new_phone: "(288) 481-2686-999",
-            account_created: accountData[0].account_created,
+            account_policy_Id: accountPolicyId,
+            account_ref_name: accRefName,
+            account_usr_name: accUserName,
             scripts: accountScript,
         };
 
+        lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
         const updateAccountFlow = Effect.gen(function* (_) {
             const updateAccountResult = yield* Effect.promise(() =>
                 Effect.runPromise(
@@ -111,31 +61,6 @@ export const updateAccountTestCase = (
             }),
         );
 
-        // if (emulator) {
-        //     yield* Effect.sync(() => emulator.awaitBlock(100));
-
-        //     const subscriberAddress: Address = yield* Effect.promise(() =>
-        //         lucid.wallet().address()
-        //     );
-
-        //     const subscriberUTxOs = yield* Effect.promise(() =>
-        //         lucid.utxosAt(subscriberAddress)
-        //     );
-
-        //     const accountUTxOs = yield* Effect.promise(() =>
-        //         lucid.config().provider.getUtxos(accountAddress)
-        //     );
-
-        //     const accountData = yield* Effect.promise(
-        //         () => (getValidatorDatum(accountUTxOs)),
-        //     );
-        //     console.log("Address: ", subscriberAddress);
-        //     console.log("subscriberUTxOs After: ", subscriberUTxOs);
-        //     console.log("Account Address After: ", accountAddress);
-        //     console.log("AccountUTxOs After: ", accountUTxOs);
-        //     console.log("AccountData After: ", accountData);
-        // }
-
         return {
             txHash: updateAccountResult,
             updateAccountConfig,
@@ -145,8 +70,8 @@ export const updateAccountTestCase = (
 
 test<LucidContext>("Test 1 - Update Account", async () => {
     const program = Effect.gen(function* () {
-        const context = yield* makeLucidContext("Preprod");
-        const result = yield* updateAccountTestCase(context);
+        const setupContext = yield* setupTest();
+        const result = yield* updateAccountTestCase(setupContext);
         return result;
     });
 

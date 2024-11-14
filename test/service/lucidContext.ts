@@ -17,44 +17,37 @@ export type LucidContext = {
     emulator?: Emulator;
 };
 
-export type Network = "Mainnet" | "Preprod" | "Preview";
+export type Network = "Mainnet" | "Preprod" | "Preview" | "Custom";
 
-export const makeEmulatorContext = Effect.gen(function* ($) {
-    const WALLET_SEED = process.env.SUBSCRIBER_WALLET_SEED!;
-    const users = {
-        dappProvider: yield* Effect.sync(() =>
-            generateEmulatorAccount({ lovelace: BigInt(1_000_000_000) })
-        ),
-        subscriber: yield* Effect.sync(() =>
-            generateEmulatorAccount({ lovelace: BigInt(1_000_000_000) })
-        ),
-        merchant: yield* Effect.sync(() =>
-            generateEmulatorAccount({ lovelace: BigInt(1_000_000_000) })
-        ),
-    };
+export const NETWORK = process.env.NETWORK as Network || "Preprod";
 
-    const emulator = new Emulator([
-        users.dappProvider,
-        users.subscriber,
-        users.merchant,
-    ], {
-        ...PROTOCOL_PARAMETERS_DEFAULT,
-        maxTxSize: 21000,
+export const makeEmulatorContext = () =>
+    Effect.gen(function* ($) {
+        const users = {
+            dappProvider: yield* Effect.sync(() =>
+                generateEmulatorAccount({ lovelace: BigInt(1_000_000_000) })
+            ),
+            subscriber: yield* Effect.sync(() =>
+                generateEmulatorAccount({ lovelace: BigInt(1_000_000_000) })
+            ),
+            merchant: yield* Effect.sync(() =>
+                generateEmulatorAccount({ lovelace: BigInt(1_000_000_000) })
+            ),
+        };
+
+        const emulator = new Emulator([
+            users.dappProvider,
+            users.subscriber,
+            users.merchant,
+        ], {
+            ...PROTOCOL_PARAMETERS_DEFAULT,
+            maxTxSize: 21000,
+        });
+
+        const lucid = yield* Effect.promise(() => Lucid(emulator, "Custom"));
+
+        return { lucid, users, emulator } as LucidContext;
     });
-
-    const network = "Custom";
-    const lucid = yield* Effect.promise(() => Lucid(emulator, network));
-    // lucid.selectWallet.fromSeed(WALLET_SEED);
-
-    // const getCurrentTime = BigInt(emulator.now());
-    // const selectSubscriberWallet = lucid.selectWallet.fromSeed(
-    //     users.subscriber.seedPhrase,
-    // );
-
-    // const awaitTx = yield* Effect.sync(() => emulator.awaitBlock(10));
-
-    return { lucid, users, emulator } as LucidContext;
-});
 
 export const makeMaestroContext = (
     network: Network,
@@ -63,6 +56,16 @@ export const makeMaestroContext = (
     const DAPP_PROVIDER_SEED = process.env.DAPP_PROVIDER_SEED!;
     const SUBSCRIBER_WALLET_SEED = process.env.SUBSCRIBER_WALLET_SEED!;
     const MERCHANT_WALLET_SEED = process.env.MERCHANT_WALLET_SEED!;
+
+    if (!API_KEY) {
+        throw new Error(
+            "Missing required environment variables for Maestro context.",
+        );
+    }
+
+    if (network === "Custom") {
+        throw new Error("Cannot create Maestro context with 'Custom' network.");
+    }
 
     const users = {
         dappProvider: {
@@ -76,14 +79,6 @@ export const makeMaestroContext = (
         },
     };
 
-    if (!API_KEY) {
-        throw new Error(
-            "Missing required environment variables for Maestro context.",
-        );
-    }
-
-    console.log("network: ", network);
-
     const maestro = new Maestro({
         network: network,
         apiKey: API_KEY,
@@ -96,28 +91,21 @@ export const makeMaestroContext = (
     );
     console.log("Seed: ", seed);
 
-    // const users = lucid.selectWallet.fromSeed(WALLET_SEED);
-
-    console.log("Maestro API Key: ", API_KEY);
-
-    return { lucid, users, emulator: undefined } as unknown as LucidContext;
+    return { lucid, users, emulator: undefined } as LucidContext;
 });
 
 export const makeLucidContext = (
     network?: Network,
 ) => Effect.gen(function* ($) {
-    // const MAESTRO_API_URL = process.env.MAESTRO_API_URL;
     const API_KEY = process.env.API_KEY;
-    // const WALLET_SEED = process.env.WALLET_SEED;
-    const selectedNetwork = network ?? "Preprod"; // Default to Preprod if not specified
+    const selectedNetwork = network ?? NETWORK; // Default to Preprod if not specified
 
-    if (API_KEY && network) {
+    console.log("Network Target: ", selectedNetwork);
+    if (API_KEY && selectedNetwork !== "Custom") {
         // Use Maestro context
-        console.log("Maestro Target: ");
         return yield* $(makeMaestroContext(selectedNetwork));
     } else {
         // Use Emulator context
-        console.log("Emuletor Target: ");
-        return yield* $(makeEmulatorContext);
+        return yield* $(makeEmulatorContext());
     }
 });

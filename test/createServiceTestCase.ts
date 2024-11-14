@@ -1,16 +1,7 @@
 import { ADA, createService, CreateServiceConfig } from "../src/index.js";
-import { readMultiValidators } from "./compiled/validators.js";
 import { Effect } from "effect";
-import blueprint from "./compiled/plutus.json" assert { type: "json" };
 import { LucidContext } from "./service/lucidContext.js";
-
-const serviceValidator = readMultiValidators(blueprint, false, []);
-
-const serviceScript = {
-    spending: serviceValidator.spendService.script,
-    minting: serviceValidator.mintService.script,
-    staking: "",
-};
+import { serviceScript } from "./common/constants.js";
 
 type CreateServiceResult = {
     txHash: string;

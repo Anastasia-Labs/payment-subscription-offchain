@@ -4,60 +4,31 @@ import {
   UpdateServiceConfig,
 } from "../src/index.js";
 import { expect, test } from "vitest";
-import {
-  Address,
-  Data,
-  mintingPolicyToId,
-  validatorToAddress,
-} from "@lucid-evolution/lucid";
-import { readMultiValidators } from "./compiled/validators.js";
+import { Address, Data } from "@lucid-evolution/lucid";
 import { Effect } from "effect";
-import blueprint from "./compiled/plutus.json" assert { type: "json" };
-import { LucidContext, makeLucidContext } from "./service/lucidContext.js";
-import { createServiceTestCase } from "./createServiceTestCase.js";
+import { LucidContext } from "./service/lucidContext.js";
 import { getServiceValidatorDatum } from "../src/endpoints/utils.js";
+import { serviceScript } from "./common/constants.js";
+import { SetupResult, setupTest } from "./setupTest.js";
 
 type UpdateServiceResult = {
   txHash: string;
   updateServiceConfig: UpdateServiceConfig;
 };
 
-const serviceValidator = readMultiValidators(blueprint, false, []);
-const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
-
-const serviceScript = {
-  spending: serviceValidator.spendService.script,
-  minting: serviceValidator.mintService.script,
-  staking: "",
-};
-
 export const updateServiceTestCase = (
-  { lucid, users, emulator }: LucidContext,
+  setupResult: SetupResult,
 ): Effect.Effect<UpdateServiceResult, Error, never> => {
   return Effect.gen(function* () {
-    const network = lucid.config().network;
+    const {
+      context: { lucid, users, emulator },
+      serviceUTxOs,
+    } = setupResult;
+
     lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
-
-    if (emulator && lucid.config().network === "Custom") {
-      const createServiceResults = yield* createServiceTestCase(
-        { lucid, users, emulator },
-      );
-      expect(createServiceResults).toBeDefined();
-      expect(typeof createServiceResults.txHash).toBe("string");
-      yield* Effect.sync(() => emulator.awaitBlock(10));
-    }
-
-    const serviceAddress: Address = validatorToAddress(
-      network,
-      serviceValidator.spendService,
-    );
 
     const merchantAddress: Address = yield* Effect.promise(() =>
       lucid.wallet().address()
-    );
-
-    const serviceUTxOs = yield* Effect.promise(() =>
-      lucid.config().provider.getUtxos(serviceAddress)
     );
 
     // Get utxos where is_active in datum is set to true
@@ -76,7 +47,6 @@ export const updateServiceTestCase = (
 
     console.log("merchantAddress: ", merchantAddress);
     console.log("merchantUTxOs: ", merchantUTxOs);
-    console.log("Service Address: ", serviceAddress);
     console.log("serviceUTxOs: ", serviceUTxOs);
 
     const serviceData = yield* Effect.promise(
@@ -128,8 +98,8 @@ export const updateServiceTestCase = (
 
 test<LucidContext>("Test 1 - Update Service", async () => {
   const program = Effect.gen(function* () {
-    const context = yield* makeLucidContext();
-    const result = yield* updateServiceTestCase(context);
+    const setupContext = yield* setupTest();
+    const result = yield* updateServiceTestCase(setupContext);
     return result;
   });
   const result = await Effect.runPromise(program);

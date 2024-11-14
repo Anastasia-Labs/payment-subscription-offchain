@@ -1,67 +1,35 @@
 import {
-    PaymentDatum,
-    PaymentValidatorDatum,
     ServiceDatum,
     subscriberWithdraw,
     SubscriberWithdrawConfig,
     toUnit,
 } from "../src/index.js";
-import { expect, test } from "vitest";
-import {
-    Address,
-    Data,
-    mintingPolicyToId,
-    validatorToAddress,
-} from "@lucid-evolution/lucid";
-import { readMultiValidators } from "./compiled/validators.js";
+import { expect } from "vitest";
 import { Effect } from "effect";
-import {
-    findCip68TokenNames,
-    tokenNameFromUTxO,
-} from "../src/core/utils/assets.js";
-import blueprint from "./compiled/plutus.json" assert { type: "json" };
 import { initiateSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
-import { getPaymentValidatorDatum } from "../src/endpoints/utils.js";
 import { removeServiceTestCase } from "./removeServiceTestCase.js";
-import { SetupResult, setupTest } from "./setupTest.js";
+import { SetupResult } from "./setupTest.js";
+import {
+    accountPolicyId,
+    paymentPolicyId,
+    paymentScript,
+    serviceValidator,
+} from "./common/constants.js";
+import { Data, validatorToAddress } from "@lucid-evolution/lucid";
 
 type SubscriberWithdrawResult = {
     txHash: string;
-};
-
-const serviceValidator = readMultiValidators(blueprint, false, []);
-const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
-
-const serviceScript = {
-    spending: serviceValidator.spendService.script,
-    minting: serviceValidator.mintService.script,
-    staking: "",
-};
-
-const accountValidator = readMultiValidators(blueprint, false, []);
-const accountPolicyId = mintingPolicyToId(accountValidator.mintAccount);
-
-const paymentValidator = readMultiValidators(blueprint, true, [
-    servicePolicyId,
-    accountPolicyId,
-]);
-const paymentPolicyId = mintingPolicyToId(
-    paymentValidator.mintPayment,
-);
-
-const paymentScript = {
-    spending: paymentValidator.spendPayment.script,
-    minting: paymentValidator.mintPayment.script,
-    staking: "",
 };
 
 export const subscriberWithdrawTestCase = (
     setupResult: SetupResult,
 ): Effect.Effect<SubscriberWithdrawResult, Error, never> => {
     return Effect.gen(function* () {
-        const { context } = setupResult;
-
-        const { lucid, users, emulator } = context;
+        const {
+            context: { lucid, users, emulator },
+            accUserName,
+            serviceRefName,
+        } = setupResult;
 
         const network = lucid.config().network;
 
@@ -83,79 +51,20 @@ export const subscriberWithdrawTestCase = (
             yield* Effect.sync(() => emulator.awaitBlock(10));
         }
 
-        lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
-
         const serviceAddress = validatorToAddress(
             network,
             serviceValidator.spendService,
-        );
-
-        const accountAddress = validatorToAddress(
-            network,
-            accountValidator.spendAccount,
-        );
-
-        const subscriberAddress: Address = yield* Effect.promise(() =>
-            lucid.wallet().address()
-        );
-        const subscriberUTxOs = yield* Effect.promise(() =>
-            lucid.config().provider.getUtxos(subscriberAddress)
         );
 
         const serviceUTxOs = yield* Effect.promise(() =>
             lucid.utxosAt(serviceAddress)
         );
 
-        lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
-        const merchantAddress: Address = yield* Effect.promise(() =>
-            lucid.wallet().address()
-        );
-        const merchantUTxOs = yield* Effect.promise(() =>
-            lucid.config().provider.getUtxos(merchantAddress)
-        );
-
-        const accountUTxOs = yield* Effect.promise(() =>
-            lucid.config().provider.getUtxos(accountAddress)
-        );
-
-        console.log("findCip68TokenNames Account>>>: \n");
-        console.log("Account Address: ", accountAddress);
-        console.log("AccountUTxOs: ", accountUTxOs);
-        console.log("subscriberUTxOs: ", subscriberUTxOs);
-
-        const { refTokenName: accRefName, userTokenName: accUserName } =
-            findCip68TokenNames([
-                accountUTxOs[0],
-                subscriberUTxOs[0],
-            ], accountPolicyId);
-
-        const accRefNft = toUnit(
-            accountPolicyId,
-            accRefName,
-        );
+        lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
         const accUsrNft = toUnit(
             accountPolicyId,
             accUserName,
-        );
-
-        const paymentAddress = validatorToAddress(
-            network,
-            paymentValidator.spendPayment,
-        );
-
-        const paymentUTxOs = yield* Effect.promise(() =>
-            lucid.config().provider.getUtxos(paymentAddress)
-        );
-
-        const payment_token_name = tokenNameFromUTxO(
-            paymentUTxOs,
-            paymentPolicyId,
-        );
-
-        const paymentNFT = toUnit(
-            paymentPolicyId,
-            payment_token_name, //tokenNameWithoutFunc,
         );
 
         // Get utxos where is_active in datum is set to true
@@ -168,69 +77,10 @@ export const subscriberWithdrawTestCase = (
             return datum.is_active === false;
         });
 
-        console.log("findCip68TokenNames Service>>>: \n");
-        console.log("Service Address: ", serviceAddress);
-        console.log("ServiceUTxOs: ", serviceUTxOs);
-
-        console.log("inActiveServiceUTxOs: ", inActiveServiceUTxOs);
-
-        const {
-            refTokenName: serviceRefName,
-            userTokenName: serviceUserName,
-        } = findCip68TokenNames([
-            inActiveServiceUTxOs[0],
-            merchantUTxOs[0],
-        ], servicePolicyId);
-
-        const serviceRefNft = toUnit(
-            servicePolicyId,
-            serviceRefName,
-        );
-
-        const serviceUserNft = toUnit(
-            servicePolicyId,
-            serviceUserName,
-        );
-
-        console.log(`UTxO paymentUTxOs:`, paymentUTxOs);
-        const inActivePaymentUTxOs = paymentUTxOs.filter((utxo) => {
-            if (!utxo.datum) return false;
-            console.log(`UTxO Datum (raw):`, utxo.datum);
-
-            const validatorDatum = Data.from<PaymentValidatorDatum>(
-                utxo.datum,
-                PaymentValidatorDatum,
-            );
-
-            let datum: PaymentDatum;
-            if ("Payment" in validatorDatum) {
-                datum = validatorDatum.Payment[0];
-            } else {
-                throw new Error("Expected Payment variant");
-            }
-
-            console.log("datum.service_nft_tn: ", datum.service_nft_tn);
-            console.log("serviceRefName: ", serviceRefName);
-
-            return datum.service_nft_tn === serviceRefName;
-        });
-
-        console.log("inActivePaymentUTxOs UTxOs>>>: \n", inActivePaymentUTxOs);
-
-        const paymentData = yield* Effect.promise(
-            () => (getPaymentValidatorDatum(inActivePaymentUTxOs)),
-        );
-
         const subscriberWithdrawConfig: SubscriberWithdrawConfig = {
-            // service_nft_tn: serviceRefName,
-            // account_nft_tn: accUserName,
-            // subscription_fee: paymentData[0].service_fee,
-            // total_subscription_fee: paymentData[0].service_fee_qty,
+            service_ref_name: serviceRefName,
             subscriber_token: accUsrNft,
-            // service_ref_token: serviceRefNft,
-            payment_token: paymentNFT,
-            paymentDatum: paymentData[0],
-            paymentUTxOs: inActivePaymentUTxOs,
+            payment_policy_Id: paymentPolicyId,
             serviceUTxOs: inActiveServiceUTxOs,
             scripts: paymentScript,
         };
@@ -267,7 +117,6 @@ export const subscriberWithdrawTestCase = (
 
         return {
             txHash: subscriberWithdrawResult,
-            // txHash: withdrawResult,
         };
     });
 };

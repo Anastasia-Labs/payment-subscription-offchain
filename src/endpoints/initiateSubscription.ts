@@ -29,7 +29,6 @@ export const initiateSubscription = (
     );
 
     const validators = getMultiValidator(lucid, config.scripts);
-
     const paymentPolicyId = mintingPolicyToId(validators.mintValidator);
 
     const subscriberUTxOs = yield* Effect.promise(() =>

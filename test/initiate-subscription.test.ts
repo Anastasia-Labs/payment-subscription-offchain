@@ -1,11 +1,13 @@
 import { expect, test } from "vitest";
 import { Effect } from "effect";
-import { LucidContext, makeLucidContext } from "./service/lucidContext.js";
+import { LucidContext } from "./service/lucidContext.js";
 import { initiateSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
 import { setupTest } from "./setupTest.js";
 
 test<LucidContext>("Test 1 - Initiate subscription", async () => {
   const program = Effect.gen(function* ($) {
+    console.log("Initiate program: ");
+
     const setupContext = yield* setupTest();
     const result = yield* initiateSubscriptionTestCase(setupContext);
     return result;
@@ -16,5 +18,5 @@ test<LucidContext>("Test 1 - Initiate subscription", async () => {
   expect(typeof result.txHash).toBe("string");
 
   expect(result.paymentConfig).toBeDefined();
-  expect(result.outputs).toBeDefined();
+  expect(result.setupResult).toBeDefined();
 });

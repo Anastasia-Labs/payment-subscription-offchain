@@ -1,33 +1,10 @@
-import { removeAccount, RemoveAccountConfig, toUnit } from "../src/index.js";
-import { beforeAll, expect, test } from "vitest";
-import {
-    Address,
-    mintingPolicyToId,
-    validatorToAddress,
-} from "@lucid-evolution/lucid";
-import { readMultiValidators } from "./compiled/validators.js";
+import { removeAccount, RemoveAccountConfig } from "../src/index.js";
+import { expect, test } from "vitest";
+import { Address, validatorToAddress } from "@lucid-evolution/lucid";
 import { Effect } from "effect";
-// import { findCip68TokenNames } from "../src/core/utils/assets.js";
-import blueprint from "./compiled/plutus.json" assert { type: "json" };
-import {
-    LucidContext,
-    makeEmulatorContext,
-    makeLucidContext,
-} from "./service/lucidContext.js";
-import {
-    extractTokens,
-    getAccountValidatorDatum,
-} from "../src/endpoints/utils.js";
+import { LucidContext, makeLucidContext } from "./service/lucidContext.js";
 import { createAccountTestCase } from "./createAccountTestCase.js";
-
-const accountValidator = readMultiValidators(blueprint, false, []);
-const accountPolicyId = mintingPolicyToId(accountValidator.mintAccount);
-
-const accountScript = {
-    spending: accountValidator.spendAccount.script,
-    minting: accountValidator.mintAccount.script,
-    staking: "",
-};
+import { accountScript, accountValidator } from "./common/constants.js";
 
 type RemoveAccountResult = {
     txHash: string;
@@ -120,7 +97,7 @@ export const removeAccountTestCase = (
 
 test("Test 1 - Remove Account", async () => {
     const program = Effect.gen(function* () {
-        const context = yield* (makeLucidContext("Preprod"));
+        const context = yield* (makeLucidContext());
         const result = yield* removeAccountTestCase(context);
         return result;
     });

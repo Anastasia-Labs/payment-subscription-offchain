@@ -14,6 +14,12 @@ const serviceScript = {
 const accountValidator = readMultiValidators(blueprint, false, []);
 const accountPolicyId = mintingPolicyToId(accountValidator.mintAccount);
 
+const accountScript = {
+    spending: accountValidator.spendAccount.script,
+    minting: accountValidator.mintAccount.script,
+    staking: "",
+};
+
 const paymentValidator = readMultiValidators(blueprint, true, [
     servicePolicyId,
     accountPolicyId,
@@ -31,8 +37,11 @@ const paymentScript = {
 
 export {
     accountPolicyId,
+    accountScript,
+    accountValidator,
     paymentPolicyId,
     paymentScript,
+    paymentValidator,
     servicePolicyId,
     serviceScript,
     serviceValidator,

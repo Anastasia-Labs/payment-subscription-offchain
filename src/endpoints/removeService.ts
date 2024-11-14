@@ -11,13 +11,13 @@ import { getMultiValidator } from "../core/utils/index.js";
 import { RemoveServiceConfig } from "../core/types.js";
 import { ServiceDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
-import { extractTokens } from "./utils.js";
+import { extractTokens, getServiceValidatorDatum } from "./utils.js";
 
 export const removeService = (
     lucid: LucidEvolution,
     config: RemoveServiceConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
-    Effect.gen(function* () { // return type ,
+    Effect.gen(function* () {
         const merchantAddress: Address = yield* Effect.promise(() =>
             lucid.wallet().address()
         );
@@ -42,13 +42,6 @@ export const removeService = (
             merchantUTxOs,
         );
 
-        // const serviceUTxO = yield* Effect.promise(() =>
-        //     lucid.utxosAtWithUnit(
-        //         serviceValAddress,
-        //         ref_token,
-        //     )
-        // );
-
         const serviceUTxO = yield* Effect.promise(() =>
             lucid.utxoByUnit(
                 ref_token,
@@ -61,26 +54,28 @@ export const removeService = (
             )
         );
 
-        // const merchantUTxO = yield* Effect.promise(() =>
-        //     lucid.utxosAtWithUnit(
-        //         merchantAddress,
-        //         user_token,
-        //     )
-        // );
-
         if (!serviceUTxO) {
             throw new Error("Service NFT not found");
         }
 
+        const serviceData = yield* Effect.promise(
+            () => (getServiceValidatorDatum(serviceUTxOs)),
+        );
+
+        if (!serviceData || serviceData.length === 0) {
+            throw new Error("serviceData is empty");
+        }
+        const serviceDatum = serviceData[0];
+
         const updatedDatum: ServiceDatum = {
-            service_fee: config.service_fee,
-            service_fee_qty: config.service_fee_qty,
-            penalty_fee: config.penalty_fee,
-            penalty_fee_qty: config.penalty_fee_qty,
-            interval_length: config.interval_length,
-            num_intervals: config.num_intervals,
-            minimum_ada: config.minimum_ada,
-            is_active: config.is_active,
+            service_fee: serviceDatum.service_fee,
+            service_fee_qty: serviceDatum.service_fee_qty,
+            penalty_fee: serviceDatum.penalty_fee,
+            penalty_fee_qty: serviceDatum.penalty_fee_qty,
+            interval_length: serviceDatum.interval_length,
+            num_intervals: serviceDatum.num_intervals,
+            minimum_ada: serviceDatum.minimum_ada,
+            is_active: false,
         };
 
         const directDatum = Data.to<ServiceDatum>(updatedDatum, ServiceDatum);

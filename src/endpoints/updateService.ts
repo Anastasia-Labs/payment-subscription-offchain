@@ -113,16 +113,12 @@ export const updateService = (
             inputs: [merchantUTxO, serviceUTxO],
         };
 
-        // console.log("merchantUTxOs: ", merchantUTxOs);
-        // console.log("serviceUTxOs: ", serviceUTxOs[0]);
-        // console.log("user_token: ", user_token);
-        // console.log("ref_token: ", ref_token);
-
         const tx = yield* lucid
             .newTx()
             .collectFrom(merchantUTxOs)
             .collectFrom([serviceUTxO], updateServiceRedeemer)
             .pay.ToAddress(merchantAddress, {
+                lovelace: config.new_minimum_ada,
                 [user_token]: 1n,
             })
             .pay.ToContract(serviceValAddress, {

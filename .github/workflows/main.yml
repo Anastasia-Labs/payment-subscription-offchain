@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       API_KEY: ${{ secrets.API_KEY }}
-      PREPROD_NETWORK: ${{ secrets.PREPROD_NETWORK }}
+      NETWORK: ${{ secrets.NETWORK }}
       DAPP_PROVIDER_SEED: ${{ secrets.DAPP_PROVIDER_SEED }}
       SUBSCRIBER_WALLET_SEED: ${{ secrets.SUBSCRIBER_WALLET_SEED }}
       MERCHANT_WALLET_SEED: ${{ secrets.MERCHANT_WALLET_SEED }}

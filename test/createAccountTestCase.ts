@@ -1,25 +1,7 @@
-import {
-    Address,
-    createAccount,
-    CreateAccountConfig,
-    mintingPolicyToId,
-    toUnit,
-    Unit,
-    UTxO,
-    validatorToAddress,
-} from "../src/index.js";
-import { readMultiValidators } from "./compiled/validators.js";
+import { createAccount, CreateAccountConfig } from "../src/index.js";
 import { Effect } from "effect";
-import blueprint from "./compiled/plutus.json" assert { type: "json" };
 import { LucidContext } from "./service/lucidContext.js";
-
-const accountValidator = readMultiValidators(blueprint, false, []);
-
-const accountScript = {
-    spending: accountValidator.spendAccount.script,
-    minting: accountValidator.mintAccount.script,
-    staking: "",
-};
+import { accountScript } from "./common/constants.js";
 
 export type CreateAccountResult = {
     txHash: string;
@@ -30,14 +12,12 @@ export const createAccountTestCase = (
     { lucid, users, emulator }: LucidContext,
 ): Effect.Effect<CreateAccountResult, Error, never> => {
     return Effect.gen(function* () {
-        const network = lucid.config().network;
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
         let currentTime: bigint;
 
         if (emulator) {
             currentTime = BigInt(emulator.now());
-            // lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
         } else {
             currentTime = BigInt(Date.now());
         }
@@ -71,35 +51,6 @@ export const createAccountTestCase = (
                 return hash;
             }),
         );
-
-        const accountAddress: Address = validatorToAddress(
-            network,
-            accountValidator.mintAccount,
-        );
-        if (emulator) {
-            yield* Effect.sync(() => emulator.awaitBlock(10));
-
-            // lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
-        } else {
-            // accountAddress = validatorToAddress(
-            //     "Preprod",
-            //     accountValidator.mintAccount,
-            // );
-        }
-
-        // const subscriberAddress: Address = yield* Effect.promise(() =>
-        //     lucid.wallet().address()
-        // );
-        // const subscriberUTxOs = yield* Effect.promise(() =>
-        //     lucid.utxosAt(subscriberAddress)
-        // );
-
-        // const accountUTxOs = yield* Effect.promise(() =>
-        //     lucid.config().provider.getUtxos(accountAddress)
-        // );
-
-        // console.log("Account Address: ", accountAddress);
-        // console.log("AccountUTxOs: ", accountUTxOs);
 
         return {
             txHash: createAccountResult,

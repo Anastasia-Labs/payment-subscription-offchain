@@ -5,7 +5,7 @@ import { deployRefScriptTest } from "./deployRefScriptsTest.js";
 
 test<LucidContext>("Test 10 - Deploy Script", async () => {
     const program = Effect.gen(function* ($) {
-        const context = yield* makeLucidContext("Preprod");
+        const context = yield* makeLucidContext();
         const result = yield* deployRefScriptTest(context, "spendService");
         return result;
     });

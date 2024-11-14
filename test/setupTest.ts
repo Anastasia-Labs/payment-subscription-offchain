@@ -11,6 +11,14 @@ import { createServiceTestCase } from "./createServiceTestCase";
 import { readMultiValidators } from "./compiled/validators";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
 import { findCip68TokenNames } from "../src/core/utils/assets";
+import {
+  accountPolicyId,
+  accountValidator,
+  paymentValidator,
+  servicePolicyId,
+  serviceValidator,
+} from "./common/constants";
+import { initiateSubscriptionTestCase } from "./initiateSubscriptionTestCase";
 
 export type SetupResult = {
   context: LucidContext;
@@ -25,31 +33,12 @@ export type SetupResult = {
   currentTime: bigint;
 };
 
-const serviceValidator = readMultiValidators(blueprint, false, []);
-const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
-
-const accountValidator = readMultiValidators(blueprint, false, []);
-const accountPolicyId = mintingPolicyToId(accountValidator.mintAccount);
-
-const paymentValidator = readMultiValidators(blueprint, true, [
-  servicePolicyId,
-  accountPolicyId,
-]);
-const paymentPolicyId = mintingPolicyToId(
-  paymentValidator.mintPayment,
-);
-
-const paymentScript = {
-  spending: paymentValidator.spendPayment.script,
-  minting: paymentValidator.mintPayment.script,
-  staking: "",
-};
-
 export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
   return Effect.gen(function* (_) {
-    const { lucid, users, emulator } = yield* makeLucidContext("Preprod");
+    const { lucid, users, emulator } = yield* makeLucidContext();
     const network = lucid.config().network;
     let currentTime: bigint;
+    console.log("network>>>: \n", network);
 
     // If using emulator, perform necessary setup
     if (emulator && network === "Custom") {
@@ -126,6 +115,7 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
     const accountUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(accountAddress)
     );
+    console.log("accountUTxOs[1]>>>: \n", accountUTxOs);
 
     console.log("setupTest[1]>>>: \n");
     console.log("subscriberUTxOs[1]>>>: \n", subscriberUTxOs);

@@ -4,6 +4,7 @@ import {
   Data,
   LucidEvolution,
   RedeemerBuilder,
+  toUnit,
   TransactionError,
   TxSignBuilder,
 } from "@lucid-evolution/lucid";
@@ -11,6 +12,8 @@ import { ExtendPaymentConfig } from "../core/types.js";
 import { PaymentDatum, PaymentValidatorDatum } from "../core/contract.types.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
+import { tokenNameFromUTxO } from "../core/utils/assets.js";
+import { getPaymentValidatorDatum } from "./utils.js";
 
 export const extendSubscription = (
   lucid: LucidEvolution,
@@ -23,40 +26,71 @@ export const extendSubscription = (
 
     const validators = getMultiValidator(lucid, config.scripts);
 
-    const subscriberUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(subscriberAddress)
+    const paymentUTxOs = yield* Effect.promise(() =>
+      lucid.config().provider.getUtxos(validators.spendValAddress)
     );
 
-    if (!subscriberUTxOs || !subscriberUTxOs.length) {
-      console.error("No UTxO found at user address: " + subscriberAddress);
-    }
+    const payment_token_name = tokenNameFromUTxO(
+      paymentUTxOs,
+      config.payment_policy_Id,
+    );
 
-    const subscriberUTxO = yield* Effect.promise(() =>
-      lucid.utxoByUnit(
-        config.user_token,
-      )
+    const paymentNFT = toUnit(
+      config.payment_policy_Id,
+      payment_token_name, //tokenNameWithoutFunc,
     );
 
     const paymentUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
-        config.payment_token,
+        paymentNFT,
       )
     );
 
+    // const subscriberUTxOs = yield* Effect.promise(() =>
+    //   lucid.utxosAt(subscriberAddress)
+    // );
+
+    // if (!subscriberUTxOs || !subscriberUTxOs.length) {
+    //   console.error("No UTxO found at user address: " + subscriberAddress);
+    // }
+
+    const subscriberUTxO = yield* Effect.promise(() =>
+      lucid.utxoByUnit(
+        config.acc_user_token,
+      )
+    );
+
+    const paymentData = yield* Effect.promise(
+      () => (getPaymentValidatorDatum(paymentUTxOs)),
+    );
+
+    const extension_intervals = BigInt(1); // Number of intervals to extend
+    const interval_amount = paymentData[0].interval_amount *
+      extension_intervals;
+    const newTotalSubscriptionFee = paymentData[0].total_subscription_fee +
+      (interval_amount * extension_intervals);
+    const newNumIntervals = paymentData[0].num_intervals +
+      extension_intervals;
+    const extension_period = paymentData[0].interval_length *
+      extension_intervals;
+
+    const newSubscriptionEnd = paymentData[0].subscription_end +
+      extension_period;
+
     const paymentDatum: PaymentDatum = {
-      service_nft_tn: config.service_nft_tn,
-      account_nft_tn: config.account_nft_tn,
-      subscription_fee: config.subscription_fee,
-      total_subscription_fee: config.total_subscription_fee,
-      subscription_start: config.subscription_start,
-      subscription_end: config.subscription_end,
-      interval_length: config.interval_length,
-      interval_amount: config.interval_amount,
-      num_intervals: config.num_intervals,
-      last_claimed: config.last_claimed,
-      penalty_fee: config.penalty_fee,
-      penalty_fee_qty: config.penalty_fee_qty,
-      minimum_ada: config.minimum_ada,
+      service_nft_tn: paymentData[0].service_nft_tn,
+      account_nft_tn: paymentData[0].account_nft_tn,
+      subscription_fee: paymentData[0].subscription_fee,
+      total_subscription_fee: newTotalSubscriptionFee,
+      subscription_start: paymentData[0].subscription_start,
+      subscription_end: newSubscriptionEnd,
+      interval_length: paymentData[0].interval_length,
+      interval_amount: interval_amount,
+      num_intervals: newNumIntervals,
+      last_claimed: paymentData[0].last_claimed,
+      penalty_fee: paymentData[0].penalty_fee,
+      penalty_fee_qty: paymentData[0].penalty_fee_qty,
+      minimum_ada: paymentData[0].minimum_ada,
     };
 
     const allDatums: PaymentValidatorDatum = {
@@ -67,8 +101,6 @@ export const extendSubscription = (
       allDatums,
       PaymentValidatorDatum,
     );
-
-    // const wrappedRedeemer = Data.to(new Constr(1, [new Constr(0, [])]));
 
     const extendRedeemer: RedeemerBuilder = {
       kind: "selected",
@@ -94,16 +126,16 @@ export const extendSubscription = (
       .newTx()
       .readFrom(config.serviceUTxO)
       .collectFrom([subscriberUTxO]) // subscriber user nft utxo
-      .collectFrom(config.paymentUTxO, extendRedeemer) // subscriber utxos
+      .collectFrom(paymentUTxOs, extendRedeemer) // subscriber utxos
       .pay.ToAddress(subscriberAddress, {
-        [config.user_token]: 1n,
+        [config.acc_user_token]: 1n,
       })
       .pay.ToAddressWithData(validators.spendValAddress, {
         kind: "inline",
         value: paymentValDatum,
       }, {
-        lovelace: config.total_subscription_fee,
-        [config.payment_token]: 1n,
+        lovelace: newTotalSubscriptionFee,
+        [paymentNFT]: 1n,
       })
       .attach.SpendingValidator(validators.spendValidator)
       .completeProgram();

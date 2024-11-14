@@ -5,19 +5,17 @@ import {
     LucidEvolution,
     RedeemerBuilder,
     selectUTxOs,
+    toUnit,
     TransactionError,
     TxBuilderError,
     TxSignBuilder,
 } from "@lucid-evolution/lucid";
 import { getMultiValidator } from "../core/utils/index.js";
-import { UnsubscribeConfig, UpdateServiceConfig } from "../core/types.js";
-import {
-    PaymentValidatorDatum,
-    PenaltyDatum,
-    ServiceDatum,
-} from "../core/contract.types.js";
+import { UnsubscribeConfig } from "../core/types.js";
+import { PaymentValidatorDatum, PenaltyDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
-import { extractTokens } from "./utils.js";
+import { getPaymentValidatorDatum } from "./utils.js";
+import { tokenNameFromUTxO } from "../core/utils/assets.js";
 
 export const unsubscribeService = (
     lucid: LucidEvolution,
@@ -27,16 +25,27 @@ export const unsubscribeService = (
         const subscriberAddress: Address = yield* Effect.promise(() =>
             lucid.wallet().address()
         );
-        // const serviceValidators = getMultiValidator(
-        //     lucid,
-        //     config.service_scripts,
-        // );
         const paymentValidators = getMultiValidator(
             lucid,
             config.payment_scripts,
         );
-        // const serviceValAddress = serviceValidators.spendValAddress;
         const paymentAddress = paymentValidators.spendValAddress;
+
+        const paymentUTxOs = yield* Effect.promise(() =>
+            lucid.config().provider.getUtxos(paymentAddress)
+        );
+
+        console.log("Payment UTxOs>>>: \n", paymentUTxOs);
+
+        const payment_token_name = tokenNameFromUTxO(
+            paymentUTxOs,
+            config.payment_policy_Id,
+        );
+
+        const paymentNFT = toUnit(
+            config.payment_policy_Id,
+            payment_token_name,
+        );
 
         const subscriberUTxOs = yield* Effect.promise(() =>
             lucid.utxosAt(subscriberAddress)
@@ -50,7 +59,7 @@ export const unsubscribeService = (
 
         const paymentUTxO = yield* Effect.promise(() =>
             lucid.utxoByUnit(
-                config.payment_token,
+                paymentNFT,
             )
         );
 
@@ -83,11 +92,29 @@ export const unsubscribeService = (
             );
         }
 
+        const paymentData = yield* Effect.promise(
+            () => (getPaymentValidatorDatum(paymentUTxOs)),
+        );
+
+        const total_subscription_time = BigInt(
+            paymentData[0].subscription_end - paymentData[0].subscription_start,
+        );
+
+        const time_elapsed = BigInt(
+            Math.min(
+                Number(config.currentTime - paymentData[0].subscription_start),
+                Number(total_subscription_time),
+            ),
+        );
+
+        const refund_amount = paymentData[0].total_subscription_fee *
+            (total_subscription_time - time_elapsed) / total_subscription_time;
+
         const penaltyDatum: PenaltyDatum = {
             service_nft_tn: config.service_nft_tn,
             account_nft_tn: config.account_nft_tn,
-            penalty_fee: config.penalty_fee,
-            penalty_fee_qty: config.penalty_fee_qty,
+            penalty_fee: paymentData[0].penalty_fee,
+            penalty_fee_qty: paymentData[0].penalty_fee_qty,
         };
 
         const allDatums: PaymentValidatorDatum = {
@@ -132,7 +159,7 @@ export const unsubscribeService = (
 
         console.log(
             "Refund >>>: \n",
-            config.refund_amount,
+            refund_amount,
         );
 
         const tx = yield* lucid
@@ -141,16 +168,16 @@ export const unsubscribeService = (
             .readFrom([serviceUTxO])
             .collectFrom([paymentUTxO], unsubscribeRedeemer)
             .pay.ToAddress(subscriberAddress, {
-                lovelace: config.refund_amount,
+                lovelace: refund_amount,
                 [config.user_token]: 1n,
             })
             .pay.ToAddressWithData(paymentAddress, {
                 kind: "inline",
                 value: penaltyValDatum,
             }, {
-                [config.payment_token]: 1n,
+                [paymentNFT]: 1n,
             })
-            .validFrom(Number(config.subscription_start)) // 1 minute
+            .validFrom(Number(paymentData[0].subscription_start)) // 1 minute
             .attach.SpendingValidator(paymentValidators.spendValidator)
             .completeProgram();
 

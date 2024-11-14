@@ -1,7 +1,6 @@
 import {
   Address,
   Assets,
-  MintingPolicy,
   OutRef,
   PolicyId,
   Script,
@@ -62,14 +61,6 @@ export type UpdateServiceConfig = {
 };
 
 export type RemoveServiceConfig = {
-  service_fee: AssetClassD;
-  service_fee_qty: bigint;
-  penalty_fee: AssetClassD;
-  penalty_fee_qty: bigint;
-  interval_length: bigint;
-  num_intervals: bigint;
-  minimum_ada: bigint;
-  is_active: boolean;
   service_cs: PolicyId;
   scripts: {
     spending: CborHex;
@@ -90,9 +81,12 @@ export type CreateAccountConfig = {
 };
 
 export type UpdateAccountConfig = {
-  new_email: string;
-  new_phone: string;
-  account_created: bigint;
+  // new_email: string;
+  // new_phone: string;
+  // account_created: bigint;
+  account_policy_Id: string;
+  account_ref_name: string;
+  account_usr_name: string;
   scripts: {
     spending: CborHex;
     minting: CborHex;
@@ -103,10 +97,6 @@ export type UpdateAccountConfig = {
 // TODO: Remove the tokens and replace with similar part of tokenname.
 // TODO: Remove all datum fields and query from the UTxO
 export type RemoveAccountConfig = {
-  // user_token: Unit;
-  // ref_token: Unit;
-  // subscriberUTxOs: UTxO[];
-  // accountUTxOs: UTxO[];
   scripts: {
     spending: CborHex;
     minting: CborHex;
@@ -117,8 +107,6 @@ export type RemoveAccountConfig = {
 export type InitPaymentConfig = {
   service_nft_tn: string; //AssetName,
   account_nft_tn: string;
-  account_policyId: string;
-  service_policyId: string;
   subscription_fee: AssetClassD;
   total_subscription_fee: bigint;
   subscription_start: bigint;
@@ -130,67 +118,32 @@ export type InitPaymentConfig = {
   penalty_fee: AssetClassD;
   penalty_fee_qty: bigint;
   minimum_ada: bigint;
+  service_ref_token: Unit;
+  account_user_token: Unit;
   scripts: {
     spending: CborHex;
     minting: CborHex;
     staking: CborHex;
   };
-  // subscriberUTxO: UTxO[];
-  // serviceUTxO: UTxO[];
-  service_user_token: Unit;
-  service_ref_token: Unit;
-  account_user_token: Unit;
-  account_ref_token: Unit;
 };
 
 export type ExtendPaymentConfig = {
-  service_nft_tn: string; //AssetName,
-  account_nft_tn: string;
-  account_policyId: string;
-  service_policyId: string;
-  subscription_fee: AssetClassD;
-  total_subscription_fee: bigint;
-  subscription_start: bigint;
-  subscription_end: bigint;
-  interval_length: bigint;
-  interval_amount: bigint;
-  num_intervals: bigint;
-  last_claimed: bigint;
-  penalty_fee: AssetClassD;
-  penalty_fee_qty: bigint;
-  minimum_ada: bigint;
-  user_token: Unit;
-  service_ref_token: Unit;
-  payment_token: Unit;
+  payment_policy_Id: string;
+  acc_user_token: Unit;
+  subscriberUTxOs: UTxO[];
+  serviceUTxO: UTxO[];
   scripts: {
     spending: CborHex;
     minting: CborHex;
     staking: CborHex;
   };
-  subscriberUTxO: UTxO[];
-  serviceUTxO: UTxO[];
-  paymentUTxO: UTxO[];
 };
 
 export type MerchantWithdrawConfig = {
-  service_nft_tn: string; //AssetName,
-  account_nft_tn: string;
-  account_policyId: string;
-  service_policyId: string;
-  subscription_fee: AssetClassD;
-  total_subscription_fee: bigint;
-  subscription_start: bigint;
-  subscription_end: bigint;
-  interval_length: bigint;
-  interval_amount: bigint;
-  num_intervals: bigint;
   last_claimed: bigint;
-  penalty_fee: AssetClassD;
-  penalty_fee_qty: bigint;
-  minimum_ada: bigint;
+  payment_policy_Id: string;
   merchant_token: Unit;
   service_ref_token: Unit;
-  payment_token: Unit;
   serviceUTxOs: UTxO[];
   scripts: {
     spending: CborHex;
@@ -202,15 +155,10 @@ export type MerchantWithdrawConfig = {
 export type UnsubscribeConfig = {
   service_nft_tn: string; //AssetName,
   account_nft_tn: string;
-  subscription_start: bigint;
-  service_fee: AssetClassD;
-  service_fee_qty: bigint;
-  penalty_fee: AssetClassD;
-  penalty_fee_qty: bigint;
-  refund_amount: bigint;
+  currentTime: bigint;
   user_token: Unit;
   ref_token: Unit;
-  payment_token: Unit;
+  payment_policy_Id: string;
   payment_scripts: {
     spending: CborHex;
     minting: CborHex;
@@ -218,33 +166,12 @@ export type UnsubscribeConfig = {
   };
 };
 
-export type CreatePenaltyConfig = {
-  service_nft_tn: string; //AssetName,
-  account_nft_tn: string;
-  penalty_fee: AssetClassD;
-  penalty_fee_qty: bigint;
-  subscriber_token: Unit;
-  payment_token: Unit;
-  service_ref_nft: Unit;
-  scripts: {
-    spending: CborHex;
-    minting: CborHex;
-    staking: CborHex;
-  };
-  // subscriberUTxO: UTxO[];
-  // paymentUTxO: UTxO[];
-};
-
 export type WithdrawPenaltyConfig = {
-  service_nft_tn: string; //AssetName,
-  account_nft_tn: string;
-  penalty_fee: AssetClassD;
-  penalty_fee_qty: bigint;
   merchant_token: Unit;
   service_ref_token: Unit;
-  payment_token: Unit;
   merchantUTxOs: UTxO[];
   serviceUTxOs: UTxO[];
+  payment_policy_Id: string;
   scripts: {
     spending: CborHex;
     minting: CborHex;
@@ -253,25 +180,9 @@ export type WithdrawPenaltyConfig = {
 };
 
 export type SubscriberWithdrawConfig = {
-  // service_nft_tn: string; //AssetName,
-  // account_nft_tn: string;
-  // subscription_fee: AssetClassD;
-  // total_subscription_fee: bigint;
-  // subscription_start: bigint;
-  // subscription_end: bigint;
-  // interval_length: bigint;
-  // interval_amount: bigint;
-  // num_intervals: bigint;
-  // last_claimed: bigint;
-  // penalty_fee: AssetClassD;
-  // penalty_fee_qty: bigint;
-  // minimum_ada: bigint;
-  // // is_active: boolean;
+  service_ref_name: string;
   subscriber_token: Unit;
-  // service_ref_token: Unit;
-  payment_token: Unit;
-  paymentDatum: PaymentDatum;
-  paymentUTxOs: UTxO[];
+  payment_policy_Id: string;
   serviceUTxOs: UTxO[];
   scripts: {
     spending: CborHex;

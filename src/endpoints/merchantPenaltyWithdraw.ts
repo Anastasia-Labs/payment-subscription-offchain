@@ -4,13 +4,16 @@ import {
   Data,
   LucidEvolution,
   RedeemerBuilder,
+  toUnit,
   TransactionError,
   TxBuilderError,
   TxSignBuilder,
 } from "@lucid-evolution/lucid";
 import { WithdrawPenaltyConfig } from "../core/types.js";
-import { getMultiValidator } from "../core/index.js";
+import { getMultiValidator, PaymentValidatorDatum } from "../core/index.js";
 import { Effect } from "effect";
+import { getPenaltyDatum } from "./utils.js";
+import { tokenNameFromUTxO } from "../core/utils/assets.js";
 
 export const merchantPenaltyWithdraw = (
   lucid: LucidEvolution,
@@ -22,6 +25,57 @@ export const merchantPenaltyWithdraw = (
     );
 
     const validators = getMultiValidator(lucid, config.scripts);
+
+    const paymentAddress = validators.spendValAddress;
+
+    const paymentUTxOs = yield* Effect.promise(() =>
+      lucid.config().provider.getUtxos(paymentAddress)
+    );
+
+    const penaltyUTxOs = paymentUTxOs.filter((utxo) => {
+      if (!utxo.datum) return false;
+      console.log(`UTxO Datum (raw):`, utxo.datum);
+
+      try {
+        const validatorDatum = Data.from<PaymentValidatorDatum>(
+          utxo.datum,
+          PaymentValidatorDatum,
+        );
+        console.log("Parsed validator datum:", validatorDatum);
+
+        // Check the structure of the datum
+        if (validatorDatum && typeof validatorDatum === "object") {
+          // Check if it's a Penalty variant
+          if (
+            "Penalty" in validatorDatum && Array.isArray(validatorDatum.Penalty)
+          ) {
+            const datum = validatorDatum.Penalty[0];
+            console.log("Found Penalty datum:", datum);
+            return datum.penalty_fee_qty > 0;
+          }
+        }
+        console.log("Not a Penalty datum");
+        return false;
+      } catch (error) {
+        console.error("Error parsing datum:", error);
+        return false;
+      }
+    });
+
+    const payment_token_name = tokenNameFromUTxO(
+      penaltyUTxOs,
+      config.payment_policy_Id,
+    );
+
+    const paymentNFT = toUnit(
+      config.payment_policy_Id,
+      payment_token_name,
+    );
+
+    const penaltyData = yield* Effect.promise(
+      () => (getPenaltyDatum(penaltyUTxOs)),
+    );
+    console.log(`penaltyFee: ${penaltyData[0].penalty_fee_qty}`);
 
     const merchantUTxOs = yield* Effect.promise(() =>
       lucid.utxosAtWithUnit(
@@ -44,9 +98,9 @@ export const merchantPenaltyWithdraw = (
       )
     );
 
-    const paymentUTxO = yield* Effect.promise(() =>
+    const penaltyUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
-        config.payment_token,
+        paymentNFT,
       )
     );
 
@@ -70,7 +124,7 @@ export const merchantPenaltyWithdraw = (
         );
       },
       // Specify the inputs relevant to the redeemer
-      inputs: [merchantUTxO, paymentUTxO],
+      inputs: [merchantUTxO, penaltyUTxO],
     };
 
     const terminateSubscriptionRedeemer: RedeemerBuilder = {
@@ -85,20 +139,20 @@ export const merchantPenaltyWithdraw = (
         );
       },
       // Specify the inputs relevant to the redeemer
-      inputs: [merchantUTxO, paymentUTxO],
+      inputs: [merchantUTxO, penaltyUTxO],
     };
 
     const tx = yield* lucid
       .newTx()
       .collectFrom(merchantUTxOs)
-      .collectFrom([paymentUTxO], merchantWithdrawRedeemer) // subscriber utxos
+      .collectFrom([penaltyUTxO], merchantWithdrawRedeemer) // subscriber utxos
       .readFrom([serviceUTxO])
       .mintAssets(
-        { [config.payment_token]: -1n },
+        { [paymentNFT]: -1n },
         terminateSubscriptionRedeemer,
       )
       .pay.ToAddress(merchantAddress, {
-        lovelace: config.penalty_fee_qty,
+        lovelace: penaltyData[0].penalty_fee_qty,
         [config.merchant_token]: 1n,
       })
       .attach.MintingPolicy(validators.mintValidator)
