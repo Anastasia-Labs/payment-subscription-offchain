@@ -5,16 +5,13 @@ import {
     getAddressDetails,
     LucidEvolution,
     mintingPolicyToId,
-    Script,
     scriptFromNative,
-    SpendingValidator,
     toUnit,
     TransactionError,
     TxSignBuilder,
     unixTimeToSlot,
-    validatorToAddress,
 } from "@lucid-evolution/lucid";
-import { Deploy, DeployRefScriptsConfig, Result } from "../core/types.js";
+import { DeployRefScriptsConfig, Result } from "../core/types.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
 
@@ -25,6 +22,13 @@ export const deployRefScripts = (
     Effect.gen(function* () {
         const alwaysFailsVal = getMultiValidator(lucid, config.alwaysFails);
         const validators = getMultiValidator(lucid, config.scripts);
+
+        // TODO: Calculate the script size to know how many scripts to deploy.
+        // console.log(
+        //     "validators: ",
+        //     validators.spendValidator.script.length / 2,
+        // );
+
         const network = lucid.config().network;
         const providerAddress: Address = yield* Effect.promise(() =>
             lucid.wallet().address()
@@ -46,10 +50,6 @@ export const deployRefScripts = (
         const alwaysFailsUTxOs = yield* Effect.promise(() =>
             lucid.config().provider.getUtxos(alwaysFailsVal.spendValAddress)
         );
-        console.log("Address: ", providerAddress);
-        console.log("providerUTxOs: ", providerUTxOs);
-        console.log("AlwaysFails Address: ", alwaysFailsVal.spendValAddress);
-        console.log("AlwaysFailsUTxOs: ", alwaysFailsUTxOs);
 
         const deployKey = getAddressDetails(providerAddress)
             .paymentCredential?.hash;

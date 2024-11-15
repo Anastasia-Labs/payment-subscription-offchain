@@ -1,6 +1,5 @@
 import { removeService, RemoveServiceConfig } from "../src/index.js";
 import { Effect } from "effect";
-import { getServiceValidatorDatum } from "../src/endpoints/utils.js";
 import { SetupResult } from "./setupTest.js";
 import { servicePolicyId, serviceScript } from "./common/constants.js";
 
@@ -14,20 +13,8 @@ export const removeServiceTestCase = (
 ): Effect.Effect<RemoveServiceResult, Error, never> => {
   return Effect.gen(function* () {
     const {
-      context: { lucid, users, emulator },
-      serviceUTxOs,
+      context: { lucid, users },
     } = setupResult;
-
-    const serviceData = yield* Effect.promise(
-      () => (getServiceValidatorDatum(serviceUTxOs)),
-    );
-
-    if (!serviceData || serviceData.length === 0) {
-      throw new Error("serviceData is empty");
-    }
-    const serviceDatum = serviceData[0];
-
-    console.log("serviceData: ", serviceData[0]);
 
     lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
     const removeServiceConfig: RemoveServiceConfig = {

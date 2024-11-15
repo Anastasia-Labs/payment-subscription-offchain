@@ -72,7 +72,6 @@ export const subscriberWithdrawTestCase = (
             if (!utxo.datum) return false;
 
             const datum = Data.from<ServiceDatum>(utxo.datum, ServiceDatum);
-            console.log("datum.is_active: ", datum.is_active);
 
             return datum.is_active === false;
         });
@@ -92,11 +91,6 @@ export const subscriberWithdrawTestCase = (
             );
             const subscriberWithdrawSigned = yield* Effect.promise(() =>
                 subscriberWithdrawResult.sign.withWallet().complete()
-            );
-
-            console.log(
-                "subscriberWithdrawSigned Hash>>>: ",
-                subscriberWithdrawSigned,
             );
 
             const subscriberWithdrawTxHash = yield* Effect.promise(() =>

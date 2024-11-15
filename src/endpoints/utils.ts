@@ -77,10 +77,10 @@ export const logWalletUTxOs = (
 
         // Perform the side-effect of logging
         yield* $(Effect.sync(() => {
-            console.log(
+            Effect.log(
                 `------------------------- ${msg} -------------------------`,
             );
-            console.log(utxos);
+            Effect.log(utxos);
         }));
         // Return the UTxOs
         return utxos;
@@ -109,8 +109,6 @@ export const getServiceValidatorDatum = async (
     utxos: UTxO[],
 ): Promise<ServiceDatum[]> => {
     return utxos.flatMap((utxo, index) => {
-        console.log(`Processing UTxO ${index}:`, utxo);
-
         if (!utxo.datum) {
             console.error(`UTxO ${index} has no datum.`);
             return [];
@@ -123,10 +121,6 @@ export const getServiceValidatorDatum = async (
             );
 
             if (result.type == "right") {
-                console.log(
-                    `Successfully parsed datum for UTxO ${index}:`,
-                    result.value,
-                );
                 return [result.value]; // Return as array to match flatMap expectations
             } else {
                 console.error(

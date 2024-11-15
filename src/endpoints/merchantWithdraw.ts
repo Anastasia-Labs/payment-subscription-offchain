@@ -121,9 +121,6 @@ export const merchantWithdraw = (
       inputs: [merchantUTxO, paymentUTxO],
     };
 
-    console.log("Subscription Start>>>: \n", paymentData[0].subscription_start);
-    console.log("Last Claimed>>>: \n", config.last_claimed);
-
     const tx = yield* lucid
       .newTx()
       .collectFrom(merchantUTxOs)

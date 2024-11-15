@@ -45,8 +45,6 @@ export const initiateSubscription = (
       ["lovelace"]: 2000000n,
     });
 
-    console.log("selectedUTxOs UTxOs: ", selectedUTxOs);
-    console.log("subscriberUTxOs UTxOs: ", subscriberUTxOs);
     const tokenName = generateUniqueAssetName(selectedUTxOs[0], "");
 
     const initiateSubscriptionRedeemer: RedeemerBuilder = {

@@ -21,14 +21,14 @@
   "devDependencies": {
     "@noble/hashes": "^1.5.0",
     "@sinclair/typebox": "^0.25.24",
-    "@types/node": "^20.16.5",
-    "@typescript-eslint/eslint-plugin": "^5.62.0",
-    "@typescript-eslint/parser": "^5.62.0",
-    "eslint": "^8.57.1",
+    "@types/node": "^20.17.6",
+    "@typescript-eslint/eslint-plugin": "^8.14.0",
+    "@typescript-eslint/parser": "^8.14.0",
+    "eslint": "^9.14.0",
     "eslint-config-prettier": "^8.10.0",
     "ts-node": "^10.9.2",
     "tsup": "^6.7.0",
-    "typescript": "^5.6.2",
+    "typescript": "^5.6.3",
     "vitest": "0.34.6"
   },
   "directories": {
@@ -37,7 +37,7 @@
   "dependencies": {
     "@lucid-evolution/lucid": "0.3.44",
     "@noble/hashes": "^1.5.0",
-    "effect": "^3.8.2"
+    "effect": "^3.10.15"
   },
   "pnpm": {
     "overrides": {

@@ -38,10 +38,8 @@ const findCip68TokenNames = (
                 const tokenName = assetName.slice(policyId.length);
                 if (tokenName.startsWith(assetNameLabels.prefix100)) {
                     refTokenName = tokenName;
-                    console.log(`UTxOs refTokenName: ${refTokenName}`);
                 } else if (tokenName.startsWith(assetNameLabels.prefix222)) {
                     userTokenName = tokenName;
-                    console.log(`UTxOs userTokenName: ${userTokenName}`);
                 }
             }
         }

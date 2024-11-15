@@ -17,13 +17,11 @@ export const removeAccountTestCase = ({
 }: LucidContext): Effect.Effect<RemoveAccountResult, Error, never> => {
   return Effect.gen(function* () {
     const network = lucid.config().network;
-    console.log("network :>> ", network);
     lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
-    // let accountAddress: Address;
 
     const accountAddress: Address = validatorToAddress(
       network,
-      accountValidator.mintAccount
+      accountValidator.mintAccount,
     );
     if (emulator && lucid.config().network === "Custom") {
       const createAccountResult = yield* createAccountTestCase({
@@ -35,45 +33,21 @@ export const removeAccountTestCase = ({
       expect(createAccountResult).toBeDefined();
       expect(typeof createAccountResult.txHash).toBe("string"); // Assuming the createAccountResult is a transaction hash
       yield* Effect.sync(() => emulator.awaitBlock(10));
-    } else {
-      // accountAddress = validatorToAddress(
-      //     "Preprod",
-      //     accountValidator.mintAccount,
-      // );
     }
-    // console.log("Provider: ", lucid.config().provider);
-    const accountUTxOs = yield* Effect.promise(() =>
-      lucid.config().provider.getUtxos(accountAddress)
-    );
-
-    const subscriberAddress: Address = yield* Effect.promise(() =>
-      lucid.wallet().address()
-    );
-
-    const subscriberUTxOs = yield* Effect.promise(() =>
-      lucid.config().provider.getUtxos(subscriberAddress)
-    );
-
-    // console.log("Address: ", subscriberAddress);
-    // console.log("subscriberUTxOs: ", subscriberUTxOs);
-    // console.log("Account Address: ", accountAddress);
-    // console.log("AccountUTxOs: ", accountUTxOs);
 
     const removeAccountConfig: RemoveAccountConfig = {
       scripts: accountScript,
     };
 
-    console.log("Provider: ", lucid.config().provider);
     const removeAccountFlow = Effect.gen(function* (_) {
       const removeAccountResult = yield* removeAccount(
         lucid,
-        removeAccountConfig
+        removeAccountConfig,
       );
       const removeAccountSigned = yield* Effect.promise(() =>
         removeAccountResult.sign.withWallet().complete()
       );
 
-      // console.log("CBOR: ", removeAccountResult.toCBOR());
       const removeAccountHash = yield* Effect.promise(() =>
         removeAccountSigned.submit()
       );
@@ -87,7 +61,7 @@ export const removeAccountTestCase = ({
       ),
       Effect.map((hash) => {
         return hash;
-      })
+      }),
     );
 
     return {

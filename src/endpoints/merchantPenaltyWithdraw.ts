@@ -34,14 +34,12 @@ export const merchantPenaltyWithdraw = (
 
     const penaltyUTxOs = paymentUTxOs.filter((utxo) => {
       if (!utxo.datum) return false;
-      console.log(`UTxO Datum (raw):`, utxo.datum);
 
       try {
         const validatorDatum = Data.from<PaymentValidatorDatum>(
           utxo.datum,
           PaymentValidatorDatum,
         );
-        console.log("Parsed validator datum:", validatorDatum);
 
         // Check the structure of the datum
         if (validatorDatum && typeof validatorDatum === "object") {
@@ -50,11 +48,9 @@ export const merchantPenaltyWithdraw = (
             "Penalty" in validatorDatum && Array.isArray(validatorDatum.Penalty)
           ) {
             const datum = validatorDatum.Penalty[0];
-            console.log("Found Penalty datum:", datum);
             return datum.penalty_fee_qty > 0;
           }
         }
-        console.log("Not a Penalty datum");
         return false;
       } catch (error) {
         console.error("Error parsing datum:", error);
@@ -75,7 +71,6 @@ export const merchantPenaltyWithdraw = (
     const penaltyData = yield* Effect.promise(
       () => (getPenaltyDatum(penaltyUTxOs)),
     );
-    console.log(`penaltyFee: ${penaltyData[0].penalty_fee_qty}`);
 
     const merchantUTxOs = yield* Effect.promise(() =>
       lucid.utxosAtWithUnit(

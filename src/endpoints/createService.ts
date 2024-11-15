@@ -70,8 +70,6 @@ export const createService = (
       inputs: [selectedUTxOs[0]],
     };
 
-    // console.log("CreateServiceRedeemer: ", redeemer);
-
     const currDatum: ServiceDatum = {
       service_fee: ADA,
       service_fee_qty: config.service_fee_qty,
@@ -99,11 +97,6 @@ export const createService = (
       [refToken]: 1n,
       [userToken]: 1n,
     };
-
-    // console.log("merchantAddress: ", merchantAddress);
-    // console.log("merchantUTxOs: ", merchantUTxOs);
-    // console.log("Service Address: ", validators.mintValAddress);
-    // console.log("selectedUTxOs: ", selectedUTxOs);
 
     const tx = yield* lucid
       .newTx()

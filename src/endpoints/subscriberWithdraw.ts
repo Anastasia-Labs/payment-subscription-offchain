@@ -60,7 +60,6 @@ export const subscriberWithdraw = (
 
     const inActivePaymentUTxOs = paymentUTxOs.filter((utxo) => {
       if (!utxo.datum) return false;
-      console.log(`UTxO Datum (raw):`, utxo.datum);
 
       const validatorDatum = Data.from<PaymentValidatorDatum>(
         utxo.datum,

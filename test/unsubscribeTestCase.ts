@@ -39,8 +39,6 @@ export const unsubscribeTestCase = (
             serviceRefName,
         );
 
-        console.log("findCip68TokenNames Account>>>: \n");
-
         const accUsrNft = toUnit(
             accountPolicyId,
             accUserName,
@@ -64,11 +62,6 @@ export const unsubscribeTestCase = (
             );
             const updateServiceSigned = yield* Effect.promise(() =>
                 unsubscribeResult.sign.withWallet().complete()
-            );
-
-            console.log(
-                "updateServiceSigned Hash>>>: ",
-                updateServiceSigned,
             );
 
             const updateServiceTxHash = yield* Effect.promise(() =>

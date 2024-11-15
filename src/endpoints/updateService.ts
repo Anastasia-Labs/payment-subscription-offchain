@@ -38,7 +38,6 @@ export const updateService = (
             if (!utxo.datum) return false;
 
             const datum = Data.from<ServiceDatum>(utxo.datum, ServiceDatum);
-            console.log("datum.is_active: ", datum.is_active);
 
             return datum.is_active === true;
         });
@@ -50,17 +49,11 @@ export const updateService = (
             console.error("No UTxO found at user address: " + merchantAddress);
         }
 
-        console.log("merchantUTxOs: ", merchantUTxOs);
-        console.log("serviceUTxOs: ", allServiceUTxOs);
-
         let { user_token, ref_token } = extractTokens(
             servicePolicyId,
             activeServiceUTxOs,
             merchantUTxOs,
         );
-
-        console.log("user_token: ", user_token);
-        console.log("ref_token: ", ref_token);
 
         const serviceUTxO = yield* Effect.promise(() =>
             lucid.utxoByUnit(

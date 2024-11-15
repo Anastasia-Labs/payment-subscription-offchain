@@ -36,7 +36,6 @@ export const updateServiceTestCase = (
       if (!utxo.datum) return false;
 
       const datum = Data.from<ServiceDatum>(utxo.datum, ServiceDatum);
-      console.log("datum.is_active: ", datum.is_active);
 
       return datum.is_active === true;
     });
@@ -44,10 +43,6 @@ export const updateServiceTestCase = (
     const merchantUTxOs = yield* Effect.promise(() =>
       lucid.config().provider.getUtxos(merchantAddress)
     );
-
-    console.log("merchantAddress: ", merchantAddress);
-    console.log("merchantUTxOs: ", merchantUTxOs);
-    console.log("serviceUTxOs: ", serviceUTxOs);
 
     const serviceData = yield* Effect.promise(
       () => (getServiceValidatorDatum(activeServiceUTxOs)),

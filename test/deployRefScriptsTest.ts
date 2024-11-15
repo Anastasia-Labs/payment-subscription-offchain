@@ -1,12 +1,7 @@
 import {
-    Address,
     deployRefScripts,
     DeployRefScriptsConfig,
-    mintingPolicyToId,
     REF_SCRIPT_TOKEN_NAMES,
-    toUnit,
-    Unit,
-    UTxO,
     validatorToAddress,
 } from "../src/index.js";
 import { readMultiValidators, Validators } from "./compiled/validators.js";
@@ -40,7 +35,6 @@ export const deployRefScriptTest = (
 
         const validatorKey: keyof Validators = validatorTag; // or "mintPayment" if you want the minting policy
         const tokenName: string = REF_SCRIPT_TOKEN_NAMES[validatorKey];
-        console.log("tokenName: ", tokenName);
 
         const deployingScript = {
             spending: validators.spendPayment.script,
@@ -71,9 +65,6 @@ export const deployRefScriptTest = (
             lucid.config().provider.getUtxos(alwaysFailsaddress)
         );
 
-        console.log("AlwaysFails Address Start: ", alwaysFailsaddress);
-        console.log("alwaysFailsUTxOs Start: ", alwaysFailsUTxOs);
-
         const deployRefScriptsFlow = Effect.gen(function* (_) {
             const deployRefScriptsResult = yield* deployRefScripts(
                 lucid,
@@ -85,7 +76,15 @@ export const deployRefScriptTest = (
             const deployRefScriptsHash = yield* Effect.promise(() =>
                 deployRefScriptsSigned.submit()
             );
-
+            if (emulator) {
+                yield* Effect.promise(() =>
+                    emulator.awaitTx(deployRefScriptsHash)
+                );
+            } else {
+                yield* Effect.promise(() =>
+                    lucid.awaitTx(deployRefScriptsHash)
+                );
+            }
             return deployRefScriptsHash;
         });
 
@@ -102,30 +101,30 @@ export const deployRefScriptTest = (
         if (emulator) {
             yield* Effect.sync(() => emulator.awaitBlock(20));
         }
-        // const subscriberAddress: Address = yield* Effect.promise(() =>
-        //     lucid.wallet().address()
-        // );
-        // const subscriberUTxOs = yield* Effect.promise(() =>
-        //     lucid.utxosAt(subscriberAddress)
-        // );
-
-        // const network = lucid.config().network;
-        // const alwaysFailsaddress = validatorToAddress(
-        //     network,
-        //     validators.alwaysFails,
-        // );
-
-        // const alwaysFailsUTxOs = yield* Effect.promise(() =>
-        //     lucid.config().provider.getUtxos(alwaysFailsaddress)
-        // );
-
-        // console.log("AlwaysFails Address Done: ", alwaysFailsaddress);
-        // console.log("alwaysFailsUTxOs Done: ", alwaysFailsUTxOs);
-
-        if (emulator) {
-            yield* Effect.sync(() => emulator.awaitBlock(100));
-        }
 
         return { txHash: deployRefScriptsResult, deployConfig };
+    });
+};
+
+export const deployMultipleValidators = (
+    context: LucidContext,
+    validatorTags: ValidatorName[],
+): Effect.Effect<DeployRefScriptsResult[], Error, never> => {
+    return Effect.gen(function* () {
+        const results: DeployRefScriptsResult[] = [];
+
+        for (const tag of validatorTags) {
+            const result = yield* deployRefScriptTest(context, tag);
+            results.push(result);
+
+            // Add delay between deployments if not in emulator
+            if (!context.emulator) {
+                yield* Effect.promise(() =>
+                    new Promise((resolve) => setTimeout(resolve, 5000))
+                );
+            }
+        }
+
+        return results;
     });
 };

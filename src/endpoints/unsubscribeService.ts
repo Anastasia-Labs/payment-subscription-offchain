@@ -35,8 +35,6 @@ export const unsubscribeService = (
             lucid.config().provider.getUtxos(paymentAddress)
         );
 
-        console.log("Payment UTxOs>>>: \n", paymentUTxOs);
-
         const payment_token_name = tokenNameFromUTxO(
             paymentUTxOs,
             config.payment_policy_Id,
@@ -54,8 +52,6 @@ export const unsubscribeService = (
         const selectedUTxOs = selectUTxOs(subscriberUTxOs, {
             ["lovelace"]: 2000000n,
         });
-
-        console.log("selectedUTxOs UTxOs: ", selectedUTxOs);
 
         const paymentUTxO = yield* Effect.promise(() =>
             lucid.utxoByUnit(
@@ -147,20 +143,6 @@ export const unsubscribeService = (
             // Specify the inputs relevant to the redeemer
             inputs: [selectedUTxOs[0], paymentUTxO],
         };
-
-        console.log(
-            "Update Service Datum subscriberUTxO UTxOs>>>: \n",
-            subscriberUTxO,
-        );
-        console.log(
-            "Update Service Datum serviceUTxO UTxOs>>>: \n",
-            serviceUTxO,
-        );
-
-        console.log(
-            "Refund >>>: \n",
-            refund_amount,
-        );
 
         const tx = yield* lucid
             .newTx()

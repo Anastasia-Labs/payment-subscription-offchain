@@ -1,15 +1,8 @@
-import {
-  Address,
-  mintingPolicyToId,
-  UTxO,
-  validatorToAddress,
-} from "@lucid-evolution/lucid";
+import { Address, UTxO, validatorToAddress } from "@lucid-evolution/lucid";
 import { LucidContext, makeLucidContext } from "./service/lucidContext";
 import { Effect } from "effect";
 import { createAccountTestCase } from "./createAccountTestCase";
 import { createServiceTestCase } from "./createServiceTestCase";
-import { readMultiValidators } from "./compiled/validators";
-import blueprint from "./compiled/plutus.json" assert { type: "json" };
 import { findCip68TokenNames } from "../src/core/utils/assets";
 import {
   accountPolicyId,
@@ -18,7 +11,6 @@ import {
   servicePolicyId,
   serviceValidator,
 } from "./common/constants";
-import { initiateSubscriptionTestCase } from "./initiateSubscriptionTestCase";
 
 export type SetupResult = {
   context: LucidContext;
@@ -38,7 +30,6 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
     const { lucid, users, emulator } = yield* makeLucidContext();
     const network = lucid.config().network;
     let currentTime: bigint;
-    console.log("network>>>: \n", network);
 
     // If using emulator, perform necessary setup
     if (emulator && network === "Custom") {
@@ -83,18 +74,12 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
       lucid.utxosAt(serviceAddress)
     );
 
-    console.log("setupTest[0]>>>: \n");
-    console.log("merchantUTxOs[0][1]>>>: \n", merchantUTxOs);
     // Find CIP68 Token Names
     const { refTokenName: serviceRefName, userTokenName: serviceUserName } =
       findCip68TokenNames(
         [serviceUTxOs[0], merchantUTxOs[0]],
         servicePolicyId,
       );
-
-    // const merchantUTxOs = yield* Effect.promise(() =>
-    //   lucid.utxosAt(users.merchant.address)
-    // );
 
     lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
     const subscriberAddress: Address = yield* Effect.promise(() =>
@@ -115,10 +100,6 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
     const accountUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(accountAddress)
     );
-    console.log("accountUTxOs[1]>>>: \n", accountUTxOs);
-
-    console.log("setupTest[1]>>>: \n");
-    console.log("subscriberUTxOs[1]>>>: \n", subscriberUTxOs);
     const { refTokenName: accRefName, userTokenName: accUserName } =
       findCip68TokenNames(
         [accountUTxOs[0], subscriberUTxOs[0]],
