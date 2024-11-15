@@ -15,3 +15,12 @@ export const ADA = {
     policyId: "",
     assetName: "",
 };
+
+export const REF_SCRIPT_TOKEN_NAMES = {
+    spendService: "SpendService",
+    mintService: "MintService",
+    spendAccount: "SpendAccount",
+    mintAccount: "MintAccount",
+    spendPayment: "SpendPayment",
+    mintPayment: "MintPayment",
+};

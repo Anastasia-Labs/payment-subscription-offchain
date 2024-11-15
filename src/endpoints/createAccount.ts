@@ -5,6 +5,7 @@ import {
   fromText,
   LucidEvolution,
   mintingPolicyToId,
+  RedeemerBuilder,
   selectUTxOs,
   toUnit,
   TransactionError,
@@ -27,8 +28,6 @@ export const createAccount = (
     const validators = getMultiValidator(lucid, config.scripts);
     const accountPolicyId = mintingPolicyToId(validators.mintValidator);
 
-    console.log("accountPolicyId: ", accountPolicyId);
-
     const subscriberUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(subscriberAddress)
     );
@@ -37,43 +36,38 @@ export const createAccount = (
       console.error("No UTxO found at user address: " + subscriberAddress);
     }
 
-    // Selecting a utxo containing atleast 5 ADA to cover tx fees and min ADA
+    // Selecting a utxo containing atleast 2 ADA to cover tx fees and min ADA
     // Note: To avoid tx balancing errors, the utxo should only contain lovelaces
     const selectedUTxOs = selectUTxOs(subscriberUTxOs, {
-      ["lovelace"]: 5000000n,
+      ["lovelace"]: 2000000n,
     });
+
     const { refTokenName, userTokenName } = createCip68TokenNames(
       selectedUTxOs[0],
     );
-    console.log("refTokenName: ", refTokenName);
-    console.log("userTokenName: ", userTokenName);
 
-    // Create the redeemer
-    // const rdmrBuilderMint: RedeemerBuilder = {
-    //   kind: "selected",
-    //   makeRedeemer: (inputIndices: bigint[]) => {
-    //     const redeemer: CreateaccountRedeemer = {
-    //       output_reference: {
-    //         txHash: { hash: subscriberUTxOs[0].txHash },
-    //         outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
-    //       },
-    //       input_index: inputIndices[0],
-    //     };
-    //     return Data.to(redeemer, CreateaccountRedeemer);
-    //   },
-    //   inputs: [subscriberUTxOs[0]],
-    // };
+    const createAccountRedeemer: RedeemerBuilder = {
+      kind: "selected",
+      makeRedeemer: (inputIndices: bigint[]) => {
+        // Construct the redeemer using the input indices
+        const subscriberIndex = inputIndices[0];
 
-    const redeemer: CreateAccountRedeemer = {
-      output_reference: {
-        txHash: {
-          hash: subscriberUTxOs[0].txHash,
-        },
-        outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
+        const redeemer: CreateAccountRedeemer = {
+          output_reference: {
+            txHash: {
+              hash: selectedUTxOs[0].txHash,
+            },
+            outputIndex: BigInt(selectedUTxOs[0].outputIndex),
+          },
+          input_index: subscriberIndex,
+        };
+        const redeemerData = Data.to(redeemer, CreateAccountRedeemer);
+
+        return redeemerData;
       },
-      input_index: BigInt(subscriberUTxOs[0].outputIndex),
+      // Specify the inputs relevant to the redeemer
+      inputs: [selectedUTxOs[0]],
     };
-    const redeemerData = Data.to(redeemer, CreateAccountRedeemer);
 
     const currDatum: AccountDatum = {
       email: fromText(config.email),
@@ -82,8 +76,6 @@ export const createAccount = (
     };
 
     const directDatum = Data.to<AccountDatum>(currDatum, AccountDatum);
-
-    console.log("subscriberUTxOs :: ", subscriberUTxOs);
 
     const refToken = toUnit(
       accountPolicyId,
@@ -105,7 +97,7 @@ export const createAccount = (
       .collectFrom(selectedUTxOs)
       .mintAssets(
         mintingAssets,
-        redeemerData,
+        createAccountRedeemer,
       )
       .pay.ToAddress(subscriberAddress, {
         [userToken]: 1n,

@@ -1,6 +1,7 @@
 import {
   Address,
   Assets,
+  Constr,
   Data,
   LucidEvolution,
   mintingPolicyToId,
@@ -11,7 +12,7 @@ import {
   TxSignBuilder,
 } from "@lucid-evolution/lucid";
 import { getMultiValidator } from "../core/utils/index.js";
-import { CreateServiceConfig, Result } from "../core/types.js";
+import { CreateServiceConfig } from "../core/types.js";
 import { CreateServiceRedeemer, ServiceDatum } from "../core/contract.types.js";
 import { createCip68TokenNames } from "../core/utils/assets.js";
 import { Effect } from "effect";
@@ -29,8 +30,6 @@ export const createService = (
     const validators = getMultiValidator(lucid, config.scripts);
     const servicePolicyId = mintingPolicyToId(validators.mintValidator);
 
-    console.log("servicePolicyId: ", servicePolicyId);
-
     const merchantUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(merchantAddress)
     );
@@ -39,58 +38,50 @@ export const createService = (
       console.error("No UTxO found at user address: " + merchantAddress);
     }
 
-    // Selecting a utxo containing atleast 5 ADA to cover tx fees and min ADA
+    // Selecting a utxo containing atleast 2 ADA to cover tx fees and min ADA
     // Note: To avoid tx balancing errors, the utxo should only contain lovelaces
     const selectedUTxOs = selectUTxOs(merchantUTxOs, {
-      ["lovelace"]: 5000000n,
+      ["lovelace"]: 2000000n,
     });
     const { refTokenName, userTokenName } = createCip68TokenNames(
       selectedUTxOs[0],
     );
-    console.log("refTokenName: ", refTokenName);
-    console.log("userTokenName: ", userTokenName);
 
-    // Create the redeemer
-    // const rdmrBuilderMint: RedeemerBuilder = {
-    //   kind: "selected",
-    //   makeRedeemer: (inputIndices: bigint[]) => {
-    //     const redeemer: CreateServiceRedeemer = {
-    //       output_reference: {
-    //         txHash: { hash: selectedUTxOs[0].txHash },
-    //         outputIndex: BigInt(selectedUTxOs[0].outputIndex),
-    //       },
-    //       input_index: inputIndices[0],
-    //     };
-    //     return Data.to(redeemer, CreateServiceRedeemer);
-    //   },
-    //   inputs: [selectedUTxOs[0]],
-    // };
+    const createServiceRedeemer: RedeemerBuilder = {
+      kind: "selected",
+      makeRedeemer: (inputIndices: bigint[]) => {
+        // Construct the redeemer using the input indices
+        const merchantIndex = inputIndices[0];
 
-    const redeemer: CreateServiceRedeemer = {
-      output_reference: {
-        txHash: {
-          hash: selectedUTxOs[0].txHash,
-        },
-        outputIndex: BigInt(selectedUTxOs[0].outputIndex),
+        const redeemer: CreateServiceRedeemer = {
+          output_reference: {
+            txHash: {
+              hash: selectedUTxOs[0].txHash,
+            },
+            outputIndex: BigInt(selectedUTxOs[0].outputIndex),
+          },
+          input_index: merchantIndex,
+        };
+        const redeemerData = Data.to(redeemer, CreateServiceRedeemer);
+
+        return redeemerData;
       },
-      input_index: 0n,
+      // Specify the inputs relevant to the redeemer
+      inputs: [selectedUTxOs[0]],
     };
-    const redeemerData = Data.to(redeemer, CreateServiceRedeemer);
 
     const currDatum: ServiceDatum = {
       service_fee: ADA,
-      service_fee_qty: 10_000_000n,
+      service_fee_qty: config.service_fee_qty,
       penalty_fee: ADA,
-      penalty_fee_qty: 1_000_000n,
-      interval_length: 1n,
-      num_intervals: 12n,
-      minimum_ada: 2_000_000n,
-      is_active: true,
+      penalty_fee_qty: config.penalty_fee_qty,
+      interval_length: config.interval_length,
+      num_intervals: config.num_intervals,
+      minimum_ada: config.minimum_ada,
+      is_active: config.is_active,
     };
 
     const directDatum = Data.to<ServiceDatum>(currDatum, ServiceDatum);
-
-    console.log("Merchant UTxOs :: ", selectedUTxOs);
 
     const refToken = toUnit(
       servicePolicyId,
@@ -112,9 +103,10 @@ export const createService = (
       .collectFrom(selectedUTxOs)
       .mintAssets(
         mintingAssets,
-        redeemerData,
+        createServiceRedeemer,
       )
       .pay.ToAddress(merchantAddress, {
+        lovelace: config.minimum_ada,
         [userToken]: 1n,
       })
       .pay.ToContract(validators.mintValAddress, {

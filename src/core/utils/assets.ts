@@ -1,4 +1,4 @@
-import { UTxO } from "@lucid-evolution/lucid";
+import { Assets, UTxO } from "@lucid-evolution/lucid";
 import { bytesToHex, concatBytes, hexToBytes } from "@noble/hashes/utils";
 import { sha3_256 } from "@noble/hashes/sha3";
 
@@ -17,11 +17,13 @@ const generateUniqueAssetName = (utxo: UTxO, prefix: string): string => {
     const indexByte = new Uint8Array([utxo.outputIndex]);
     const prependIndex = concatBytes(indexByte, txIdHash);
 
-    // concat the prefix
-    const prependPrefix = concatBytes(hexToBytes(prefix), prependIndex);
-
-    // slice off the first 32 bytes and convert to hex
-    return bytesToHex(prependPrefix.slice(0, 32));
+    if (prefix != null) {
+        // concat the prefix
+        const prependPrefix = concatBytes(hexToBytes(prefix), prependIndex);
+        return bytesToHex(prependPrefix.slice(0, 32));
+    } else {
+        return bytesToHex(prependIndex.slice(0, 32));
+    }
 };
 
 const findCip68TokenNames = (
@@ -48,9 +50,6 @@ const findCip68TokenNames = (
         throw new Error("Failed to find both reference and user token names");
     }
 
-    console.log("refTokenName: ", refTokenName);
-    console.log("userTokenName: ", userTokenName);
-
     return { refTokenName, userTokenName };
 };
 
@@ -66,9 +65,33 @@ const createCip68TokenNames = (utxo: UTxO) => {
     return { refTokenName, userTokenName };
 };
 
+const tokenNameFromUTxO = (
+    utxoOrUtxos: UTxO | UTxO[],
+    policyId: string,
+): string => {
+    const utxos = Array.isArray(utxoOrUtxos) ? utxoOrUtxos : [utxoOrUtxos];
+
+    for (const utxo of utxos) {
+        const assets: Assets = utxo.assets;
+
+        for (const [assetId, amount] of Object.entries(assets)) {
+            // NFTs typically have an amount of 1
+            if (amount === 1n && assetId.startsWith(policyId)) {
+                // Extract the token name (everything after the policy ID)
+                const tokenName = assetId.slice(policyId.length);
+                return tokenName;
+            }
+        }
+    }
+
+    // If no matching NFT is found, return null
+    return "";
+};
+
 export {
     assetNameLabels,
     createCip68TokenNames,
     findCip68TokenNames,
     generateUniqueAssetName,
+    tokenNameFromUTxO,
 };

@@ -3,80 +3,90 @@ import {
     Assets,
     Constr,
     Data,
-    fromText,
     LucidEvolution,
+    mintingPolicyToId,
+    RedeemerBuilder,
     TransactionError,
     TxSignBuilder,
 } from "@lucid-evolution/lucid";
 import { getMultiValidator } from "../core/utils/index.js";
 import { RemoveAccountConfig } from "../core/types.js";
 import { Effect } from "effect";
-import { AccountDatum, CreateAccountRedeemer } from "../core/contract.types.js";
+import { extractTokens } from "./utils.js";
 
 export const removeAccount = (
     lucid: LucidEvolution,
     config: RemoveAccountConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
     Effect.gen(function* () { // return type ,
-        console.log("removeAccount..........: ");
         const subscriberAddress: Address = yield* Effect.promise(() =>
             lucid.wallet().address()
         );
 
         const validators = getMultiValidator(lucid, config.scripts);
-
-        const accountUTxO = yield* Effect.promise(() =>
-            lucid.utxosAtWithUnit(
-                validators.spendValAddress,
-                config.ref_token,
-            )
+        const accountPolicyId = mintingPolicyToId(validators.mintValidator);
+        const accountUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(validators.mintValAddress)
         );
 
-        const subscriberUTxO = yield* Effect.promise(() =>
-            lucid.utxosAtWithUnit(
-                subscriberAddress,
-                config.user_token,
-            )
+        const subscriberUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(subscriberAddress)
         );
 
-        console.log("Account UTxO: ", accountUTxO);
+        let { user_token, ref_token } = extractTokens(
+            accountPolicyId,
+            accountUTxOs,
+            subscriberUTxOs,
+        );
+
         const mintingAssets: Assets = {
-            [config.ref_token]: -1n,
-            [config.user_token]: -1n,
+            [ref_token]: -1n,
+            [user_token]: -1n,
         };
 
-        if (!accountUTxO || !accountUTxO.length) {
+        if (!accountUTxOs || !accountUTxOs.length) {
             console.error(
-                "No UTxO found at user address: " + subscriberAddress,
+                "No UTxO found at user address: " + validators.spendValAddress,
             );
         }
 
-        const accountDatum: AccountDatum = {
-            email: fromText(config.email),
-            phone: fromText(config.phone),
-            account_created: BigInt(config.account_created),
-        };
+        const subscriberUTxO = yield* Effect.promise(() =>
+            lucid.utxoByUnit(
+                user_token,
+            )
+        );
 
-        const directDatum = Data.to<AccountDatum>(accountDatum, AccountDatum);
-
-        // const redeemer: CreateAccountRedeemer = {
-        //     output_reference: {
-        //         txHash: {
-        //             hash: subscriberUTxO[0].txHash,
-        //         },
-        //         outputIndex: BigInt(subscriberUTxO[0].outputIndex),
-        //     },
-        //     input_index: 0n,
-        // };
-        // const mintRedeemer = Data.to(redeemer, CreateAccountRedeemer);
+        const accountUTxO = yield* Effect.promise(() =>
+            lucid.utxoByUnit(
+                ref_token,
+            )
+        );
 
         const deleteAccRedeemer = Data.to(new Constr(1, [])); // Assuming DeleteAccount is index 1 in your MintAccount enum
-        const removeAccRedeemer = Data.to(new Constr(1, [new Constr(1, [])])); // Wrapped redeemer for multi-validator spend endpoint
+        const removeAccountRedeemer: RedeemerBuilder = {
+            kind: "selected",
+            makeRedeemer: (inputIndices: bigint[]) => {
+                // Construct the redeemer using the input indices
+                const userIndex = inputIndices[0];
+                const accountIndex = inputIndices[1];
+
+                return Data.to(
+                    new Constr(1, [
+                        new Constr(1, [
+                            BigInt(userIndex),
+                            BigInt(accountIndex),
+                        ]),
+                    ]),
+                );
+            },
+            // Specify the inputs relevant to the redeemer
+            inputs: [subscriberUTxO, accountUTxO],
+        };
 
         const tx = yield* lucid
             .newTx()
-            .collectFrom(subscriberUTxO)
-            .collectFrom(accountUTxO, removeAccRedeemer)
+            .collectFrom(subscriberUTxOs)
+            .collectFrom([accountUTxO], removeAccountRedeemer)
             .mintAssets(
                 mintingAssets,
                 deleteAccRedeemer,

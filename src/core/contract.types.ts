@@ -1,5 +1,4 @@
-import { Constr, Data, OutRef } from "@lucid-evolution/lucid";
-import { boolean } from "effect/Equivalence";
+import { Data } from "@lucid-evolution/lucid";
 
 export const OutputReferenceSchema = Data.Object({
     txHash: Data.Object({ hash: Data.Bytes({ minLength: 32, maxLength: 32 }) }),
@@ -51,12 +50,9 @@ export const AssetClassSchema = Data.Object(
         policyId: Data.Bytes(),
         assetName: Data.Bytes(),
     },
-    // { hasConstr: false },
 );
 export type AssetClassD = Data.Static<typeof AssetClassSchema>;
 export const AssetClassD = AssetClassSchema as unknown as AssetClassD;
-
-// List [B "test",B "tn"]
 
 export const ValueSchema = Data.Map(
     Data.Bytes(),
@@ -65,7 +61,7 @@ export const ValueSchema = Data.Map(
 export type Value = Data.Static<typeof ValueSchema>;
 export const Value = ValueSchema as unknown as Value;
 
-/// Redeemers
+// Redeemers
 export const CreateMintSchema = Data.Object({
     output_reference: OutputReferenceSchema,
     input_index: Data.Integer(),
@@ -75,35 +71,13 @@ export type CreateServiceRedeemer = Data.Static<typeof CreateMintSchema>;
 export const CreateServiceRedeemer =
     CreateMintSchema as unknown as CreateServiceRedeemer;
 
-// export const MintServiceSchema = Data.Enum([
-//     Data.Literal("UpdateService"),
-//     Data.Literal("RemoveService"),
-// ]);
-
-// export type MintServiceRedeemer = Data.Static<typeof MintServiceSchema>;
-// export const MintServiceRedeemer =
-//     MintServiceSchema as unknown as MintServiceRedeemer;
-
 export type CreateAccountRedeemer = Data.Static<typeof CreateMintSchema>;
 export const CreateAccountRedeemer =
     CreateMintSchema as unknown as CreateAccountRedeemer;
 
-// const deleteService: MintServiceRedeemer = "DeleteService";
-
-// export const UpdateService = () => Data.to(new Constr(0, []));
-// export const RemoveService = () => Data.to(new Constr(1, []));
-
-// pub type ServiceDatum {
-//     service_fee: AssetClass,
-//     service_fee_qty: Int,
-//     // non-negative
-//     penalty_fee: AssetClass,
-//     penalty_fee_qty: Int,
-//     interval_length: Int,
-//     num_intervals: Int,
-//     minimum_ada: Int,
-//     is_active: Bool,
-//   }
+export type CreatePaymentRedeemer = Data.Static<typeof CreateMintSchema>;
+export const CreatePaymentRedeemer =
+    CreateMintSchema as unknown as CreatePaymentRedeemer;
 
 export const ServiceDatumSchema = Data.Object({
     service_fee: AssetClassSchema,
@@ -128,37 +102,18 @@ export const AccountDatumSchema = Data.Object({
 export type AccountDatum = Data.Static<typeof AccountDatumSchema>;
 export const AccountDatum = AccountDatumSchema as unknown as AccountDatum;
 
-// pub type MintPayment {
-//     InitSubscripton { output_reference: OutputReference, input_index: Int }
-//     TerminateSubscription
-//   }
+export type InitiatePayment = Data.Static<typeof CreateMintSchema>;
+export const InitiatePayment = CreateMintSchema as unknown as InitiatePayment;
 
-export const MintPaymentSchema = Data.Enum([
-    
-    Data.Object({ InitSubscripton: Data.Object({ output_reference: OutputReferenceSchema, input_index: Data.Integer() }) }),
-    Data.Literal("TerminateSubscription"),
-  ]);
+export const WithdrawSchema = Data.Object({
+    merchant_input_index: Data.Integer(),
+    payment_input_index: Data.Integer(),
+});
 
-export type MintPayment = Data.Static<typeof MintPaymentSchema>;
-export const MintPayment = MintPaymentSchema as unknown as MintPayment;
+export type MerchantWithdraw = Data.Static<typeof WithdrawSchema>;
+export const MerchantWithdraw = WithdrawSchema as unknown as MerchantWithdraw;
 
-// pub type PaymentDatum {
-//     service_nft_tn: AssetName,
-//     account_nft_tn: AssetName,
-//     subscription_fee: AssetClass,
-//     total_subscription_fee: Int,
-//     subscription_start: Int,
-//     subscription_end: Int,
-//     interval_length: Int,
-//     interval_amount: Int,
-//     num_intervals: Int,
-//     last_claimed: Int,
-//     penalty_fee: AssetClass,
-//     penalty_fee_qty: Int,
-//     minimum_ada: Int,
-//   }
-
-  export const PaymentDatumSchema = Data.Object({
+export const PaymentDatumSchema = Data.Object({
     service_nft_tn: Data.Bytes(), //AssetName,
     account_nft_tn: Data.Bytes(),
     subscription_fee: AssetClassSchema,
@@ -176,3 +131,24 @@ export const MintPayment = MintPaymentSchema as unknown as MintPayment;
 
 export type PaymentDatum = Data.Static<typeof PaymentDatumSchema>;
 export const PaymentDatum = PaymentDatumSchema as unknown as PaymentDatum;
+
+export const PenaltyDatumSchema = Data.Object({
+    service_nft_tn: Data.Bytes(),
+    account_nft_tn: Data.Bytes(),
+    penalty_fee: AssetClassSchema,
+    penalty_fee_qty: Data.Integer(),
+});
+
+export type PenaltyDatum = Data.Static<typeof PenaltyDatumSchema>;
+export const PenaltyDatum = PenaltyDatumSchema as unknown as PenaltyDatum;
+
+export const PaymentValidatorDatumSchema = Data.Enum([
+    Data.Object({ Payment: Data.Tuple([PaymentDatumSchema]) }),
+    Data.Object({ Penalty: Data.Tuple([PenaltyDatumSchema]) }),
+]);
+
+export type PaymentValidatorDatum = Data.Static<
+    typeof PaymentValidatorDatumSchema
+>;
+export const PaymentValidatorDatum =
+    PaymentValidatorDatumSchema as unknown as PaymentValidatorDatum;

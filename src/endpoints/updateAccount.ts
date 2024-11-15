@@ -5,28 +5,40 @@ import {
     fromText,
     LucidEvolution,
     mintingPolicyToId,
-    SpendingValidator,
+    RedeemerBuilder,
     toUnit,
     TransactionError,
     TxSignBuilder,
-    validatorToAddress,
 } from "@lucid-evolution/lucid";
 import { getMultiValidator } from "../core/utils/index.js";
-import { Result, UpdateAccountConfig } from "../core/types.js";
+import { UpdateAccountConfig } from "../core/types.js";
 import { AccountDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
+import { extractTokens, getAccountValidatorDatum } from "./utils.js";
 
 export const updateAccount = (
     lucid: LucidEvolution,
     config: UpdateAccountConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
-    Effect.gen(function* () { // return type ,
-        console.log("updateAccount..........: ");
+    Effect.gen(function* () {
         const subscriberAddress: Address = yield* Effect.promise(() =>
             lucid.wallet().address()
         );
         const validators = getMultiValidator(lucid, config.scripts);
-        const accountValAddress = validators.spendValAddress;
+
+        const accountUTxOs = yield* Effect.promise(() =>
+            lucid.config().provider.getUtxos(validators.spendValAddress)
+        );
+
+        const accountNFT = toUnit(
+            config.account_policy_Id,
+            config.account_ref_name, //tokenNameWithoutFunc,
+        );
+
+        const subscriberNFT = toUnit(
+            config.account_policy_Id,
+            config.account_usr_name, //tokenNameWithoutFunc,
+        );
 
         const subscriberUTxOs = yield* Effect.promise(() =>
             lucid.utxosAt(subscriberAddress)
@@ -38,53 +50,66 @@ export const updateAccount = (
             );
         }
 
-        const AccountUTxO = yield* Effect.promise(() =>
-            lucid.utxosAtWithUnit(
-                validators.spendValAddress,
-                config.ref_token,
+        const accountUTxO = yield* Effect.promise(() =>
+            lucid.utxoByUnit(
+                accountNFT,
             )
         );
 
         const subscriberUTxO = yield* Effect.promise(() =>
-            lucid.utxosAtWithUnit(
-                subscriberAddress,
-                config.user_token,
+            lucid.utxoByUnit(
+                subscriberNFT,
             )
         );
 
-        if (!AccountUTxO) {
+        if (!accountUTxO) {
             throw new Error("Account NFT not found");
         }
-        console.log("AccountNFTUTxO: ", AccountUTxO);
+
+        const accountData = yield* Effect.promise(
+            () => (getAccountValidatorDatum(accountUTxOs)),
+        );
 
         const updatedDatum: AccountDatum = {
-            email: fromText(config.new_email),
-            phone: fromText(config.new_phone),
-            account_created: BigInt(config.account_created),
+            email: fromText("new_business@web3.ada"),
+            phone: fromText("(288) 481-2686-999"),
+            account_created: accountData[0].account_created,
         };
 
         const directDatum = Data.to<AccountDatum>(updatedDatum, AccountDatum);
 
-        const wrappedRedeemer = Data.to(new Constr(1, [new Constr(0, [])]));
+        const updateAccountRedeemer: RedeemerBuilder = {
+            kind: "selected",
+            makeRedeemer: (inputIndices: bigint[]) => {
+                // Construct the redeemer using the input indices
+                const userIndex = inputIndices[0];
+                const accountIndex = inputIndices[1];
 
-        console.log("Redeemer updateAccount: ", wrappedRedeemer);
-        console.log("Datum AccountDatum: ", directDatum);
-        console.log("Datum Account_fee_qty: ", config.new_email);
+                return Data.to(
+                    new Constr(1, [
+                        new Constr(0, [
+                            BigInt(userIndex),
+                            BigInt(accountIndex),
+                        ]),
+                    ]),
+                );
+            },
+            // Specify the inputs relevant to the redeemer
+            inputs: [subscriberUTxO, accountUTxO],
+        };
 
         const tx = yield* lucid
             .newTx()
-            .collectFrom(subscriberUTxO)
-            .collectFrom(AccountUTxO, wrappedRedeemer)
+            .collectFrom(subscriberUTxOs)
+            .collectFrom([accountUTxO], updateAccountRedeemer)
             .pay.ToAddress(subscriberAddress, {
-                lovelace: 3_000_000n,
-                [config.user_token]: 1n,
+                [subscriberNFT]: 1n,
             })
             .pay.ToContract(validators.spendValAddress, {
                 kind: "inline",
                 value: directDatum,
             }, {
-                lovelace: 3_000_000n,
-                [config.ref_token]: 1n,
+                [accountNFT]: 1n,
             })
             .attach.SpendingValidator(validators.spendValidator)
             .completeProgram();

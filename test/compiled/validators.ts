@@ -1,10 +1,9 @@
 import {
     applyDoubleCborEncoding,
+    applyParamsToScript,
     MintingPolicy,
     SpendingValidator,
 } from "@lucid-evolution/lucid";
-
-import blueprint from "./plutus.json" assert { type: "json" };
 import { Script } from "@lucid-evolution/lucid";
 
 export type Validators = {
@@ -12,15 +11,29 @@ export type Validators = {
     mintService: MintingPolicy;
     spendAccount: SpendingValidator;
     mintAccount: MintingPolicy;
+    spendPayment: SpendingValidator;
+    mintPayment: MintingPolicy;
+    alwaysFails: SpendingValidator;
 };
 
-export function readMultiValidators(): Validators {
+export function readMultiValidators(
+    blueprint: any,
+    params: boolean,
+    policyIds: string[],
+): Validators {
     const getValidator = (title: string): Script => {
         const validator = blueprint.validators.find((v) => v.title === title);
         if (!validator) throw new Error(`Validator not found: ${title}`);
+
+        let script = applyDoubleCborEncoding(validator.compiledCode);
+
+        if (params && policyIds) {
+            script = applyParamsToScript(script, policyIds);
+        }
+
         return {
             type: "PlutusV2",
-            script: applyDoubleCborEncoding(validator.compiledCode),
+            script: script,
         };
     };
 
@@ -29,5 +42,8 @@ export function readMultiValidators(): Validators {
         mintService: getValidator("service_multi_validator.mint_service"),
         spendAccount: getValidator("account_multi_validator.spend_account"),
         mintAccount: getValidator("account_multi_validator.mint_account"),
+        spendPayment: getValidator("payment_multi_validator.spend_payment"),
+        mintPayment: getValidator("payment_multi_validator.mint_payment"),
+        alwaysFails: getValidator("always_fails_validator.always_fails"),
     };
 }
