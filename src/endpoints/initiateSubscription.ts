@@ -60,7 +60,7 @@ export const initiateSubscription = (
             },
             outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
           },
-          input_index: 0n,
+          input_index: subscriberIndex,
         };
 
         const redeemerData = Data.to(paymentRedeemer, InitiatePayment);

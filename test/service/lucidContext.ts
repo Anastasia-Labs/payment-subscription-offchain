@@ -7,7 +7,6 @@ import {
     PROTOCOL_PARAMETERS_DEFAULT,
 } from "@lucid-evolution/lucid";
 import { Effect } from "effect";
-import { generateAccountSeedPhrase } from "../../src";
 
 export type LucidContext = {
     lucid: LucidEvolution;
@@ -92,8 +91,8 @@ export const makeLucidContext = (network?: Network) =>
     Effect.gen(function* ($) {
         const API_KEY = process.env.API_KEY;
 
-        // const selectedNetwork = network ?? NETWORK; // Default to Preprod if not specified
-        const selectedNetwork = "Preprod";
+        const selectedNetwork = network ?? NETWORK; // Default to Preprod if not specified
+        // const selectedNetwork = "Preprod";
         if (API_KEY && selectedNetwork !== selectedNetwork) {
             // Use Maestro context
             return yield* $(makeMaestroContext(selectedNetwork));
