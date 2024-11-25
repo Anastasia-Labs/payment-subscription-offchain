@@ -4,11 +4,12 @@
   - [Introduction](#introduction)
   - [Documentation](#documentation)
   - [Usage Example](#usage-example)
-    - [Setup](#setup-lucid--multisig-scripts)
-    - [Initiate Multisig Contract](#initiate-multisig-contract)
-    - [Sign](#sign)
-    - [Update Multisig Contract](#update-multisig-contract)
-    - [Adjust Signer Threshold](#adjust-signer-threshold)
+    - [Setup](#setup-lucid--subscription-scripts)
+    - [Create a Service](#create-a-service)
+    - [Create a User Account](#create-a-user-account)
+    - [Initiate a Subscription](#initiate-a-subscription)
+    - [Unsubscribe](#unsubscribe)
+    - [Merchant Withdraw Subscription Fees](#merchant-withdraw-subscription-fees)
   - [Local Build](#local-build)
   - [Test Framework](#test-framework)
   - [Running Tests](#running-tests)
@@ -71,7 +72,6 @@ pnpm install @anastasia-labs/payment-subscription-offchain
 ### Setup Lucid & Subscription Scripts
 
 ```ts
-    import Script from "../src/validator/multisig_validator.json" assert { type: "json" };
 
 const lucid = await Lucid(
   new Maestro({
@@ -115,13 +115,27 @@ import { createService, CreateServiceConfig } from "@anastasia-labs/payment-subs
 // Define merchant address
 const merchantAddress = "addr_test1...";
 
-// Configure the service parameters
+// Configure the service configuration
 const serviceConfig: CreateServiceConfig = {
-  merchantPkh: getAddressDetails(merchantAddress).paymentCredential?.hash!,
-  serviceName: "Premium Content Access",
-  subscriptionFee: 1_000_000n, // 1 ADA in lovelace
-  subscriptionPeriod: 30, // Subscription period in days
-  scripts: subscriptionScripts,
+  service_fee: {
+    currencySymbol: '', // For ADA, use empty string
+    tokenName: '',      // For ADA, use empty string
+  },
+  service_fee_qty: 100_000_000n, // 100 ADA in lovelace
+  penalty_fee: {
+    currencySymbol: '', // For ADA, use empty string
+    tokenName: '',      // For ADA, use empty string
+  },
+  penalty_fee_qty: 10_000_000n,  // 10 ADA in lovelace
+  interval_length: 30n * 24n * 60n * 60n * 1000n, // 30 days in milliseconds
+  num_intervals: 12n, // 12 intervals (e.g., months)
+  minimum_ada: 2_000_000n, // Minimum ADA required
+  is_active: true,
+  scripts: {
+    spending: subscriptionScripts.serviceScript.script,
+    minting: '', // Minting script if applicable
+    staking: '', // Staking script if applicable
+  },
 };
 
 // Create the service
@@ -148,10 +162,14 @@ const userAddress = "addr_test1...";
 
 // Configure the account parameters
 const accountConfig: CreateAccountConfig = {
-  userPkh: getAddressDetails(userAddress).paymentCredential?.hash!,
-  scripts: subscriptionScripts,
-};
-
+  email: 'user@example.com',
+  phone: '+1234567890',
+  account_created: BigInt(Math.floor(Date.now() / 1000)), // Current UNIX timestamp
+  scripts: {
+    spending: subscriptionScripts.accountScript.script,
+    minting: '', // Minting script if applicable
+    staking: '', // Staking script if applicable
+  },
 // Create the user account
 const createAccountTxUnsigned = await createAccount(lucid, accountConfig);
 
@@ -171,14 +189,34 @@ if (createAccountTxUnsigned.type === "ok") {
 import { initiateSubscription, InitiateSubscriptionConfig } from "@anastasia-labs/payment-subscription-offchain";
 
 // Configure the subscription parameters
-const subscriptionConfig: InitiateSubscriptionConfig = {
-  userPkh: getAddressDetails(userAddress).paymentCredential?.hash!,
-  merchantPkh: getAddressDetails(merchantAddress).paymentCredential?.hash!,
-  serviceId: "service_nft_token_name", // The identifier of the service NFT
-  subscriptionFee: 1_000_000n, // Amount per period in lovelace (e.g., 1 ADA)
-  subscriptionPeriod: 30, // Subscription period in days
-  startDate: new Date(), // Subscription start date
-  scripts: subscriptionScripts,
+const subscriptionConfig: InitPaymentConfig = {
+  service_nft_tn: 'SERVICE_NFT_TOKEN_NAME', // Replace with actual token name
+  account_nft_tn: 'ACCOUNT_NFT_TOKEN_NAME', // Replace with actual token name
+  subscription_fee: {
+    currencySymbol: '', // For ADA, use empty string
+    tokenName: '',      // For ADA, use empty string
+  },
+  total_subscription_fee: 1_200_000_000n, // Total for 12 months (1,200 ADA)
+  subscription_start: BigInt(Math.floor(Date.now() / 1000)),
+  subscription_end:
+    BigInt(Math.floor(Date.now() / 1000)) + 12n * 30n * 24n * 60n * 60n, // 12 months later
+  interval_length: 30n * 24n * 60n * 60n, // 30 days in seconds
+  interval_amount: 100_000_000n, // 100 ADA per interval
+  num_intervals: 12n,
+  last_claimed: BigInt(Math.floor(Date.now() / 1000)),
+  penalty_fee: {
+    currencySymbol: '', // For ADA, use empty string
+    tokenName: '',      // For ADA, use empty string
+  },
+  penalty_fee_qty: 10_000_000n, // 10 ADA
+  minimum_ada: 2_000_000n,
+  service_ref_token: 'SERVICE_REF_TOKEN', // Replace with actual unit
+  account_user_token: 'ACCOUNT_USER_TOKEN', // Replace with actual unit
+  scripts: {
+    spending: subscriptionScripts.paymentScript.script,
+    minting: '', // Minting script if applicable
+    staking: '', // Staking script if applicable
+  },
 };
 
 // Initiate the subscription
@@ -202,9 +240,17 @@ import { unsubscribe, UnsubscribeConfig } from "@anastasia-labs/payment-subscrip
 
 // Configure the unsubscription parameters
 const unsubscribeConfig: UnsubscribeConfig = {
-  subscriptionId: subscriptionId,
-  userPkh: getAddressDetails(userAddress).paymentCredential?.hash!,
-  scripts: subscriptionScripts,
+  service_nft_tn: 'SERVICE_NFT_TOKEN_NAME', // Replace with actual token name
+  account_nft_tn: 'ACCOUNT_NFT_TOKEN_NAME', // Replace with actual token name
+  currentTime: BigInt(Math.floor(Date.now() / 1000)),
+  user_token: 'USER_TOKEN_UNIT', // Replace with actual unit
+  ref_token: 'REF_TOKEN_UNIT', // Replace with actual unit
+  payment_policy_Id: 'PAYMENT_POLICY_ID', // Replace with actual policy ID
+  payment_scripts: {
+    spending: subscriptionScripts.paymentScript.script,
+    minting: '', // Minting script if applicable
+    staking: '', // Staking script if applicable
+  },
 };
 
 // Unsubscribe from the service
@@ -226,11 +272,19 @@ if (unsubscribeTxUnsigned.type === "ok") {
 import { withdrawFees, WithdrawFeesConfig } from "@anastasia-labs/payment-subscription-offchain";
 
 // Configure the withdrawal parameters
-const withdrawConfig: WithdrawFeesConfig = {
-  merchantPkh: getAddressDetails(merchantAddress).paymentCredential?.hash!,
-  subscriptionId: subscriptionId,
-  scripts: subscriptionScripts,
+const withdrawConfig: MerchantWithdrawConfig = {
+  last_claimed: previousClaimTimestamp, // As bigint
+  payment_policy_Id: 'PAYMENT_POLICY_ID', // Replace with actual policy ID
+  merchant_token: 'MERCHANT_TOKEN_UNIT', // Replace with actual unit
+  service_ref_token: 'SERVICE_REF_TOKEN', // Replace with actual unit
+  serviceUTxOs: [], // Provide list of UTxOs if necessary
+  scripts: {
+    spending: subscriptionScripts.paymentScript.script,
+    minting: '', // Minting script if applicable
+    staking: '', // Staking script if applicable
+  },
 };
+
 
 // Withdraw subscription fees
 const withdrawTxUnsigned = await withdrawFees(lucid, withdrawConfig);
@@ -243,29 +297,6 @@ if (withdrawTxUnsigned.type === "ok") {
 } else {
   console.error("Failed to withdraw fees:", withdrawTxUnsigned.error);
 }
-
-```
-
-#### Removing a Signer:
-
-```ts
-// Remove a signer (e.g., signer2)
-const updatedSigners = [initiatorPkh, signer1Pkh];
-
-// Update the signers list and threshold
-const removeSignerConfig: UpdateValidateConfig = {
-  newSigners: updatedSigners,
-  newThreshold: 2n,
-  funds: {
-    policyId: "",
-    assetName: "",
-  },
-  newSpendingLimit: 10_000_000n,
-  minimumAda: 2_000_000n,
-  scripts: multisigScripts,
-};
-
-// Proceed with validation and signing as shown in the update example
 
 ```
 
