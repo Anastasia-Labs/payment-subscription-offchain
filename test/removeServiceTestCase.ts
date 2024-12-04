@@ -16,9 +16,10 @@ export const removeServiceTestCase = (
   return Effect.gen(function* () {
     const {
       context: { lucid, users, emulator },
+      network,
     } = setupResult;
 
-    if (emulator && lucid.config().network === "Custom") {
+    if (emulator && network === "Custom") {
       const initResult = yield* createServiceTestCase({
         lucid,
         users,

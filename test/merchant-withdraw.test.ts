@@ -29,10 +29,11 @@ export const merchantWithdrawTestCase = (
         currentTime,
         serviceRefName,
         serviceUserName,
+        network,
     } = setupResult;
 
     return Effect.gen(function* () {
-        if (emulator && lucid.config().network === "Custom") {
+        if (emulator && network === "Custom") {
             const initResult = yield* initiateSubscriptionTestCase(setupResult);
 
             expect(initResult).toBeDefined();

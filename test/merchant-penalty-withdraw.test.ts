@@ -6,7 +6,7 @@ import {
 import { expect, test } from "vitest";
 import { Effect } from "effect";
 
-import { LucidContext, NETWORK } from "./service/lucidContext.js";
+import { LucidContext } from "./service/lucidContext.js";
 import { SetupResult, setupTest } from "./setupTest.js";
 import { unsubscribeTestCase } from "./unsubscribeTestCase.js";
 import {
@@ -30,9 +30,10 @@ export const withdrawPenaltyTestCase = (
             serviceUTxOs,
             merchantUTxOs,
             serviceUserName,
+            network,
         } = setupResult;
 
-        if (emulator && NETWORK === "Custom") {
+        if (emulator && network === "Custom") {
             const initResult = yield* unsubscribeTestCase(setupResult);
 
             expect(initResult).toBeDefined();

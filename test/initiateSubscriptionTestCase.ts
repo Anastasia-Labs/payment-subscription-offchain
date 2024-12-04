@@ -14,7 +14,6 @@ import {
     paymentValidator,
     servicePolicyId,
 } from "./common/constants.js";
-import { NETWORK } from "./service/lucidContext.js";
 
 type InitiateSubscriptionResult = {
     txHash: string;
@@ -33,6 +32,7 @@ export const initiateSubscriptionTestCase = (
             currentTime,
             accUserName,
             serviceRefName,
+            network,
         } = setupResult;
 
         const accUsrNft = toUnit(
@@ -103,7 +103,7 @@ export const initiateSubscriptionTestCase = (
         );
 
         const paymentValidatorAddress = validatorToAddress(
-            NETWORK,
+            network,
             paymentValidator.mintPayment,
         );
 

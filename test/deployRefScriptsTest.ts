@@ -7,7 +7,7 @@ import {
 import { readMultiValidators, Validators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-import { LucidContext, NETWORK } from "./service/lucidContext.js";
+import { LucidContext } from "./service/lucidContext.js";
 
 const validators = readMultiValidators(blueprint, false, []);
 
@@ -54,9 +54,13 @@ export const deployRefScriptTest = (
             alwaysFails: alwaysFailScript,
             currentTime,
         };
+        const network = lucid.config().network;
+        if (!network) {
+            throw new Error("Network configuration is undefined");
+        }
 
         const alwaysFailsaddress = validatorToAddress(
-            NETWORK,
+            network,
             validators.alwaysFails,
         );
 

@@ -4,11 +4,7 @@ import {
   UTxO,
   validatorToAddress,
 } from "@lucid-evolution/lucid";
-import {
-  LucidContext,
-  makeLucidContext,
-  NETWORK,
-} from "./service/lucidContext";
+import { LucidContext, makeLucidContext } from "./service/lucidContext";
 import { Effect } from "effect";
 import { createAccountTestCase } from "./createAccountTestCase";
 import { createServiceTestCase } from "./createServiceTestCase";
@@ -32,16 +28,21 @@ export type SetupResult = {
   merchantUTxOs: UTxO[];
   subscriberUTxOs: UTxO[];
   currentTime: bigint;
+  network: Network;
 };
 
 export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
   return Effect.gen(function* (_) {
     const { lucid, users, emulator } = yield* makeLucidContext();
+    const network = lucid.config().network;
+    if (!network) {
+      throw new Error("Network configuration is undefined");
+    }
 
     let currentTime: bigint;
 
     // If using emulator, perform necessary setup
-    if (emulator && NETWORK === "Custom") {
+    if (emulator && network === "Custom") {
       // Create account and service if they don't exist
       const accountResult = yield* createAccountTestCase({
         lucid,
@@ -62,7 +63,7 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
     }
 
     const paymentAddress = validatorToAddress(
-      NETWORK,
+      network,
       paymentValidator.spendPayment,
     );
 
@@ -75,7 +76,7 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
     );
 
     const serviceAddress = validatorToAddress(
-      NETWORK,
+      network,
       serviceValidator.spendService,
     );
 
@@ -101,7 +102,7 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
 
     // Get necessary addresses
     const accountAddress = validatorToAddress(
-      NETWORK,
+      network,
       accountValidator.spendAccount,
     );
 
@@ -126,6 +127,7 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
       merchantUTxOs,
       subscriberUTxOs,
       currentTime,
+      network,
     };
   });
 };
