@@ -16,13 +16,8 @@ export const removeAccountTestCase = ({
   emulator,
 }: LucidContext): Effect.Effect<RemoveAccountResult, Error, never> => {
   return Effect.gen(function* () {
-    const network = lucid.config().network;
     lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
-    const accountAddress: Address = validatorToAddress(
-      network,
-      accountValidator.mintAccount,
-    );
     if (emulator && lucid.config().network === "Custom") {
       const createAccountResult = yield* createAccountTestCase({
         lucid,

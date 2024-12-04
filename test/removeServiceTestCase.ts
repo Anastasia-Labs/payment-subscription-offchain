@@ -2,6 +2,8 @@ import { removeService, RemoveServiceConfig } from "../src/index.js";
 import { Effect } from "effect";
 import { SetupResult } from "./setupTest.js";
 import { servicePolicyId, serviceScript } from "./common/constants.js";
+import { createServiceTestCase } from "./createServiceTestCase.js";
+import { expect } from "vitest";
 
 type RemoveServiceResult = {
   txHash: string;
@@ -13,8 +15,21 @@ export const removeServiceTestCase = (
 ): Effect.Effect<RemoveServiceResult, Error, never> => {
   return Effect.gen(function* () {
     const {
-      context: { lucid, users },
+      context: { lucid, users, emulator },
     } = setupResult;
+
+    if (emulator && lucid.config().network === "Custom") {
+      const initResult = yield* createServiceTestCase({
+        lucid,
+        users,
+        emulator,
+      });
+
+      expect(initResult).toBeDefined();
+      expect(typeof initResult.txHash).toBe("string"); // Assuming the initResult is a transaction hash
+
+      yield* Effect.sync(() => emulator.awaitBlock(10));
+    }
 
     lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
     const removeServiceConfig: RemoveServiceConfig = {
