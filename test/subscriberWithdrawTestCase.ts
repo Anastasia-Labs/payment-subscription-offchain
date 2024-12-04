@@ -29,11 +29,10 @@ export const subscriberWithdrawTestCase = (
             context: { lucid, users, emulator },
             accUserName,
             serviceRefName,
+            network,
         } = setupResult;
 
-        const network = lucid.config().network;
-
-        if (emulator && lucid.config().network === "Custom") {
+        if (emulator && network === "Custom") {
             const initResult = yield* initiateSubscriptionTestCase(setupResult);
 
             expect(initResult).toBeDefined();

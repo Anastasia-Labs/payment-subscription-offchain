@@ -34,7 +34,7 @@ export const updateService = (
             lucid.utxosAt(serviceValAddress)
         );
 
-        const activeServiceUTxOs = allServiceUTxOs.filter((utxo) => {
+        const activeServiceUTxOs = allServiceUTxOs.filter((utxo: UTxO) => {
             if (!utxo.datum) return false;
 
             const datum = Data.from<ServiceDatum>(utxo.datum, ServiceDatum);
@@ -121,7 +121,10 @@ export const updateService = (
                 [ref_token]: 1n,
             })
             .attach.SpendingValidator(validators.spendValidator)
-            .completeProgram();
+            .completeProgram({
+                localUPLCEval: false,
+                setCollateral: 0n,
+            });
 
         return tx;
     });

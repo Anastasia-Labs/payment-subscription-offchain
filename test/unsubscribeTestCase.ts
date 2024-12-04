@@ -23,9 +23,10 @@ export const unsubscribeTestCase = (
             serviceRefName,
             currentTime,
             accUserName,
+            network,
         } = setupResult;
 
-        if (emulator && lucid.config().network === "Custom") {
+        if (emulator && network === "Custom") {
             const initResult = yield* initiateSubscriptionTestCase(setupResult);
 
             expect(initResult).toBeDefined();

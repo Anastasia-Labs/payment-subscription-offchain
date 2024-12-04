@@ -30,9 +30,10 @@ export const withdrawPenaltyTestCase = (
             serviceUTxOs,
             merchantUTxOs,
             serviceUserName,
+            network,
         } = setupResult;
 
-        if (emulator && lucid.config().network === "Custom") {
+        if (emulator && network === "Custom") {
             const initResult = yield* unsubscribeTestCase(setupResult);
 
             expect(initResult).toBeDefined();

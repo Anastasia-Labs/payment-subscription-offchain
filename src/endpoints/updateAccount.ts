@@ -4,7 +4,6 @@ import {
     Data,
     fromText,
     LucidEvolution,
-    mintingPolicyToId,
     RedeemerBuilder,
     toUnit,
     TransactionError,
@@ -14,7 +13,7 @@ import { getMultiValidator } from "../core/utils/index.js";
 import { UpdateAccountConfig } from "../core/types.js";
 import { AccountDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
-import { extractTokens, getAccountValidatorDatum } from "./utils.js";
+import { getAccountValidatorDatum } from "./utils.js";
 
 export const updateAccount = (
     lucid: LucidEvolution,
@@ -27,7 +26,7 @@ export const updateAccount = (
         const validators = getMultiValidator(lucid, config.scripts);
 
         const accountUTxOs = yield* Effect.promise(() =>
-            lucid.config().provider.getUtxos(validators.spendValAddress)
+            lucid.utxosAt(validators.spendValAddress)
         );
 
         const accountNFT = toUnit(
@@ -112,6 +111,9 @@ export const updateAccount = (
                 [accountNFT]: 1n,
             })
             .attach.SpendingValidator(validators.spendValidator)
-            .completeProgram();
+            .completeProgram({
+                localUPLCEval: false,
+                setCollateral: 0n,
+            });
         return tx;
     });

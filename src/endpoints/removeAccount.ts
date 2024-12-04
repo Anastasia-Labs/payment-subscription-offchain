@@ -93,7 +93,10 @@ export const removeAccount = (
             )
             .attach.MintingPolicy(validators.mintValidator)
             .attach.SpendingValidator(validators.spendValidator)
-            .completeProgram();
+            .completeProgram({
+                localUPLCEval: false,
+                setCollateral: 0n,
+            });
 
         return tx;
     });

@@ -55,6 +55,9 @@ export const deployRefScriptTest = (
             currentTime,
         };
         const network = lucid.config().network;
+        if (!network) {
+            throw new Error("Network configuration is undefined");
+        }
 
         const alwaysFailsaddress = validatorToAddress(
             network,
@@ -62,7 +65,7 @@ export const deployRefScriptTest = (
         );
 
         const alwaysFailsUTxOs = yield* Effect.promise(() =>
-            lucid.config().provider.getUtxos(alwaysFailsaddress)
+            lucid.utxosAt(alwaysFailsaddress)
         );
 
         const deployRefScriptsFlow = Effect.gen(function* (_) {

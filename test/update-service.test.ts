@@ -27,10 +27,6 @@ export const updateServiceTestCase = (
 
     lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
 
-    const merchantAddress: Address = yield* Effect.promise(() =>
-      lucid.wallet().address()
-    );
-
     // Get utxos where is_active in datum is set to true
     const activeServiceUTxOs = serviceUTxOs.filter((utxo) => {
       if (!utxo.datum) return false;
@@ -39,10 +35,6 @@ export const updateServiceTestCase = (
 
       return datum.is_active === true;
     });
-
-    const merchantUTxOs = yield* Effect.promise(() =>
-      lucid.config().provider.getUtxos(merchantAddress)
-    );
 
     const serviceData = yield* Effect.promise(
       () => (getServiceValidatorDatum(activeServiceUTxOs)),

@@ -129,7 +129,10 @@ export const initiateSubscription = (
         [paymentNFT]: 1n,
       })
       .attach.MintingPolicy(validators.mintValidator)
-      .completeProgram();
+      .completeProgram({
+        localUPLCEval: false,
+        setCollateral: 0n,
+      });
 
     return tx;
   });

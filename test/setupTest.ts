@@ -1,4 +1,9 @@
-import { Address, UTxO, validatorToAddress } from "@lucid-evolution/lucid";
+import {
+  Address,
+  Network,
+  UTxO,
+  validatorToAddress,
+} from "@lucid-evolution/lucid";
 import { LucidContext, makeLucidContext } from "./service/lucidContext";
 import { Effect } from "effect";
 import { createAccountTestCase } from "./createAccountTestCase";
@@ -23,12 +28,17 @@ export type SetupResult = {
   merchantUTxOs: UTxO[];
   subscriberUTxOs: UTxO[];
   currentTime: bigint;
+  network: Network;
 };
 
 export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
   return Effect.gen(function* (_) {
     const { lucid, users, emulator } = yield* makeLucidContext();
     const network = lucid.config().network;
+    if (!network) {
+      throw new Error("Network configuration is undefined");
+    }
+
     let currentTime: bigint;
 
     // If using emulator, perform necessary setup
@@ -87,7 +97,7 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
     );
 
     const subscriberUTxOs = yield* Effect.promise(() =>
-      lucid.config().provider.getUtxos(subscriberAddress)
+      lucid.utxosAt(subscriberAddress)
     );
 
     // Get necessary addresses
@@ -117,6 +127,7 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
       merchantUTxOs,
       subscriberUTxOs,
       currentTime,
+      network,
     };
   });
 };

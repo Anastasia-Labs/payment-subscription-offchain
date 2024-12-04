@@ -7,6 +7,8 @@ import {
     PROTOCOL_PARAMETERS_DEFAULT,
 } from "@lucid-evolution/lucid";
 import { Effect } from "effect";
+import dotenv from "dotenv";
+dotenv.config();
 
 export type LucidContext = {
     lucid: LucidEvolution;
@@ -90,10 +92,9 @@ export const makeMaestroContext = (network: Network) =>
 export const makeLucidContext = (network?: Network) =>
     Effect.gen(function* ($) {
         const API_KEY = process.env.API_KEY;
-
         const selectedNetwork = network ?? NETWORK; // Default to Preprod if not specified
-        // const selectedNetwork = "Preprod";
-        if (API_KEY && selectedNetwork !== selectedNetwork) {
+        // console.log("Network: ", selectedNetwork);
+        if (API_KEY && selectedNetwork !== "Custom") {
             // Use Maestro context
             return yield* $(makeMaestroContext(selectedNetwork));
         } else {

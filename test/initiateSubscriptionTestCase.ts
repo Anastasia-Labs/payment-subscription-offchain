@@ -32,9 +32,8 @@ export const initiateSubscriptionTestCase = (
             currentTime,
             accUserName,
             serviceRefName,
+            network,
         } = setupResult;
-
-        const network = lucid.config().network;
 
         const accUsrNft = toUnit(
             accountPolicyId,
@@ -109,7 +108,7 @@ export const initiateSubscriptionTestCase = (
         );
 
         const paymentUTxOs = yield* Effect.promise(() =>
-            lucid.config().provider.getUtxos(paymentValidatorAddress)
+            lucid.utxosAt(paymentValidatorAddress)
         );
 
         return {
