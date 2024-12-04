@@ -1,15 +1,8 @@
 import { updateAccount, UpdateAccountConfig } from "../src/index.js";
 import { expect, test } from "vitest";
-import { Address, validatorToAddress } from "@lucid-evolution/lucid";
 import { Effect } from "effect";
-import { LucidContext, makeLucidContext } from "./service/lucidContext.js";
-import { createAccountTestCase } from "./createAccountTestCase.js";
-import { getAccountValidatorDatum } from "../src/endpoints/utils.js";
-import {
-    accountPolicyId,
-    accountScript,
-    accountValidator,
-} from "./common/constants.js";
+import { LucidContext } from "./service/lucidContext.js";
+import { accountPolicyId, accountScript } from "./common/constants.js";
 import { SetupResult, setupTest } from "./setupTest.js";
 
 type RemoveServiceResult = {

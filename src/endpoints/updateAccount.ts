@@ -4,7 +4,6 @@ import {
     Data,
     fromText,
     LucidEvolution,
-    mintingPolicyToId,
     RedeemerBuilder,
     toUnit,
     TransactionError,
@@ -14,7 +13,7 @@ import { getMultiValidator } from "../core/utils/index.js";
 import { UpdateAccountConfig } from "../core/types.js";
 import { AccountDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
-import { extractTokens, getAccountValidatorDatum } from "./utils.js";
+import { getAccountValidatorDatum } from "./utils.js";
 
 export const updateAccount = (
     lucid: LucidEvolution,
