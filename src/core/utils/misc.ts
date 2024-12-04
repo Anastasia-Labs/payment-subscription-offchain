@@ -19,6 +19,10 @@ export const getMultiValidator = (
   };
 
   const network = lucid.config().network;
+  if (!network) {
+    throw new Error("Network configuration is undefined");
+  }
+
   const mintAddress = validatorToAddress(
     network,
     mintValidator,

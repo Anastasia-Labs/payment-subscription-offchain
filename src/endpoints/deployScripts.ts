@@ -30,6 +30,10 @@ export const deployRefScripts = (
         // );
 
         const network = lucid.config().network;
+        if (!network) {
+            throw new Error("Network configuration is undefined");
+        }
+
         const providerAddress: Address = yield* Effect.promise(() =>
             lucid.wallet().address()
         );
@@ -44,11 +48,11 @@ export const deployRefScripts = (
         }
 
         const providerUTxOs = yield* Effect.promise(() =>
-            lucid.config().provider.getUtxos(providerAddress)
+            lucid.utxosAt(providerAddress)
         );
 
         const alwaysFailsUTxOs = yield* Effect.promise(() =>
-            lucid.config().provider.getUtxos(alwaysFailsVal.spendValAddress)
+            lucid.utxosAt(alwaysFailsVal.spendValAddress)
         );
 
         const deployKey = getAddressDetails(providerAddress)

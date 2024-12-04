@@ -14,6 +14,7 @@ import {
     paymentValidator,
     servicePolicyId,
 } from "./common/constants.js";
+import { NETWORK } from "./service/lucidContext.js";
 
 type InitiateSubscriptionResult = {
     txHash: string;
@@ -33,8 +34,6 @@ export const initiateSubscriptionTestCase = (
             accUserName,
             serviceRefName,
         } = setupResult;
-
-        const network = lucid.config().network;
 
         const accUsrNft = toUnit(
             accountPolicyId,
@@ -104,12 +103,12 @@ export const initiateSubscriptionTestCase = (
         );
 
         const paymentValidatorAddress = validatorToAddress(
-            network,
+            NETWORK,
             paymentValidator.mintPayment,
         );
 
         const paymentUTxOs = yield* Effect.promise(() =>
-            lucid.config().provider.getUtxos(paymentValidatorAddress)
+            lucid.utxosAt(paymentValidatorAddress)
         );
 
         return {

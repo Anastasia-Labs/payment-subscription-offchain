@@ -6,7 +6,7 @@ import {
 import { expect, test } from "vitest";
 import { Effect } from "effect";
 
-import { LucidContext } from "./service/lucidContext.js";
+import { LucidContext, NETWORK } from "./service/lucidContext.js";
 import { SetupResult, setupTest } from "./setupTest.js";
 import { unsubscribeTestCase } from "./unsubscribeTestCase.js";
 import {
@@ -32,7 +32,7 @@ export const withdrawPenaltyTestCase = (
             serviceUserName,
         } = setupResult;
 
-        if (emulator && lucid.config().network === "Custom") {
+        if (emulator && NETWORK === "Custom") {
             const initResult = yield* unsubscribeTestCase(setupResult);
 
             expect(initResult).toBeDefined();

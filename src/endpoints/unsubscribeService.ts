@@ -32,7 +32,7 @@ export const unsubscribeService = (
         const paymentAddress = paymentValidators.spendValAddress;
 
         const paymentUTxOs = yield* Effect.promise(() =>
-            lucid.config().provider.getUtxos(paymentAddress)
+            lucid.utxosAt(paymentAddress)
         );
 
         const payment_token_name = tokenNameFromUTxO(

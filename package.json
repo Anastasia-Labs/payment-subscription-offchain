@@ -1,7 +1,7 @@
 {
-  "name": "aiken-multisig-off-chain",
+  "name": "payment-subscription-offchain",
   "version": "1.0.0",
-  "description": "Off-Chain SDK for Aiken Upgradable Multisig",
+  "description": "Off-Chain SDK for Aiken Payment Subscription",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "type": "module",
@@ -28,7 +28,7 @@
     "eslint-config-prettier": "^8.10.0",
     "ts-node": "^10.9.2",
     "tsup": "^6.7.0",
-    "typescript": "^5.6.3",
+    "typescript": "^5.7.2",
     "vitest": "0.34.6"
   },
   "directories": {
@@ -37,12 +37,8 @@
   "dependencies": {
     "@lucid-evolution/lucid": "0.4.13",
     "@noble/hashes": "^1.6.1",
+    "dotenv": "^16.4.5",
     "effect": "^3.11.0"
-  },
-  "pnpm": {
-    "overrides": {
-      "@lucid-evolution/uplc": "0.2.11"
-    }
   },
   "packageManager": "pnpm@9.7.1+sha512.faf344af2d6ca65c4c5c8c2224ea77a81a5e8859cbc4e06b1511ddce2f0151512431dd19e6aff31f2c6a8f5f2aced9bd2273e1fed7dd4de1868984059d2c4247"
 }

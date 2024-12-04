@@ -30,7 +30,7 @@ export const merchantPenaltyWithdraw = (
     const paymentAddress = validators.spendValAddress;
 
     const paymentUTxOs = yield* Effect.promise(() =>
-      lucid.config().provider.getUtxos(paymentAddress)
+      lucid.utxosAt(paymentAddress)
     );
 
     const penaltyUTxOs = paymentUTxOs.filter((utxo: UTxO) => {

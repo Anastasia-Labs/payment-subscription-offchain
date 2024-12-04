@@ -16,6 +16,7 @@ import {
     serviceValidator,
 } from "./common/constants.js";
 import { Data, validatorToAddress } from "@lucid-evolution/lucid";
+import { NETWORK } from "./service/lucidContext.js";
 
 type SubscriberWithdrawResult = {
     txHash: string;
@@ -31,9 +32,7 @@ export const subscriberWithdrawTestCase = (
             serviceRefName,
         } = setupResult;
 
-        const network = lucid.config().network;
-
-        if (emulator && lucid.config().network === "Custom") {
+        if (emulator && NETWORK === "Custom") {
             const initResult = yield* initiateSubscriptionTestCase(setupResult);
 
             expect(initResult).toBeDefined();
@@ -52,7 +51,7 @@ export const subscriberWithdrawTestCase = (
         }
 
         const serviceAddress = validatorToAddress(
-            network,
+            NETWORK,
             serviceValidator.spendService,
         );
 

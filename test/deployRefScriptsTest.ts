@@ -7,7 +7,7 @@ import {
 import { readMultiValidators, Validators } from "./compiled/validators.js";
 import { Effect } from "effect";
 import blueprint from "./compiled/plutus.json" assert { type: "json" };
-import { LucidContext } from "./service/lucidContext.js";
+import { LucidContext, NETWORK } from "./service/lucidContext.js";
 
 const validators = readMultiValidators(blueprint, false, []);
 
@@ -54,15 +54,14 @@ export const deployRefScriptTest = (
             alwaysFails: alwaysFailScript,
             currentTime,
         };
-        const network = lucid.config().network;
 
         const alwaysFailsaddress = validatorToAddress(
-            network,
+            NETWORK,
             validators.alwaysFails,
         );
 
         const alwaysFailsUTxOs = yield* Effect.promise(() =>
-            lucid.config().provider.getUtxos(alwaysFailsaddress)
+            lucid.utxosAt(alwaysFailsaddress)
         );
 
         const deployRefScriptsFlow = Effect.gen(function* (_) {

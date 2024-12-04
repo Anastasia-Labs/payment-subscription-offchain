@@ -1,5 +1,14 @@
-import { Address, UTxO, validatorToAddress } from "@lucid-evolution/lucid";
-import { LucidContext, makeLucidContext } from "./service/lucidContext";
+import {
+  Address,
+  Network,
+  UTxO,
+  validatorToAddress,
+} from "@lucid-evolution/lucid";
+import {
+  LucidContext,
+  makeLucidContext,
+  NETWORK,
+} from "./service/lucidContext";
 import { Effect } from "effect";
 import { createAccountTestCase } from "./createAccountTestCase";
 import { createServiceTestCase } from "./createServiceTestCase";
@@ -28,15 +37,11 @@ export type SetupResult = {
 export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
   return Effect.gen(function* (_) {
     const { lucid, users, emulator } = yield* makeLucidContext();
-    const network = lucid.config().network;
-    if (network === undefined) {
-      throw new Error("Network configuration is undefined");
-    }
 
     let currentTime: bigint;
 
     // If using emulator, perform necessary setup
-    if (emulator && network === "Custom") {
+    if (emulator && NETWORK === "Custom") {
       // Create account and service if they don't exist
       const accountResult = yield* createAccountTestCase({
         lucid,
@@ -57,7 +62,7 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
     }
 
     const paymentAddress = validatorToAddress(
-      network,
+      NETWORK,
       paymentValidator.spendPayment,
     );
 
@@ -70,7 +75,7 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
     );
 
     const serviceAddress = validatorToAddress(
-      network,
+      NETWORK,
       serviceValidator.spendService,
     );
 
@@ -96,7 +101,7 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
 
     // Get necessary addresses
     const accountAddress = validatorToAddress(
-      network,
+      NETWORK,
       accountValidator.spendAccount,
     );
 
