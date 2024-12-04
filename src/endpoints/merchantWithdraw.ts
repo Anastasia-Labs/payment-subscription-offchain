@@ -139,7 +139,10 @@ export const merchantWithdraw = (
       })
       .validFrom(Number(paymentData[0].subscription_start) + Number(1000 * 60)) // 1 minute
       .attach.SpendingValidator(validators.spendValidator)
-      .completeProgram();
+      .completeProgram({
+        localUPLCEval: false,
+        setCollateral: 0n,
+      });
 
     return tx;
   });

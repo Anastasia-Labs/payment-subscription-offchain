@@ -161,7 +161,10 @@ export const unsubscribeService = (
             })
             .validFrom(Number(paymentData[0].subscription_start)) // 1 minute
             .attach.SpendingValidator(paymentValidators.spendValidator)
-            .completeProgram();
+            .completeProgram({
+                localUPLCEval: false,
+                setCollateral: 0n,
+            });
 
         return tx;
     });

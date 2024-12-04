@@ -138,7 +138,10 @@ export const extendSubscription = (
         [paymentNFT]: 1n,
       })
       .attach.SpendingValidator(validators.spendValidator)
-      .completeProgram();
+      .completeProgram({
+        localUPLCEval: false,
+        setCollateral: 0n,
+      });
 
     return tx;
   });

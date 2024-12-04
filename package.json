@@ -35,9 +35,9 @@
     "test": "test"
   },
   "dependencies": {
-    "@lucid-evolution/lucid": "0.3.44",
-    "@noble/hashes": "^1.5.0",
-    "effect": "^3.10.15"
+    "@lucid-evolution/lucid": "0.4.13",
+    "@noble/hashes": "^1.6.1",
+    "effect": "^3.11.0"
   },
   "pnpm": {
     "overrides": {

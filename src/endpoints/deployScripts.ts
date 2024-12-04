@@ -89,7 +89,10 @@ export const deployRefScripts = (
                 alwaysFailsVal.spendValidator,
             )
             .validTo(Number(config.currentTime) + 29 * 60 * 1000)
-            .completeProgram();
+            .completeProgram({
+                localUPLCEval: false,
+                setCollateral: 0n,
+            });
 
         return tx;
     });

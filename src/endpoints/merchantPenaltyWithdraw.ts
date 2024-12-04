@@ -8,6 +8,7 @@ import {
   TransactionError,
   TxBuilderError,
   TxSignBuilder,
+  UTxO,
 } from "@lucid-evolution/lucid";
 import { WithdrawPenaltyConfig } from "../core/types.js";
 import { getMultiValidator, PaymentValidatorDatum } from "../core/index.js";
@@ -32,7 +33,7 @@ export const merchantPenaltyWithdraw = (
       lucid.config().provider.getUtxos(paymentAddress)
     );
 
-    const penaltyUTxOs = paymentUTxOs.filter((utxo) => {
+    const penaltyUTxOs = paymentUTxOs.filter((utxo: UTxO) => {
       if (!utxo.datum) return false;
 
       try {
@@ -152,7 +153,10 @@ export const merchantPenaltyWithdraw = (
       })
       .attach.MintingPolicy(validators.mintValidator)
       .attach.SpendingValidator(validators.spendValidator)
-      .completeProgram();
+      .completeProgram({
+        localUPLCEval: false,
+        setCollateral: 0n,
+      });
 
     return tx;
   });

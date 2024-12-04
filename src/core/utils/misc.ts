@@ -14,7 +14,7 @@ export const getMultiValidator = (
   scripts: { spending: CborHex; minting: CborHex; staking: CborHex },
 ): MultiValidator => {
   const mintValidator: MintingPolicy = {
-    type: "PlutusV2",
+    type: "PlutusV3",
     script: scripts.minting,
   };
 
@@ -25,7 +25,7 @@ export const getMultiValidator = (
   );
 
   const spendValidator: SpendingValidator = {
-    type: "PlutusV2",
+    type: "PlutusV3",
     script: scripts.spending,
   };
   const spendValidatorAddress = validatorToAddress(
