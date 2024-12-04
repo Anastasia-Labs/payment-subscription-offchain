@@ -14,9 +14,7 @@
   - [Test Framework](#test-framework)
   - [Running Tests](#running-tests)
 
-<!-- TODO: Link to lucid-evolution -->
 <!-- TODO: Clean up the examples with actual code -->
-<!-- TODO: Make updated GIF for the tests -->
 # Payment Subscription Offchain
 
 ## Introduction
@@ -72,6 +70,7 @@ pnpm install @anastasia-labs/payment-subscription-offchain
 ### Setup Lucid & Subscription Scripts
 
 ```ts
+import { Lucid, Maestro } from "@lucid-evolution/lucid";
 
 const lucid = await Lucid(
   new Maestro({
