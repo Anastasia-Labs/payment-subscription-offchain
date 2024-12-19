@@ -40,10 +40,6 @@ export const updateServiceTestCase = (
       return datum.is_active === true;
     });
 
-    const merchantUTxOs = yield* Effect.promise(() =>
-      lucid.config().provider.getUtxos(merchantAddress)
-    );
-
     const serviceData = yield* Effect.promise(
       () => (getServiceValidatorDatum(activeServiceUTxOs)),
     );
@@ -91,7 +87,7 @@ export const updateServiceTestCase = (
   });
 };
 
-test<LucidContext>("Test 1 - Update Service", async () => {
+test<LucidContext>("Test 2 - Update Service", async () => {
   const program = Effect.gen(function* () {
     const setupContext = yield* setupTest();
     const result = yield* updateServiceTestCase(setupContext);

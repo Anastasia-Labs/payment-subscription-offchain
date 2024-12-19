@@ -93,7 +93,7 @@ export const withdrawPenaltyTestCase = (
     });
 };
 
-test<LucidContext>("Test 1 - Merchant Penalty Withdraw", async () => {
+test<LucidContext>("Test 11 - Merchant Penalty Withdraw", async () => {
     const program = Effect.gen(function* ($) {
         const setupContext = yield* setupTest();
         const result = yield* withdrawPenaltyTestCase(setupContext);

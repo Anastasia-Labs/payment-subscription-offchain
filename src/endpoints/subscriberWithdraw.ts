@@ -7,6 +7,7 @@ import {
   toUnit,
   TransactionError,
   TxSignBuilder,
+  UTxO,
 } from "@lucid-evolution/lucid";
 import { SubscriberWithdrawConfig } from "../core/types.js";
 import { PaymentDatum, PaymentValidatorDatum } from "../core/contract.types.js";
@@ -29,7 +30,7 @@ export const subscriberWithdraw = (
     const paymentAddress = validators.spendValAddress;
 
     const paymentUTxOs = yield* Effect.promise(() =>
-      lucid.config().provider.getUtxos(paymentAddress)
+      lucid.config().provider?.getUtxos(paymentAddress)
     );
 
     const payment_token_name = tokenNameFromUTxO(
@@ -58,7 +59,7 @@ export const subscriberWithdraw = (
       throw new Error("No payment UTxOs found");
     }
 
-    const inActivePaymentUTxOs = paymentUTxOs.filter((utxo) => {
+    const inActivePaymentUTxOs = paymentUTxOs.filter((utxo: UTxO) => {
       if (!utxo.datum) return false;
 
       const validatorDatum = Data.from<PaymentValidatorDatum>(

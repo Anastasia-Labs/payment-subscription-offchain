@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { LucidContext, makeLucidContext } from "./service/lucidContext.js";
 import { createAccountTestCase } from "./createAccountTestCase.js";
 
-test<LucidContext>("Test 1 - Create Account", async () => {
+test<LucidContext>("Test 4 - Create Account", async () => {
   const program = Effect.gen(function* ($) {
     const context = yield* makeLucidContext();
     const result = yield* createAccountTestCase(context);

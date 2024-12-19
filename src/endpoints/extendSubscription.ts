@@ -27,7 +27,7 @@ export const extendSubscription = (
     const validators = getMultiValidator(lucid, config.scripts);
 
     const paymentUTxOs = yield* Effect.promise(() =>
-      lucid.config().provider.getUtxos(validators.spendValAddress)
+      lucid.config().provider?.getUtxos(validators.spendValAddress)
     );
 
     const payment_token_name = tokenNameFromUTxO(

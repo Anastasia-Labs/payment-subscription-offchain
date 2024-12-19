@@ -30,6 +30,9 @@ export const deployRefScripts = (
         // );
 
         const network = lucid.config().network;
+        if (!network) {
+            throw Error();
+        }
         const providerAddress: Address = yield* Effect.promise(() =>
             lucid.wallet().address()
         );
@@ -44,11 +47,11 @@ export const deployRefScripts = (
         }
 
         const providerUTxOs = yield* Effect.promise(() =>
-            lucid.config().provider.getUtxos(providerAddress)
+            lucid.config().provider?.getUtxos(providerAddress)
         );
 
         const alwaysFailsUTxOs = yield* Effect.promise(() =>
-            lucid.config().provider.getUtxos(alwaysFailsVal.spendValAddress)
+            lucid.config().provider?.getUtxos(alwaysFailsVal.spendValAddress)
         );
 
         const deployKey = getAddressDetails(providerAddress)

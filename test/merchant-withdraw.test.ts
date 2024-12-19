@@ -93,7 +93,7 @@ export const merchantWithdrawTestCase = (
     });
 };
 
-test<LucidContext>("Test 1 - Merchant Withdraw", async () => {
+test<LucidContext>("Test 9 - Merchant Withdraw", async () => {
     const program = Effect.gen(function* () {
         const setupContext = yield* setupTest();
         const result = yield* merchantWithdrawTestCase(setupContext);

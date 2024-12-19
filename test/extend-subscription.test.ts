@@ -87,7 +87,7 @@ export const extendSubscriptionTestCase = (
     });
 };
 
-test<LucidContext>("Test 1 - Extend Service", async () => {
+test<LucidContext>("Test 8 - Extend Service", async () => {
     const program = Effect.gen(function* ($) {
         const setupContext = yield* setupTest();
         const result = yield* extendSubscriptionTestCase(setupContext);

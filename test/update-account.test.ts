@@ -68,7 +68,7 @@ export const updateAccountTestCase = (
     });
 };
 
-test<LucidContext>("Test 1 - Update Account", async () => {
+test<LucidContext>("Test 5 - Update Account", async () => {
     const program = Effect.gen(function* () {
         const setupContext = yield* setupTest();
         const result = yield* updateAccountTestCase(setupContext);

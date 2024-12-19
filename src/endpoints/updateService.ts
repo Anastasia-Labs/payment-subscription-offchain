@@ -34,7 +34,7 @@ export const updateService = (
             lucid.utxosAt(serviceValAddress)
         );
 
-        const activeServiceUTxOs = allServiceUTxOs.filter((utxo) => {
+        const activeServiceUTxOs = allServiceUTxOs.filter((utxo: UTxO) => {
             if (!utxo.datum) return false;
 
             const datum = Data.from<ServiceDatum>(utxo.datum, ServiceDatum);

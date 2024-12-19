@@ -35,6 +35,9 @@ export const initiateSubscriptionTestCase = (
         } = setupResult;
 
         const network = lucid.config().network;
+        if (!network) {
+            throw Error("Invalid Network Selection");
+        }
 
         const accUsrNft = toUnit(
             accountPolicyId,
@@ -108,9 +111,14 @@ export const initiateSubscriptionTestCase = (
             paymentValidator.mintPayment,
         );
 
-        const paymentUTxOs = yield* Effect.promise(() =>
-            lucid.config().provider.getUtxos(paymentValidatorAddress)
+        const paymentUTxOs = Effect.suspend(() =>
+            Effect.promise(() =>
+                lucid.config().provider?.getUtxos(paymentValidatorAddress) ??
+                    Promise.resolve([])
+            )
         );
+
+        console.log("paymentUTxOs: ", paymentUTxOs);
 
         return {
             txHash: subscriptionResult,

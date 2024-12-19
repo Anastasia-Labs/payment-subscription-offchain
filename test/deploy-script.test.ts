@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { LucidContext, makeLucidContext } from "./service/lucidContext.js";
 import { deployMultipleValidators } from "./deployRefScriptsTest.js";
 
-test<LucidContext>("Test 10 - Deploy Script", async () => {
+test<LucidContext>("Test 13 - Deploy Script", async () => {
     const program = Effect.gen(function* ($) {
         const context = yield* makeLucidContext();
         const result = yield* deployMultipleValidators(context, [

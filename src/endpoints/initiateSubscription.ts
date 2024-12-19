@@ -86,6 +86,9 @@ export const initiateSubscription = (
       penalty_fee_qty: config.penalty_fee_qty,
       minimum_ada: config.minimum_ada,
     };
+    console.log("subscription_start: ", config.subscription_start);
+    console.log("subscription_end: ", config.subscription_end);
+    console.log("interval_amount: ", config.interval_amount);
 
     const allDatums: PaymentValidatorDatum = {
       Payment: [paymentDatum],

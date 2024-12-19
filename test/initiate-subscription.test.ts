@@ -4,7 +4,7 @@ import { LucidContext } from "./service/lucidContext.js";
 import { initiateSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
 import { setupTest } from "./setupTest.js";
 
-test<LucidContext>("Test 1 - Initiate subscription", async () => {
+test<LucidContext>("Test 7 - Initiate subscription", async () => {
   const program = Effect.gen(function* ($) {
     const setupContext = yield* setupTest();
     const result = yield* initiateSubscriptionTestCase(setupContext);
