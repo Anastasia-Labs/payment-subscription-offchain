@@ -118,8 +118,6 @@ export const initiateSubscriptionTestCase = (
             )
         );
 
-        console.log("paymentUTxOs: ", paymentUTxOs);
-
         return {
             txHash: subscriptionResult,
             paymentConfig,
