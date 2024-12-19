@@ -1,6 +1,6 @@
 # Table of Contents
 
-- [Aiken Upgradable Multisig Offchain](#aiken-upgradable-multisig-offchain)
+- [Payment Subscription Offchain](#payment-subscription-offchain)
   - [Introduction](#introduction)
   - [Documentation](#documentation)
   - [Usage Example](#usage-example)
@@ -38,7 +38,7 @@ This project is funded by the Cardano Treasury in [Catalyst Fund 11](https://pro
 
 A Subscription Payments Smart Contract is a blockchain-based contract that automates recurring payments between users and service providers without intermediaries. It allows users to authorize scheduled payments directly from their wallets, enhancing security and control over their funds.
 
-### How Does This Project Facilitate Multisig Transactions?
+### How Does This Project Facilitate Payment Subscription Transactions?
 
 This project provides an off-chain SDK to interact along with our [Payment Subscription Smart Contract](https://github.com/Anastasia-Labs/payment-subscription). The contract enables:
 
