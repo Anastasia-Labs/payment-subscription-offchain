@@ -111,11 +111,8 @@ export const initiateSubscriptionTestCase = (
             paymentValidator.mintPayment,
         );
 
-        const paymentUTxOs = Effect.suspend(() =>
-            Effect.promise(() =>
-                lucid.config().provider?.getUtxos(paymentValidatorAddress) ??
-                    Promise.resolve([])
-            )
+        const paymentUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(paymentValidatorAddress)
         );
 
         return {

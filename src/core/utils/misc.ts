@@ -1,11 +1,8 @@
 import {
-  applyParamsToScript,
-  Constr,
   LucidEvolution,
   MintingPolicy,
   SpendingValidator,
   validatorToAddress,
-  validatorToRewardAddress,
 } from "@lucid-evolution/lucid";
 import { CborHex, MultiValidator } from "../types.js";
 
@@ -19,6 +16,9 @@ export const getMultiValidator = (
   };
 
   const network = lucid.config().network;
+  if (!network) {
+    throw Error("Invalid Network option");
+  }
   const mintAddress = validatorToAddress(
     network,
     mintValidator,

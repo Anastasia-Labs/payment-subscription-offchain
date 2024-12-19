@@ -27,7 +27,7 @@ export const updateAccount = (
         const validators = getMultiValidator(lucid, config.scripts);
 
         const accountUTxOs = yield* Effect.promise(() =>
-            lucid.config().provider?.getUtxos(validators.spendValAddress)
+            lucid.utxosAt(validators.spendValAddress)
         );
 
         const accountNFT = toUnit(

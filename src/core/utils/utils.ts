@@ -34,6 +34,9 @@ export const utxosAtScript = async (
   stakeCredentialHash?: string,
 ) => {
   const network = lucid.config().network;
+  if (!network) {
+    throw Error("Invalid Network option");
+  }
 
   const scriptValidator: SpendingValidator = {
     type: "PlutusV2",
