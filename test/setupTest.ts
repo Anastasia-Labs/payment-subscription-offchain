@@ -29,6 +29,9 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
   return Effect.gen(function* (_) {
     const { lucid, users, emulator } = yield* makeLucidContext();
     const network = lucid.config().network;
+    if (!network) {
+      throw Error("Invalid Network selection");
+    }
     let currentTime: bigint;
 
     // If using emulator, perform necessary setup
@@ -87,7 +90,7 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
     );
 
     const subscriberUTxOs = yield* Effect.promise(() =>
-      lucid.config().provider.getUtxos(subscriberAddress)
+      lucid.utxosAt(subscriberAddress)
     );
 
     // Get necessary addresses
