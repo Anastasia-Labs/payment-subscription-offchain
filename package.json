@@ -1,5 +1,5 @@
 {
-  "name": "@anastasia-labs/payment-subscription-off-chain",
+  "name": "@anastasia-labs/payment-subscription-offchain",
   "version": "1.0.0",
   "description": "Off-Chain SDK for Payment Subscription Smart Contract",
   "main": "./dist/index.js",
