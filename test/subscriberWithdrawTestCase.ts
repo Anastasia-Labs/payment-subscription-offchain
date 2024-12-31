@@ -11,10 +11,8 @@ import { removeServiceTestCase } from "./removeServiceTestCase.js";
 import { SetupResult } from "./setupTest.js";
 import {
     accountPolicyId,
-    paymentPolicyId,
-    paymentScript,
     serviceValidator,
-} from "./common/constants.js";
+} from "../src/core/validators/constants.js";
 import { Data, validatorToAddress } from "@lucid-evolution/lucid";
 
 type SubscriberWithdrawResult = {
@@ -27,11 +25,14 @@ export const subscriberWithdrawTestCase = (
     return Effect.gen(function* () {
         const {
             context: { lucid, users, emulator },
-            accUserName,
-            serviceRefName,
+            subscriberNftTn,
+            serviceNftTn,
         } = setupResult;
 
         const network = lucid.config().network;
+        if (!network) {
+            throw Error("Invalid Network selection");
+        }
 
         if (emulator && lucid.config().network === "Custom") {
             const initResult = yield* initiateSubscriptionTestCase(setupResult);
@@ -62,11 +63,6 @@ export const subscriberWithdrawTestCase = (
 
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
-        const accUsrNft = toUnit(
-            accountPolicyId,
-            accUserName,
-        );
-
         // Get utxos where is_active in datum is set to true
         const inActiveServiceUTxOs = serviceUTxOs.filter((utxo) => {
             if (!utxo.datum) return false;
@@ -77,11 +73,9 @@ export const subscriberWithdrawTestCase = (
         });
 
         const subscriberWithdrawConfig: SubscriberWithdrawConfig = {
-            service_ref_name: serviceRefName,
-            subscriber_token: accUsrNft,
-            payment_policy_Id: paymentPolicyId,
-            serviceUTxOs: inActiveServiceUTxOs,
-            scripts: paymentScript,
+            service_nft_tn: serviceNftTn,
+            subscriber_nft_tn: subscriberNftTn,
+            service_utxos: inActiveServiceUTxOs,
         };
 
         const subscriberWithdrawFlow = Effect.gen(function* (_) {

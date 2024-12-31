@@ -1,7 +1,6 @@
 import { createAccount, CreateAccountConfig } from "../src/index.js";
 import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
-import { accountScript } from "./common/constants.js";
 
 export type CreateAccountResult = {
     txHash: string;
@@ -25,7 +24,6 @@ export const createAccountTestCase = (
             email: "business@web3.ada",
             phone: "288-481-2686",
             account_created: currentTime,
-            scripts: accountScript,
         };
 
         const createAccountFlow = Effect.gen(function* (_) {

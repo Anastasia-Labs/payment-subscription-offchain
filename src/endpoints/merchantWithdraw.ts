@@ -14,6 +14,11 @@ import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
 import { getPaymentValidatorDatum } from "./utils.js";
 import { tokenNameFromUTxO } from "../core/utils/assets.js";
+import {
+  paymentPolicyId,
+  paymentScript,
+  servicePolicyId,
+} from "../core/validators/constants.js";
 
 export const merchantWithdraw = (
   lucid: LucidEvolution,
@@ -24,7 +29,7 @@ export const merchantWithdraw = (
       lucid.wallet().address()
     );
 
-    const validators = getMultiValidator(lucid, config.scripts);
+    const validators = getMultiValidator(lucid, paymentScript);
 
     const paymentUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(validators.spendValAddress)
@@ -32,11 +37,11 @@ export const merchantWithdraw = (
 
     const payment_token_name = tokenNameFromUTxO(
       paymentUTxOs,
-      config.payment_policy_Id,
+      paymentPolicyId,
     );
 
     const paymentNFT = toUnit(
-      config.payment_policy_Id,
+      paymentPolicyId,
       payment_token_name, //tokenNameWithoutFunc,
     );
 
@@ -50,15 +55,25 @@ export const merchantWithdraw = (
       lucid.utxosAt(merchantAddress)
     );
 
+    const serviceRefNft = toUnit(
+      servicePolicyId,
+      config.service_nft_tn,
+    );
+
+    const merchantNft = toUnit(
+      servicePolicyId,
+      config.merchant_nft_tn,
+    );
+
     const merchantUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
-        config.merchant_token,
+        merchantNft,
       )
     );
 
     const serviceUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
-        config.service_ref_token,
+        serviceRefNft,
       )
     );
 
@@ -128,7 +143,7 @@ export const merchantWithdraw = (
       .readFrom([serviceUTxO])
       .pay.ToAddress(merchantAddress, {
         lovelace: paymentData[0].minimum_ada,
-        [config.merchant_token]: 1n,
+        [merchantNft]: 1n,
       })
       .pay.ToContract(validators.spendValAddress, {
         kind: "inline",

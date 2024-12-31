@@ -1,10 +1,9 @@
-import { removeAccount, RemoveAccountConfig } from "../src/index.js";
+import { removeAccount } from "../src/index.js";
 import { expect, test } from "vitest";
 import { Address, validatorToAddress } from "@lucid-evolution/lucid";
 import { Effect } from "effect";
 import { LucidContext, makeLucidContext } from "./service/lucidContext.js";
 import { createAccountTestCase } from "./createAccountTestCase.js";
-import { accountScript, accountValidator } from "./common/constants.js";
 
 type RemoveAccountResult = {
   txHash: string;
@@ -30,14 +29,14 @@ export const removeAccountTestCase = ({
       yield* Effect.sync(() => emulator.awaitBlock(10));
     }
 
-    const removeAccountConfig: RemoveAccountConfig = {
-      scripts: accountScript,
-    };
+    // const removeAccountConfig: RemoveAccountConfig = {
+    //   scripts: accountScript,
+    // };
 
     const removeAccountFlow = Effect.gen(function* (_) {
       const removeAccountResult = yield* removeAccount(
         lucid,
-        removeAccountConfig,
+        // removeAccountConfig,
       );
       const removeAccountSigned = yield* Effect.promise(() =>
         removeAccountResult.sign.withWallet().complete()

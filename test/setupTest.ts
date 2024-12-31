@@ -10,14 +10,14 @@ import {
   paymentValidator,
   servicePolicyId,
   serviceValidator,
-} from "./common/constants";
+} from "../src/core/validators/constants";
 
 export type SetupResult = {
   context: LucidContext;
-  serviceRefName: string;
-  serviceUserName: string;
-  accRefName: string;
-  accUserName: string;
+  serviceNftTn: string;
+  merchantNftTn: string;
+  accountNftTn: string;
+  subscriberNftTn: string;
   serviceUTxOs: UTxO[];
   accountUTxOs: UTxO[];
   merchantUTxOs: UTxO[];
@@ -78,7 +78,7 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
     );
 
     // Find CIP68 Token Names
-    const { refTokenName: serviceRefName, userTokenName: serviceUserName } =
+    const { refTokenName: serviceNftTn, userTokenName: merchantNftTn } =
       findCip68TokenNames(
         [serviceUTxOs[0], merchantUTxOs[0]],
         servicePolicyId,
@@ -103,7 +103,7 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
     const accountUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(accountAddress)
     );
-    const { refTokenName: accRefName, userTokenName: accUserName } =
+    const { refTokenName: accountNftTn, userTokenName: subscriberNftTn } =
       findCip68TokenNames(
         [accountUTxOs[0], subscriberUTxOs[0]],
         accountPolicyId,
@@ -111,10 +111,10 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
 
     return {
       context: { lucid, users, emulator },
-      serviceRefName,
-      serviceUserName,
-      accRefName,
-      accUserName,
+      serviceNftTn,
+      merchantNftTn,
+      accountNftTn,
+      subscriberNftTn,
       serviceUTxOs,
       accountUTxOs,
       merchantUTxOs,

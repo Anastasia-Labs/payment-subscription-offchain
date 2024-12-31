@@ -15,6 +15,11 @@ import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
 import { getPaymentValidatorDatum } from "./utils.js";
 import { tokenNameFromUTxO } from "../core/utils/assets.js";
+import {
+  accountPolicyId,
+  paymentPolicyId,
+  paymentScript,
+} from "../core/validators/constants.js";
 
 export const subscriberWithdraw = (
   lucid: LucidEvolution,
@@ -25,7 +30,7 @@ export const subscriberWithdraw = (
       lucid.wallet().address()
     );
 
-    const validators = getMultiValidator(lucid, config.scripts);
+    const validators = getMultiValidator(lucid, paymentScript);
 
     const paymentAddress = validators.spendValAddress;
 
@@ -35,17 +40,22 @@ export const subscriberWithdraw = (
 
     const payment_token_name = tokenNameFromUTxO(
       paymentUTxOs,
-      config.payment_policy_Id,
+      paymentPolicyId,
     );
 
     const paymentNFT = toUnit(
-      config.payment_policy_Id,
+      paymentPolicyId,
       payment_token_name,
+    );
+
+    const subscriberNft = toUnit(
+      accountPolicyId,
+      config.subscriber_nft_tn,
     );
 
     const subscriberUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
-        config.subscriber_token,
+        subscriberNft,
       )
     );
 
@@ -74,7 +84,7 @@ export const subscriberWithdraw = (
         throw new Error("Expected Payment variant");
       }
 
-      return datum.service_nft_tn === config.service_ref_name;
+      return datum.service_nft_tn === config.service_nft_tn;
     });
 
     const paymentData = yield* Effect.promise(
@@ -128,11 +138,11 @@ export const subscriberWithdraw = (
     const tx = yield* lucid
       .newTx()
       .collectFrom(subscriberUTxOs) // subscriber user nft utxo
-      .readFrom(config.serviceUTxOs)
+      .readFrom(config.service_utxos)
       .collectFrom(paymentUTxOs, subscriberWithdrawRedeemer)
       .pay.ToAddress(subscriberAddress, {
         lovelace: paymentValue,
-        [config.subscriber_token]: 1n,
+        [subscriberNft]: 1n,
       })
       .pay.ToAddressWithData(validators.spendValAddress, {
         kind: "inline",

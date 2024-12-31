@@ -4,12 +4,14 @@ import {
     REF_SCRIPT_TOKEN_NAMES,
     validatorToAddress,
 } from "../src/index.js";
-import { readMultiValidators, Validators } from "./compiled/validators.js";
 import { Effect } from "effect";
-import blueprint from "./compiled/plutus.json" assert { type: "json" };
+// import blueprint from "./compiled/plutus.json" assert { type: "json" };
 import { LucidContext } from "./service/lucidContext.js";
-
-const validators = readMultiValidators(blueprint, false, []);
+import {
+    readMultiValidators,
+    Validators,
+} from "../src/core/compiled/validators.js";
+import { deployValidator } from "../src/core/validators/constants.js";
 
 export type DeployRefScriptsResult = {
     txHash: string;
@@ -36,33 +38,35 @@ export const deployRefScriptTest = (
         const validatorKey: keyof Validators = validatorTag; // or "mintPayment" if you want the minting policy
         const tokenName: string = REF_SCRIPT_TOKEN_NAMES[validatorKey];
 
-        const deployingScript = {
-            spending: validators.spendPayment.script,
-            minting: validators.mintPayment.script,
-            staking: "",
-        };
+        // const deployingScript = {
+        //     spending: validators.spendPayment.script,
+        //     minting: validators.mintPayment.script,
+        //     staking: "",
+        // };
 
-        const alwaysFailScript = {
-            spending: validators.alwaysFails.script,
-            minting: "",
-            staking: "",
-        };
+        // const alwaysFailScript = {
+        //     spending: validators.alwaysFails.script,
+        //     minting: "",
+        //     staking: "",
+        // };
 
         const deployConfig: DeployRefScriptsConfig = {
-            tknName: tokenName,
-            scripts: deployingScript,
-            alwaysFails: alwaysFailScript,
-            currentTime,
+            token_name: tokenName,
+            // scripts: deployingScript,
+            // alwaysFails: alwaysFailScript,
+            current_time: currentTime,
         };
         const network = lucid.config().network;
-
+        if (!network) {
+            throw Error("Invalid Network selection");
+        }
         const alwaysFailsaddress = validatorToAddress(
             network,
-            validators.alwaysFails,
+            deployValidator.alwaysFails,
         );
 
         const alwaysFailsUTxOs = yield* Effect.promise(() =>
-            lucid.config().provider.getUtxos(alwaysFailsaddress)
+            lucid.utxosAt(alwaysFailsaddress)
         );
 
         const deployRefScriptsFlow = Effect.gen(function* (_) {

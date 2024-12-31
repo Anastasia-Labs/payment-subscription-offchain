@@ -1,6 +1,8 @@
 import { mintingPolicyToId } from "@lucid-evolution/lucid";
-import { readMultiValidators } from "../compiled/validators";
-import blueprint from "../compiled/plutus.json" assert { type: "json" };
+import { readMultiValidators } from "../compiled/validators.js";
+import blueprint from "../compiled/plutus.json" assert {
+    type: "json",
+};
 
 const serviceValidator = readMultiValidators(blueprint, false, []);
 const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
@@ -35,10 +37,27 @@ const paymentScript = {
     staking: "",
 };
 
+const deployValidator = readMultiValidators(blueprint, false, []);
+
+const deployScript = {
+    spending: deployValidator.spendPayment.script,
+    minting: deployValidator.mintPayment.script,
+    staking: "",
+};
+
+const alwaysFailScript = {
+    spending: deployValidator.alwaysFails.script,
+    minting: "",
+    staking: "",
+};
+
 export {
     accountPolicyId,
     accountScript,
     accountValidator,
+    alwaysFailScript,
+    deployScript,
+    deployValidator,
     paymentPolicyId,
     paymentScript,
     paymentValidator,

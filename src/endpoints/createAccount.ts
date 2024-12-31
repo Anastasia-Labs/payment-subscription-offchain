@@ -16,6 +16,7 @@ import { CreateAccountConfig } from "../core/types.js";
 import { AccountDatum, CreateAccountRedeemer } from "../core/contract.types.js";
 import { createCip68TokenNames } from "../core/utils/assets.js";
 import { Effect } from "effect";
+import { accountScript } from "../core/validators/constants.js";
 
 export const createAccount = (
   lucid: LucidEvolution,
@@ -25,7 +26,7 @@ export const createAccount = (
     const subscriberAddress: Address = yield* Effect.promise(() =>
       lucid.wallet().address()
     );
-    const validators = getMultiValidator(lucid, config.scripts);
+    const validators = getMultiValidator(lucid, accountScript);
     const accountPolicyId = mintingPolicyToId(validators.mintValidator);
 
     const subscriberUTxOs = yield* Effect.promise(() =>

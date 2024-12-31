@@ -5,11 +5,8 @@ import { expect } from "vitest";
 import { SetupResult } from "./setupTest.js";
 import {
     accountPolicyId,
-    paymentPolicyId,
-    paymentScript,
     servicePolicyId,
-} from "./common/constants.js";
-
+} from "../src/core/validators/constants.js";
 type UnsubscribeResult = {
     txHash: string;
 };
@@ -20,9 +17,9 @@ export const unsubscribeTestCase = (
     return Effect.gen(function* () {
         const {
             context: { lucid, users, emulator },
-            serviceRefName,
+            serviceNftTn,
             currentTime,
-            accUserName,
+            subscriberNftTn,
         } = setupResult;
 
         if (emulator && lucid.config().network === "Custom") {
@@ -34,25 +31,13 @@ export const unsubscribeTestCase = (
             yield* Effect.sync(() => emulator.awaitBlock(10));
         }
 
-        const serviceRefNft = toUnit(
-            servicePolicyId,
-            serviceRefName,
-        );
-
-        const accUsrNft = toUnit(
-            accountPolicyId,
-            accUserName,
-        );
-
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
         const unsubscribeConfig: UnsubscribeConfig = {
-            service_nft_tn: serviceRefName,
-            account_nft_tn: accUserName,
-            currentTime: currentTime,
-            user_token: accUsrNft,
-            ref_token: serviceRefNft,
-            payment_policy_Id: paymentPolicyId,
-            payment_scripts: paymentScript,
+            service_nft_tn: serviceNftTn,
+            subscriber_nft_tn: subscriberNftTn,
+            current_time: currentTime,
+            // user_token: subscriberNft,
+            // ref_token: serviceRefNft,
         };
 
         const unsubscribeFlow = Effect.gen(function* (_) {

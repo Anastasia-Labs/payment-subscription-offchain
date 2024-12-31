@@ -1,0 +1,34 @@
+{
+  "name": "payment-subscription-examples",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "",
+  "main": "dist/index.js",
+  "bin": {
+    "cli": "./dist/cli"
+    
+  },
+  "files": [
+    "/dist/"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:cli": "tsup src/cli.ts --minify --format esm",
+    "quick-test": "tsup src/index.ts --format esm && node dist/index.js --help",
+    "start": "node dist/cli.js",
+    "test": "export NODE_ENV='emulator' && vitest run"
+  },
+  "keywords": [],
+  "author": "Anastasia Labs",
+  "license": "ISC",
+  "dependencies": {
+    "@anastasia-labs/payment-subscription-offchain": "file:../anastasia-labs-aiken-multisig-offchain-1.0.1.tgz",
+    "commander": "^12.1.0",
+    "tsup": "^8.3.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  }
+}

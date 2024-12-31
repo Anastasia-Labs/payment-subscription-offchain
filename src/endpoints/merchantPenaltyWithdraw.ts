@@ -15,6 +15,11 @@ import { getMultiValidator, PaymentValidatorDatum } from "../core/index.js";
 import { Effect } from "effect";
 import { getPenaltyDatum } from "./utils.js";
 import { tokenNameFromUTxO } from "../core/utils/assets.js";
+import {
+  paymentPolicyId,
+  paymentScript,
+  servicePolicyId,
+} from "../core/validators/constants.js";
 
 export const merchantPenaltyWithdraw = (
   lucid: LucidEvolution,
@@ -25,7 +30,7 @@ export const merchantPenaltyWithdraw = (
       lucid.wallet().address()
     );
 
-    const validators = getMultiValidator(lucid, config.scripts);
+    const validators = getMultiValidator(lucid, paymentScript);
 
     const paymentAddress = validators.spendValAddress;
 
@@ -61,11 +66,11 @@ export const merchantPenaltyWithdraw = (
 
     const payment_token_name = tokenNameFromUTxO(
       penaltyUTxOs,
-      config.payment_policy_Id,
+      paymentPolicyId,
     );
 
     const paymentNFT = toUnit(
-      config.payment_policy_Id,
+      paymentPolicyId,
       payment_token_name,
     );
 
@@ -73,14 +78,24 @@ export const merchantPenaltyWithdraw = (
       () => (getPenaltyDatum(penaltyUTxOs)),
     );
 
+    const serviceRefNft = toUnit(
+      servicePolicyId,
+      config.service_nft_tn,
+    );
+
+    const merchantNft = toUnit(
+      servicePolicyId,
+      config.merchant_nft_tn,
+    );
+
     const merchantUTxOs = yield* Effect.promise(() =>
       lucid.utxosAtWithUnit(
         merchantAddress,
-        config.merchant_token,
+        merchantNft,
       )
     );
 
-    if (!config.merchantUTxOs || !config.merchantUTxOs.length) {
+    if (!config.merchant_utxos || !config.merchant_utxos.length) {
       yield* Effect.fail(
         new TxBuilderError({
           cause: "No UTxO found at user address: " + merchantAddress,
@@ -90,7 +105,7 @@ export const merchantPenaltyWithdraw = (
 
     const merchantUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
-        config.merchant_token,
+        merchantNft,
       )
     );
 
@@ -102,7 +117,7 @@ export const merchantPenaltyWithdraw = (
 
     const serviceUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
-        config.service_ref_token,
+        serviceRefNft,
       )
     );
 
@@ -149,7 +164,7 @@ export const merchantPenaltyWithdraw = (
       )
       .pay.ToAddress(merchantAddress, {
         lovelace: penaltyData[0].penalty_fee_qty,
-        [config.merchant_token]: 1n,
+        [merchantNft]: 1n,
       })
       .attach.MintingPolicy(validators.mintValidator)
       .attach.SpendingValidator(validators.spendValidator)

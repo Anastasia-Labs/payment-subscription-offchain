@@ -17,6 +17,7 @@ import { CreateServiceRedeemer, ServiceDatum } from "../core/contract.types.js";
 import { createCip68TokenNames } from "../core/utils/assets.js";
 import { Effect } from "effect";
 import { ADA } from "../core/constants.js";
+import { serviceScript } from "../core/validators/constants.js";
 
 export const createService = (
   lucid: LucidEvolution,
@@ -27,7 +28,7 @@ export const createService = (
       lucid.wallet().address()
     );
 
-    const validators = getMultiValidator(lucid, config.scripts);
+    const validators = getMultiValidator(lucid, serviceScript);
     const servicePolicyId = mintingPolicyToId(validators.mintValidator);
 
     const merchantUTxOs = yield* Effect.promise(() =>

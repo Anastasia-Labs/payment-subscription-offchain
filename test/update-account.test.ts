@@ -2,8 +2,8 @@ import { updateAccount, UpdateAccountConfig } from "../src/index.js";
 import { expect, test } from "vitest";
 import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
-import { accountPolicyId, accountScript } from "./common/constants.js";
 import { SetupResult, setupTest } from "./setupTest.js";
+import { accountPolicyId } from "../src/core/validators/constants.js";
 
 type RemoveServiceResult = {
     txHash: string;
@@ -16,15 +16,15 @@ export const updateAccountTestCase = (
     return Effect.gen(function* () {
         const {
             context: { lucid, users },
-            accRefName,
-            accUserName,
+            accountNftTn,
+            subscriberNftTn,
         } = setupResult;
 
         const updateAccountConfig: UpdateAccountConfig = {
-            account_policy_Id: accountPolicyId,
-            account_ref_name: accRefName,
-            account_usr_name: accUserName,
-            scripts: accountScript,
+            new_email: "new_business@web3.ada",
+            new_phone: "(288) 481-2686-999",
+            account_ref_name: accountNftTn,
+            subscriber_nft_tn: subscriberNftTn,
         };
 
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);

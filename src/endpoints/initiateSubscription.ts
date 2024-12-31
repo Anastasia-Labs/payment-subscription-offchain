@@ -18,6 +18,11 @@ import {
 import { generateUniqueAssetName } from "../core/utils/assets.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
+import {
+  accountPolicyId,
+  paymentScript,
+  servicePolicyId,
+} from "../core/validators/constants.js";
 
 export const initiateSubscription = (
   lucid: LucidEvolution,
@@ -28,7 +33,7 @@ export const initiateSubscription = (
       lucid.wallet().address()
     );
 
-    const validators = getMultiValidator(lucid, config.scripts);
+    const validators = getMultiValidator(lucid, paymentScript);
     const paymentPolicyId = mintingPolicyToId(validators.mintValidator);
 
     const subscriberUTxOs = yield* Effect.promise(() =>
@@ -101,15 +106,25 @@ export const initiateSubscription = (
       tokenName,
     );
 
+    const accUsrNft = toUnit(
+      accountPolicyId,
+      config.account_nft_tn,
+    );
+
+    const servcRefNft = toUnit(
+      servicePolicyId,
+      config.service_nft_tn,
+    );
+
     const serviceUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
-        config.service_ref_token,
+        servcRefNft,
       )
     );
 
     const subscriberUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
-        config.account_user_token,
+        accUsrNft,
       )
     );
 

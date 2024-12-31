@@ -4,7 +4,6 @@ import {
     Data,
     fromText,
     LucidEvolution,
-    mintingPolicyToId,
     RedeemerBuilder,
     toUnit,
     TransactionError,
@@ -14,7 +13,11 @@ import { getMultiValidator } from "../core/utils/index.js";
 import { UpdateAccountConfig } from "../core/types.js";
 import { AccountDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
-import { extractTokens, getAccountValidatorDatum } from "./utils.js";
+import { getAccountValidatorDatum } from "./utils.js";
+import {
+    accountPolicyId,
+    accountScript,
+} from "../core/validators/constants.js";
 
 export const updateAccount = (
     lucid: LucidEvolution,
@@ -24,20 +27,20 @@ export const updateAccount = (
         const subscriberAddress: Address = yield* Effect.promise(() =>
             lucid.wallet().address()
         );
-        const validators = getMultiValidator(lucid, config.scripts);
+        const validators = getMultiValidator(lucid, accountScript);
 
         const accountUTxOs = yield* Effect.promise(() =>
             lucid.utxosAt(validators.spendValAddress)
         );
 
         const accountNFT = toUnit(
-            config.account_policy_Id,
+            accountPolicyId,
             config.account_ref_name, //tokenNameWithoutFunc,
         );
 
         const subscriberNFT = toUnit(
-            config.account_policy_Id,
-            config.account_usr_name, //tokenNameWithoutFunc,
+            accountPolicyId,
+            config.subscriber_nft_tn, //tokenNameWithoutFunc,
         );
 
         const subscriberUTxOs = yield* Effect.promise(() =>
@@ -71,8 +74,8 @@ export const updateAccount = (
         );
 
         const updatedDatum: AccountDatum = {
-            email: fromText("new_business@web3.ada"),
-            phone: fromText("(288) 481-2686-999"),
+            email: fromText(config.new_email),
+            phone: fromText(config.new_phone),
             account_created: accountData[0].account_created,
         };
 

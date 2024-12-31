@@ -10,10 +10,9 @@ import { getServiceValidatorDatum } from "../src/endpoints/utils.js";
 import { SetupResult } from "./setupTest.js";
 import {
     accountPolicyId,
-    paymentScript,
     paymentValidator,
     servicePolicyId,
-} from "./common/constants.js";
+} from "../src/core/validators/constants.js";
 
 type InitiateSubscriptionResult = {
     txHash: string;
@@ -30,24 +29,14 @@ export const initiateSubscriptionTestCase = (
             serviceUTxOs,
             subscriberUTxOs,
             currentTime,
-            accUserName,
-            serviceRefName,
+            subscriberNftTn,
+            serviceNftTn,
         } = setupResult;
 
         const network = lucid.config().network;
         if (!network) {
             throw Error("Invalid Network Selection");
         }
-
-        const accUsrNft = toUnit(
-            accountPolicyId,
-            accUserName,
-        );
-
-        const servcRefNft = toUnit(
-            servicePolicyId,
-            serviceRefName,
-        );
 
         const serviceData = yield* Effect.promise(
             () => (getServiceValidatorDatum(serviceUTxOs)),
@@ -60,8 +49,8 @@ export const initiateSubscriptionTestCase = (
             interval_length * num_intervals;
 
         const paymentConfig: InitPaymentConfig = {
-            service_nft_tn: serviceRefName,
-            account_nft_tn: accUserName,
+            service_nft_tn: serviceNftTn,
+            account_nft_tn: subscriberNftTn,
             subscription_fee: ADA,
             total_subscription_fee: interval_amount * num_intervals,
             subscription_start: currentTime + BigInt(1000 * 60),
@@ -73,9 +62,8 @@ export const initiateSubscriptionTestCase = (
             penalty_fee: ADA,
             penalty_fee_qty: serviceData[0].penalty_fee_qty,
             minimum_ada: serviceData[0].minimum_ada,
-            service_ref_token: servcRefNft,
-            account_user_token: accUsrNft,
-            scripts: paymentScript,
+            // service_ref_token: servcRefNft,
+            // account_user_token: accUsrNft,
         };
 
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);

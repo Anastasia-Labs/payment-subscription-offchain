@@ -13,7 +13,7 @@ import {
     paymentPolicyId,
     paymentScript,
     servicePolicyId,
-} from "./common/constants.js";
+} from "../src/core/validators/constants.js";
 
 type MerchantWithdrawResult = {
     txHash: string;
@@ -27,8 +27,8 @@ export const merchantWithdrawTestCase = (
         context: { lucid, users, emulator },
         serviceUTxOs,
         currentTime,
-        serviceRefName,
-        serviceUserName,
+        serviceNftTn,
+        merchantNftTn,
     } = setupResult;
 
     return Effect.gen(function* () {
@@ -41,24 +41,22 @@ export const merchantWithdrawTestCase = (
             yield* Effect.sync(() => emulator.awaitBlock(10));
         }
 
-        const serviceRefNft = toUnit(
-            servicePolicyId,
-            serviceRefName,
-        );
+        // const serviceRefNft = toUnit(
+        //     servicePolicyId,
+        //     serviceRefName,
+        // );
 
-        const serviceUserNft = toUnit(
-            servicePolicyId,
-            serviceUserName,
-        );
+        // const serviceUserNft = toUnit(
+        //     servicePolicyId,
+        //     serviceUserName,
+        // );
 
         lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
         const merchantWithdrawConfig: MerchantWithdrawConfig = {
+            service_nft_tn: serviceNftTn,
+            merchant_nft_tn: merchantNftTn,
             last_claimed: currentTime + BigInt(1000 * 60 * 1), // 1 minute
-            payment_policy_Id: paymentPolicyId,
-            merchant_token: serviceUserNft,
-            service_ref_token: serviceRefNft,
-            serviceUTxOs: serviceUTxOs,
-            scripts: paymentScript,
+            service_utxos: serviceUTxOs,
         };
 
         const merchantWithdrawFlow = Effect.gen(function* (_) {

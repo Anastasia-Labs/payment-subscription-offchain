@@ -14,6 +14,10 @@ import { UpdateServiceConfig } from "../core/types.js";
 import { ServiceDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
 import { extractTokens } from "./utils.js";
+import {
+    servicePolicyId,
+    serviceScript,
+} from "../core/validators/constants.js";
 
 export const updateService = (
     lucid: LucidEvolution,
@@ -23,9 +27,9 @@ export const updateService = (
         const merchantAddress: Address = yield* Effect.promise(() =>
             lucid.wallet().address()
         );
-        const validators = getMultiValidator(lucid, config.scripts);
+        const validators = getMultiValidator(lucid, serviceScript);
         const serviceValAddress = validators.spendValAddress;
-        const servicePolicyId = mintingPolicyToId(validators.mintValidator);
+        // const servicePolicyId = mintingPolicyToId(validators.mintValidator);
 
         const merchantUTxOs = yield* Effect.promise(() =>
             lucid.utxosAt(merchantAddress)

@@ -14,14 +14,18 @@ import {
 import { DeployRefScriptsConfig, Result } from "../core/types.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
+import {
+    alwaysFailScript,
+    deployScript,
+} from "../core/validators/constants.js";
 
 export const deployRefScripts = (
     lucid: LucidEvolution,
     config: DeployRefScriptsConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
     Effect.gen(function* () {
-        const alwaysFailsVal = getMultiValidator(lucid, config.alwaysFails);
-        const validators = getMultiValidator(lucid, config.scripts);
+        const alwaysFailsVal = getMultiValidator(lucid, alwaysFailScript);
+        const validators = getMultiValidator(lucid, deployScript);
 
         // TODO: Calculate the script size to know how many scripts to deploy.
         // console.log(
@@ -70,14 +74,14 @@ export const deployRefScripts = (
                     // 30 minutes interval to create all Reference Script UTxOs
                     slot: unixTimeToSlot(
                         network,
-                        Number(config.currentTime) + 30 * 60 * 1000,
+                        Number(config.current_time) + 30 * 60 * 1000,
                     ),
                 },
             ],
         });
 
         const deployPolicyId = mintingPolicyToId(deployPolicy);
-        const tokenUnit = toUnit(deployPolicyId, fromText(config.tknName));
+        const tokenUnit = toUnit(deployPolicyId, fromText(config.token_name));
 
         const tx = yield* lucid
             .newTx()
@@ -91,7 +95,7 @@ export const deployRefScripts = (
                 { [tokenUnit]: 1n },
                 alwaysFailsVal.spendValidator,
             )
-            .validTo(Number(config.currentTime) + 29 * 60 * 1000)
+            .validTo(Number(config.current_time) + 29 * 60 * 1000)
             .completeProgram();
 
         return tx;

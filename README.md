@@ -111,19 +111,16 @@ const subscriptionScripts = {
 ```ts
 import { createService, CreateServiceConfig } from "@anastasia-labs/payment-subscription-offchain";
 
-// Define merchant address
-const merchantAddress = "addr_test1...";
-
 // Configure the service configuration
 const serviceConfig: CreateServiceConfig = {
   service_fee: {
-    currencySymbol: '', // For ADA, use empty string
-    tokenName: '',      // For ADA, use empty string
+    policyId: '', // For ADA, use empty string
+    assetName: '',      // For ADA, use empty string
   },
   service_fee_qty: 100_000_000n, // 100 ADA in lovelace
   penalty_fee: {
-    currencySymbol: '', // For ADA, use empty string
-    tokenName: '',      // For ADA, use empty string
+    policyId: '', // For ADA, use empty string
+    assetName: '',      // For ADA, use empty string
   },
   penalty_fee_qty: 10_000_000n,  // 10 ADA in lovelace
   interval_length: 30n * 24n * 60n * 60n * 1000n, // 30 days in milliseconds
@@ -169,18 +166,18 @@ const accountConfig: CreateAccountConfig = {
     minting: '', // Minting script if applicable
     staking: '', // Staking script if applicable
   },
-// Create the user account
-const createAccountTxUnsigned = await createAccount(lucid, accountConfig);
+  // Create the user account
+  const createAccountTxUnsigned = await createAccount(lucid, accountConfig);
 
-if (createAccountTxUnsigned.type === "ok") {
-  // Sign the transaction with the user's wallet
-  const createAccountTxSigned = await createAccountTxUnsigned.data.sign().complete();
-  const createAccountTxHash = await createAccountTxSigned.submit();
-  console.log(`Account Created: ${createAccountTxHash}`);
-} else {
-  console.error("Failed to create account:", createAccountTxUnsigned.error);
+  if (createAccountTxUnsigned.type === "ok") {
+    // Sign the transaction with the user's wallet
+    const createAccountTxSigned = await createAccountTxUnsigned.data.sign().complete();
+    const createAccountTxHash = await createAccountTxSigned.submit();
+    console.log(`Account Created: ${createAccountTxHash}`);
+  } else {
+    console.error("Failed to create account:", createAccountTxUnsigned.error);
+  }
 }
-
 ```
 ### Initiate a Subscription
 

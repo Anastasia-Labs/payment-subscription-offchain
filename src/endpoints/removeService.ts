@@ -3,25 +3,32 @@ import {
     Constr,
     Data,
     LucidEvolution,
+    mintingPolicyToId,
     RedeemerBuilder,
     TransactionError,
     TxSignBuilder,
 } from "@lucid-evolution/lucid";
 import { getMultiValidator } from "../core/utils/index.js";
-import { RemoveServiceConfig } from "../core/types.js";
+// import { RemoveServiceConfig } from "../core/types.js";
 import { ServiceDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
 import { extractTokens, getServiceValidatorDatum } from "./utils.js";
+import {
+    servicePolicyId,
+    serviceScript,
+} from "../core/validators/constants.js";
 
 export const removeService = (
     lucid: LucidEvolution,
-    config: RemoveServiceConfig,
+    // config: RemoveServiceConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
     Effect.gen(function* () {
         const merchantAddress: Address = yield* Effect.promise(() =>
             lucid.wallet().address()
         );
-        const validators = getMultiValidator(lucid, config.scripts);
+        const validators = getMultiValidator(lucid, serviceScript);
+        // const servicePolicyId = mintingPolicyToId(validators.mintValidator);
+
         const serviceValAddress = validators.spendValAddress;
 
         const serviceUTxOs = yield* Effect.promise(() =>
@@ -37,7 +44,7 @@ export const removeService = (
         }
 
         let { user_token, ref_token } = extractTokens(
-            config.service_cs,
+            servicePolicyId,
             serviceUTxOs,
             merchantUTxOs,
         );

@@ -8,11 +8,7 @@ import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
 import { initiateSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
 import { SetupResult, setupTest } from "./setupTest.js";
-import {
-    accountPolicyId,
-    paymentPolicyId,
-    paymentScript,
-} from "./common/constants.js";
+import { accountPolicyId } from "../src/core/validators/constants.js";
 
 type ExtendSubscriptionResult = {
     txHash: string;
@@ -27,7 +23,7 @@ export const extendSubscriptionTestCase = (
             context: { lucid, users, emulator },
             serviceUTxOs,
             subscriberUTxOs,
-            accUserName,
+            subscriberNftTn: accUserName,
         } = setupResult;
 
         if (emulator && lucid.config().network === "Custom") {
@@ -47,11 +43,10 @@ export const extendSubscriptionTestCase = (
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
         const extendPaymentConfig: ExtendPaymentConfig = {
-            payment_policy_Id: paymentPolicyId,
+            // payment_policy_Id: paymentPolicyId,
             acc_user_token: accUsrNft,
-            subscriberUTxOs: subscriberUTxOs,
-            serviceUTxO: serviceUTxOs,
-            scripts: paymentScript,
+            subscriber_utxos: subscriberUTxOs,
+            service_utxos: serviceUTxOs,
         };
 
         const extendPaymentFlow = Effect.gen(function* (_) {

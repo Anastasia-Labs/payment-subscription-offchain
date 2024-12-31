@@ -14,6 +14,10 @@ import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
 import { tokenNameFromUTxO } from "../core/utils/assets.js";
 import { getPaymentValidatorDatum } from "./utils.js";
+import {
+  paymentPolicyId,
+  paymentScript,
+} from "../core/validators/constants.js";
 
 export const extendSubscription = (
   lucid: LucidEvolution,
@@ -24,7 +28,7 @@ export const extendSubscription = (
       lucid.wallet().address()
     );
 
-    const validators = getMultiValidator(lucid, config.scripts);
+    const validators = getMultiValidator(lucid, paymentScript);
 
     const paymentUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(validators.spendValAddress)
@@ -32,11 +36,11 @@ export const extendSubscription = (
 
     const payment_token_name = tokenNameFromUTxO(
       paymentUTxOs,
-      config.payment_policy_Id,
+      paymentPolicyId,
     );
 
     const paymentNFT = toUnit(
-      config.payment_policy_Id,
+      paymentPolicyId,
       payment_token_name, //tokenNameWithoutFunc,
     );
 
@@ -124,7 +128,7 @@ export const extendSubscription = (
 
     const tx = yield* lucid
       .newTx()
-      .readFrom(config.serviceUTxO)
+      .readFrom(config.service_utxos)
       .collectFrom([subscriberUTxO]) // subscriber user nft utxo
       .collectFrom(paymentUTxOs, extendRedeemer) // subscriber utxos
       .pay.ToAddress(subscriberAddress, {

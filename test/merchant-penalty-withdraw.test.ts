@@ -13,7 +13,7 @@ import {
     paymentPolicyId,
     paymentScript,
     servicePolicyId,
-} from "./common/constants.js";
+} from "../src/core/validators/constants.js";
 
 type MerchantPenaltyResult = {
     txHash: string;
@@ -26,10 +26,10 @@ export const withdrawPenaltyTestCase = (
     return Effect.gen(function* () {
         const {
             context: { lucid, users, emulator },
-            serviceRefName,
+            serviceNftTn,
             serviceUTxOs,
             merchantUTxOs,
-            serviceUserName,
+            merchantNftTn,
         } = setupResult;
 
         if (emulator && lucid.config().network === "Custom") {
@@ -41,24 +41,13 @@ export const withdrawPenaltyTestCase = (
             yield* Effect.sync(() => emulator.awaitBlock(10));
         }
 
-        const serviceRefNft = toUnit(
-            servicePolicyId,
-            serviceRefName,
-        );
-
-        const serviceUserNft = toUnit(
-            servicePolicyId,
-            serviceUserName,
-        );
-
         const withdrawPenaltyConfig: WithdrawPenaltyConfig = {
-            merchant_token: serviceUserNft,
-            service_ref_token: serviceRefNft,
-            merchantUTxOs: merchantUTxOs,
-            serviceUTxOs: serviceUTxOs,
-            payment_policy_Id: paymentPolicyId,
-            scripts: paymentScript,
+            service_nft_tn: serviceNftTn,
+            merchant_nft_tn: merchantNftTn,
+            merchant_utxos: merchantUTxOs,
+            service_utxos: serviceUTxOs,
         };
+
         lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
 
         const penaltyWithdrawFlow = Effect.gen(function* (_) {

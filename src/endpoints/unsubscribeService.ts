@@ -16,6 +16,12 @@ import { PaymentValidatorDatum, PenaltyDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
 import { getPaymentValidatorDatum } from "./utils.js";
 import { tokenNameFromUTxO } from "../core/utils/assets.js";
+import {
+    accountPolicyId,
+    paymentPolicyId,
+    paymentScript,
+    servicePolicyId,
+} from "../core/validators/constants.js";
 
 export const unsubscribeService = (
     lucid: LucidEvolution,
@@ -27,7 +33,7 @@ export const unsubscribeService = (
         );
         const paymentValidators = getMultiValidator(
             lucid,
-            config.payment_scripts,
+            paymentScript,
         );
         const paymentAddress = paymentValidators.spendValAddress;
 
@@ -37,11 +43,11 @@ export const unsubscribeService = (
 
         const payment_token_name = tokenNameFromUTxO(
             paymentUTxOs,
-            config.payment_policy_Id,
+            paymentPolicyId,
         );
 
         const paymentNFT = toUnit(
-            config.payment_policy_Id,
+            paymentPolicyId,
             payment_token_name,
         );
 
@@ -68,15 +74,25 @@ export const unsubscribeService = (
             );
         }
 
+        const serviceRefNft = toUnit(
+            servicePolicyId,
+            config.service_nft_tn,
+        );
+
+        const subscriberNft = toUnit(
+            accountPolicyId,
+            config.subscriber_nft_tn,
+        );
+
         const serviceUTxO = yield* Effect.promise(() =>
             lucid.utxoByUnit(
-                config.ref_token,
+                serviceRefNft,
             )
         );
 
         const subscriberUTxO = yield* Effect.promise(() =>
             lucid.utxoByUnit(
-                config.user_token,
+                subscriberNft,
             )
         );
 
@@ -98,7 +114,7 @@ export const unsubscribeService = (
 
         const time_elapsed = BigInt(
             Math.min(
-                Number(config.currentTime - paymentData[0].subscription_start),
+                Number(config.current_time - paymentData[0].subscription_start),
                 Number(total_subscription_time),
             ),
         );
@@ -108,7 +124,7 @@ export const unsubscribeService = (
 
         const penaltyDatum: PenaltyDatum = {
             service_nft_tn: config.service_nft_tn,
-            account_nft_tn: config.account_nft_tn,
+            account_nft_tn: config.subscriber_nft_tn,
             penalty_fee: paymentData[0].penalty_fee,
             penalty_fee_qty: paymentData[0].penalty_fee_qty,
         };
@@ -151,7 +167,7 @@ export const unsubscribeService = (
             .collectFrom([paymentUTxO], unsubscribeRedeemer)
             .pay.ToAddress(subscriberAddress, {
                 lovelace: refund_amount,
-                [config.user_token]: 1n,
+                [subscriberNft]: 1n,
             })
             .pay.ToAddressWithData(paymentAddress, {
                 kind: "inline",

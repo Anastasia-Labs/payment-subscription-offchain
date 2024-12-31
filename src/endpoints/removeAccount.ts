@@ -10,21 +10,24 @@ import {
     TxSignBuilder,
 } from "@lucid-evolution/lucid";
 import { getMultiValidator } from "../core/utils/index.js";
-import { RemoveAccountConfig } from "../core/types.js";
 import { Effect } from "effect";
 import { extractTokens } from "./utils.js";
+import {
+    accountPolicyId,
+    accountScript,
+} from "../core/validators/constants.js";
 
 export const removeAccount = (
     lucid: LucidEvolution,
-    config: RemoveAccountConfig,
+    // config: RemoveAccountConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
     Effect.gen(function* () { // return type ,
         const subscriberAddress: Address = yield* Effect.promise(() =>
             lucid.wallet().address()
         );
 
-        const validators = getMultiValidator(lucid, config.scripts);
-        const accountPolicyId = mintingPolicyToId(validators.mintValidator);
+        const validators = getMultiValidator(lucid, accountScript);
+        // const accountPolicyId = mintingPolicyToId(validators.mintValidator);
         const accountUTxOs = yield* Effect.promise(() =>
             lucid.utxosAt(validators.mintValAddress)
         );

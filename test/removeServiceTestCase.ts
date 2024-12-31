@@ -1,11 +1,11 @@
-import { removeService, RemoveServiceConfig } from "../src/index.js";
+import { removeService } from "../src/index.js";
 import { Effect } from "effect";
 import { SetupResult } from "./setupTest.js";
-import { servicePolicyId, serviceScript } from "./common/constants.js";
+import { servicePolicyId } from "../src/core/validators/constants.js";
 
 type RemoveServiceResult = {
   txHash: string;
-  removeServiceConfig: RemoveServiceConfig;
+  // removeServiceConfig: RemoveServiceConfig;
 };
 
 export const removeServiceTestCase = (
@@ -17,15 +17,14 @@ export const removeServiceTestCase = (
     } = setupResult;
 
     lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
-    const removeServiceConfig: RemoveServiceConfig = {
-      service_cs: servicePolicyId,
-      scripts: serviceScript,
-    };
+    // const removeServiceConfig: RemoveServiceConfig = {
+    //   service_cs: servicePolicyId,
+    // };
 
     const removeServiceFlow = Effect.gen(function* (_) {
       const removeServiceResult = yield* removeService(
         lucid,
-        removeServiceConfig,
+        // removeServiceConfig,
       );
       const removeServiceSigned = yield* Effect.promise(() =>
         removeServiceResult.sign.withWallet()
@@ -48,7 +47,7 @@ export const removeServiceTestCase = (
 
     return {
       txHash: removeServiceResult,
-      removeServiceConfig,
+      // removeServiceConfig,
     };
   });
 };
