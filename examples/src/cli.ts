@@ -1,11 +1,23 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import { runInit } from "./init_multi_sig.js";
 import dotenv from "dotenv";
-import { Lucid, Maestro } from "@anastasia-labs/aiken-multisig-offchain";
-import { runSign } from "./validate_sign.js";
-import { runUpdate } from "./validate_update.js";
-import { runEnd } from "./end_multi_sig.js";
+import {
+    accountValidator,
+    Address,
+    Lucid,
+    Maestro,
+    serviceValidator,
+    validatorToAddress,
+} from "@anastasia-labs/payment-subscription-offchain";
+import { runCreateService } from "./create_service.js";
+import { runUpdateService } from "./update_service.js";
+import { runRemoveService } from "./remove_service.js";
+import { runCreateAccount } from "./create_account.js";
+import { runUpdateAccount } from "./update_account.js";
+import { runRemoveAccount } from "./remove_account.js";
+// import { runSign } from "./validate_sign.js";
+// import { runUpdate } from "./validate_update.js";
+// import { runEnd } from "./end_multi_sig.js";
 
 // Load environment variables
 dotenv.config();
@@ -13,21 +25,18 @@ dotenv.config();
 const program = new Command();
 
 program
-    .name("multisig-cli")
-    .description("CLI for managing multisig operations")
+    .name("subscription-cli")
+    .description("CLI for managing payment subscription operations")
     .version("1.0.0");
 
 program
-    .command("multisig [action]")
-    .description("Manage multisig operations")
+    .command("subscription [action]")
+    .description("Manage payment subscription operations")
     .action(async (action) => {
         try {
             const API_KEY = process.env.API_KEY!;
-            const INITIATOR_SEED = process.env.INITIATOR_SEED!;
-            const SIGNER_ONE_SEED = process.env.SIGNER_ONE_SEED!;
-            const SIGNER_TWO_SEED = process.env.SIGNER_TWO_SEED!;
-            const SIGNER_THREE_SEED = process.env.SIGNER_THREE_SEED!;
-            const RECIPIENT_SEED = process.env.RECIPIENT_SEED!;
+            const SUBSCRIBER_WALLET_SEED = process.env.SUBSCRIBER_WALLET_SEED!;
+            const MERCHANT_WALLET_SEED = process.env.MERCHANT_WALLET_SEED!;
 
             if (!API_KEY) {
                 throw new Error("Missing required API_KEY.");
@@ -42,45 +51,94 @@ program
                 }),
                 "Preprod",
             );
+
+            const network = lucid.config().network;
+            if (!network) {
+                throw Error("Invalid Network selection");
+            }
+
+            const serviceAddress = validatorToAddress(
+                network,
+                serviceValidator.spendService,
+            );
+
+            const accountAddress = validatorToAddress(
+                network,
+                accountValidator.spendAccount,
+            );
+
+            if (!SUBSCRIBER_WALLET_SEED || !MERCHANT_WALLET_SEED) {
+                throw new Error("Missing required environment variables.");
+            }
+
             switch (action) {
-                case "init":
-                    await runInit(
+                case "create_service":
+                    console.log("create service called");
+                    await runCreateService(
                         lucid,
-                        INITIATOR_SEED,
-                        SIGNER_ONE_SEED,
-                        SIGNER_TWO_SEED,
-                        SIGNER_THREE_SEED,
+                        MERCHANT_WALLET_SEED,
                     );
                     break;
-                case "sign":
-                    await runSign(
+                case "update_service":
+                    console.log("update service called");
+                    await runUpdateService(
                         lucid,
-                        INITIATOR_SEED,
-                        SIGNER_ONE_SEED,
-                        SIGNER_TWO_SEED,
-                        SIGNER_THREE_SEED,
-                        RECIPIENT_SEED,
+                        serviceAddress,
+                        MERCHANT_WALLET_SEED,
                     );
                     break;
-                case "update":
-                    await runUpdate(
+                case "remove_service":
+                    console.log("remove service called");
+                    await runRemoveService(
                         lucid,
-                        INITIATOR_SEED,
-                        SIGNER_ONE_SEED,
-                        SIGNER_TWO_SEED,
-                        SIGNER_THREE_SEED,
+                        MERCHANT_WALLET_SEED,
                     );
                     break;
-                case "end":
-                    await runEnd(
+                case "create_account":
+                    console.log("create account called");
+                    await runCreateAccount(
                         lucid,
-                        INITIATOR_SEED,
-                        SIGNER_ONE_SEED,
-                        SIGNER_TWO_SEED,
-                        SIGNER_THREE_SEED,
-                        RECIPIENT_SEED,
+                        SUBSCRIBER_WALLET_SEED,
                     );
                     break;
+                case "update_account":
+                    console.log("update account called");
+                    lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
+                    const subscriberAddress: Address = await lucid.wallet()
+                        .address();
+
+                    await runUpdateAccount(
+                        lucid,
+                        accountAddress,
+                        subscriberAddress,
+                    );
+                    break;
+                // case "remove_account":
+                //     console.log("remove account called");
+                //     await runRemoveAccount(
+                //         lucid,
+                //         MERCHANT_WALLET_SEED,
+                //     );
+                //     break;
+                // case "update":
+                //     await runUpdate(
+                //         lucid,
+                //         INITIATOR_SEED,
+                //         SIGNER_ONE_SEED,
+                //         SIGNER_TWO_SEED,
+                //         SIGNER_THREE_SEED,
+                //     );
+                //     break;
+                // case "end":
+                //     await runEnd(
+                //         lucid,
+                //         INITIATOR_SEED,
+                //         SIGNER_ONE_SEED,
+                //         SIGNER_TWO_SEED,
+                //         SIGNER_THREE_SEED,
+                //         RECIPIENT_SEED,
+                //     );
+                //     break;
                 default:
                     console.log(`Unknown action: ${action}`);
             }
