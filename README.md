@@ -189,8 +189,8 @@ const subscriptionConfig: InitPaymentConfig = {
   service_nft_tn: 'SERVICE_NFT_TOKEN_NAME', // Replace with actual token name
   account_nft_tn: 'ACCOUNT_NFT_TOKEN_NAME', // Replace with actual token name
   subscription_fee: {
-    currencySymbol: '', // For ADA, use empty string
-    tokenName: '',      // For ADA, use empty string
+    policyId: '', // For ADA, use empty string
+    assetName: '',      // For ADA, use empty string
   },
   total_subscription_fee: 1_200_000_000n, // Total for 12 months (1,200 ADA)
   subscription_start: BigInt(Math.floor(Date.now() / 1000)),
@@ -201,8 +201,8 @@ const subscriptionConfig: InitPaymentConfig = {
   num_intervals: 12n,
   last_claimed: BigInt(Math.floor(Date.now() / 1000)),
   penalty_fee: {
-    currencySymbol: '', // For ADA, use empty string
-    tokenName: '',      // For ADA, use empty string
+    policyId: '', // For ADA, use empty string
+    assetName: '',      // For ADA, use empty string
   },
   penalty_fee_qty: 10_000_000n, // 10 ADA
   minimum_ada: 2_000_000n,
