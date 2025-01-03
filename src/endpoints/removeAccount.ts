@@ -6,10 +6,11 @@ import {
     LucidEvolution,
     mintingPolicyToId,
     RedeemerBuilder,
+    toUnit,
     TransactionError,
     TxSignBuilder,
 } from "@lucid-evolution/lucid";
-import { getMultiValidator } from "../core/utils/index.js";
+import { findCip68TokenNames, getMultiValidator } from "../core/utils/index.js";
 import { Effect } from "effect";
 import { extractTokens } from "./utils.js";
 import {
@@ -17,7 +18,7 @@ import {
     accountScript,
 } from "../core/validators/constants.js";
 
-export const removeAccount = (
+export const removeAccountProgram = (
     lucid: LucidEvolution,
     // config: RemoveAccountConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
@@ -27,7 +28,6 @@ export const removeAccount = (
         );
 
         const validators = getMultiValidator(lucid, accountScript);
-        // const accountPolicyId = mintingPolicyToId(validators.mintValidator);
         const accountUTxOs = yield* Effect.promise(() =>
             lucid.utxosAt(validators.mintValAddress)
         );
@@ -36,15 +36,25 @@ export const removeAccount = (
             lucid.utxosAt(subscriberAddress)
         );
 
-        let { user_token, ref_token } = extractTokens(
+        const { refTokenName: accountNftTn, userTokenName: subscriberNftTn } =
+            findCip68TokenNames(
+                [accountUTxOs[0], subscriberUTxOs[0]],
+                accountPolicyId,
+            );
+
+        const accountNFT = toUnit(
             accountPolicyId,
-            accountUTxOs,
-            subscriberUTxOs,
+            accountNftTn,
+        );
+
+        const subscriberNFT = toUnit(
+            accountPolicyId,
+            subscriberNftTn,
         );
 
         const mintingAssets: Assets = {
-            [ref_token]: -1n,
-            [user_token]: -1n,
+            [accountNFT]: -1n,
+            [subscriberNFT]: -1n,
         };
 
         if (!accountUTxOs || !accountUTxOs.length) {
@@ -53,15 +63,17 @@ export const removeAccount = (
             );
         }
 
+        console.log("removeAccountProgram: subscriberUTxOs", subscriberUTxOs);
+
         const subscriberUTxO = yield* Effect.promise(() =>
             lucid.utxoByUnit(
-                user_token,
+                subscriberNFT,
             )
         );
 
         const accountUTxO = yield* Effect.promise(() =>
             lucid.utxoByUnit(
-                ref_token,
+                accountNFT,
             )
         );
 

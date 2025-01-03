@@ -21,7 +21,7 @@ import {
   paymentScript,
 } from "../core/validators/constants.js";
 
-export const subscriberWithdraw = (
+export const subscriberWithdrawProgram = (
   lucid: LucidEvolution,
   config: SubscriberWithdrawConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>

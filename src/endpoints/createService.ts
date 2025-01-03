@@ -19,7 +19,7 @@ import { Effect } from "effect";
 import { ADA } from "../core/constants.js";
 import { serviceScript } from "../core/validators/constants.js";
 
-export const createService = (
+export const createServiceProgram = (
   lucid: LucidEvolution,
   config: CreateServiceConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>

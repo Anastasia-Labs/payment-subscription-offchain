@@ -23,7 +23,7 @@ import {
     servicePolicyId,
 } from "../core/validators/constants.js";
 
-export const unsubscribeService = (
+export const unsubscribeProgram = (
     lucid: LucidEvolution,
     config: UnsubscribeConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>

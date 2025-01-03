@@ -103,6 +103,7 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
     const accountUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(accountAddress)
     );
+
     const { refTokenName: accountNftTn, userTokenName: subscriberNftTn } =
       findCip68TokenNames(
         [accountUTxOs[0], subscriberUTxOs[0]],

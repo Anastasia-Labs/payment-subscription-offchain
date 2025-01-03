@@ -5,20 +5,21 @@ import {
     LucidEvolution,
     mintingPolicyToId,
     RedeemerBuilder,
+    toUnit,
     TransactionError,
     TxSignBuilder,
 } from "@lucid-evolution/lucid";
-import { getMultiValidator } from "../core/utils/index.js";
+import { findCip68TokenNames, getMultiValidator } from "../core/utils/index.js";
 // import { RemoveServiceConfig } from "../core/types.js";
 import { ServiceDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
-import { extractTokens, getServiceValidatorDatum } from "./utils.js";
+import { getServiceValidatorDatum } from "./utils.js";
 import {
     servicePolicyId,
     serviceScript,
 } from "../core/validators/constants.js";
 
-export const removeService = (
+export const removeServiceProgram = (
     lucid: LucidEvolution,
     // config: RemoveServiceConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
@@ -27,7 +28,6 @@ export const removeService = (
             lucid.wallet().address()
         );
         const validators = getMultiValidator(lucid, serviceScript);
-        // const servicePolicyId = mintingPolicyToId(validators.mintValidator);
 
         const serviceValAddress = validators.spendValAddress;
 
@@ -39,25 +39,60 @@ export const removeService = (
             lucid.utxosAt(merchantAddress)
         );
 
+        const { refTokenName: serviceNftTn, userTokenName: merchantNftTn } =
+            findCip68TokenNames(
+                [serviceUTxOs[0], merchantUTxOs[0]],
+                servicePolicyId,
+            );
+
+        const serviceNFT = toUnit(
+            servicePolicyId,
+            serviceNftTn,
+        );
+
+        const merchantNFT = toUnit(
+            servicePolicyId,
+            merchantNftTn,
+        );
+
+        if (!serviceUTxOs || !serviceUTxOs.length) {
+            console.error(
+                "No UTxO found at user address: " + serviceValAddress,
+            );
+        }
+
+        // Get utxos where is_active in datum is set to true
+        const activeServiceUTxOs = serviceUTxOs.filter((utxo) => {
+            if (!utxo.datum) return false;
+
+            const datum = Data.from<ServiceDatum>(utxo.datum, ServiceDatum);
+
+            return datum.is_active === true;
+        });
+
+        const serviceData = yield* Effect.promise(
+            () => (getServiceValidatorDatum(activeServiceUTxOs)),
+        );
+
         if (!merchantUTxOs || !merchantUTxOs.length) {
             console.error("No UTxO found at user address: " + merchantAddress);
         }
 
-        let { user_token, ref_token } = extractTokens(
-            servicePolicyId,
-            serviceUTxOs,
-            merchantUTxOs,
-        );
+        // let { user_token, ref_token } = extractTokens(
+        //     servicePolicyId,
+        //     serviceUTxOs,
+        //     merchantUTxOs,
+        // );
 
         const serviceUTxO = yield* Effect.promise(() =>
             lucid.utxoByUnit(
-                ref_token,
+                serviceNFT,
             )
         );
 
         const merchantUTxO = yield* Effect.promise(() =>
             lucid.utxoByUnit(
-                user_token,
+                merchantNFT,
             )
         );
 
@@ -65,9 +100,9 @@ export const removeService = (
             throw new Error("Service NFT not found");
         }
 
-        const serviceData = yield* Effect.promise(
-            () => (getServiceValidatorDatum(serviceUTxOs)),
-        );
+        // const serviceData = yield* Effect.promise(
+        //     () => (getServiceValidatorDatum(serviceUTxOs)),
+        // );
 
         if (!serviceData || serviceData.length === 0) {
             throw new Error("serviceData is empty");
@@ -109,6 +144,9 @@ export const removeService = (
             inputs: [merchantUTxO, serviceUTxO],
         };
 
+        console.log("merchantUTxO", merchantUTxOs);
+        console.log("serviceUTxO", serviceUTxO);
+
         const tx = yield* lucid
             .newTx()
             .collectFrom(merchantUTxOs)
@@ -117,10 +155,10 @@ export const removeService = (
                 kind: "inline",
                 value: directDatum,
             }, {
-                [ref_token]: 1n,
+                [serviceNFT]: 1n,
             })
             .pay.ToAddress(merchantAddress, {
-                [user_token]: 1n,
+                [merchantNFT]: 1n,
             })
             .attach.SpendingValidator(validators.spendValidator)
             .completeProgram();

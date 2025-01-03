@@ -1,7 +1,7 @@
 import {
     ADA,
-    initiateSubscription,
     InitPaymentConfig,
+    initSubscriptionProgram,
     toUnit,
     validatorToAddress,
 } from "../src/index.js";
@@ -14,15 +14,15 @@ import {
     servicePolicyId,
 } from "../src/core/validators/constants.js";
 
-type InitiateSubscriptionResult = {
+type InitSubscriptionResult = {
     txHash: string;
     paymentConfig: InitPaymentConfig;
     setupResult: SetupResult;
 };
 
-export const initiateSubscriptionTestCase = (
+export const initSubscriptionTestCase = (
     setupResult: SetupResult,
-): Effect.Effect<InitiateSubscriptionResult, Error, never> => {
+): Effect.Effect<InitSubscriptionResult, Error, never> => {
     return Effect.gen(function* () {
         const {
             context: { lucid, users, emulator },
@@ -62,30 +62,28 @@ export const initiateSubscriptionTestCase = (
             penalty_fee: ADA,
             penalty_fee_qty: serviceData[0].penalty_fee_qty,
             minimum_ada: serviceData[0].minimum_ada,
-            // service_ref_token: servcRefNft,
-            // account_user_token: accUsrNft,
         };
 
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
-        const initiateSubscriptionFlow = Effect.gen(function* (_) {
-            const initiateSubscriptionUnsigned = yield* initiateSubscription(
+        const initSubscriptionFlow = Effect.gen(function* (_) {
+            const initSubscriptionUnsigned = yield* initSubscriptionProgram(
                 lucid,
                 paymentConfig,
             );
 
-            const initiateSubscriptionSigned = yield* Effect.tryPromise(() =>
-                initiateSubscriptionUnsigned.sign.withWallet().complete()
+            const initSubscriptionSigned = yield* Effect.tryPromise(() =>
+                initSubscriptionUnsigned.sign.withWallet().complete()
             );
 
-            const initiateSubscriptionHash = yield* Effect.tryPromise(() =>
-                initiateSubscriptionSigned.submit()
+            const initSubscriptionHash = yield* Effect.tryPromise(() =>
+                initSubscriptionSigned.submit()
             );
 
-            return initiateSubscriptionHash;
+            return initSubscriptionHash;
         });
 
-        const subscriptionResult = yield* initiateSubscriptionFlow.pipe(
+        const subscriptionResult = yield* initSubscriptionFlow.pipe(
             Effect.tapError((error) =>
                 Effect.log(`Error initiating subscription: ${error}`)
             ),

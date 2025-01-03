@@ -1,6 +1,6 @@
 import {
-    deployRefScripts,
     DeployRefScriptsConfig,
+    deployRefScriptsProgram,
     REF_SCRIPT_TOKEN_NAMES,
     validatorToAddress,
 } from "../src/index.js";
@@ -70,7 +70,7 @@ export const deployRefScriptTest = (
         );
 
         const deployRefScriptsFlow = Effect.gen(function* (_) {
-            const deployRefScriptsResult = yield* deployRefScripts(
+            const deployRefScriptsResult = yield* deployRefScriptsProgram(
                 lucid,
                 deployConfig,
             );

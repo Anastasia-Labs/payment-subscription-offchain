@@ -9,7 +9,7 @@ import {
     TransactionError,
     TxSignBuilder,
 } from "@lucid-evolution/lucid";
-import { getMultiValidator } from "../core/utils/index.js";
+import { findCip68TokenNames, getMultiValidator } from "../core/utils/index.js";
 import { UpdateAccountConfig } from "../core/types.js";
 import { AccountDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
@@ -19,7 +19,7 @@ import {
     accountScript,
 } from "../core/validators/constants.js";
 
-export const updateAccount = (
+export const updateAccountProgram = (
     lucid: LucidEvolution,
     config: UpdateAccountConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
@@ -29,22 +29,20 @@ export const updateAccount = (
         );
         const validators = getMultiValidator(lucid, accountScript);
 
-        const accountUTxOs = yield* Effect.promise(() =>
-            lucid.utxosAt(validators.spendValAddress)
+        const subscriberUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(subscriberAddress)
         );
+
+        console.log("subscriberUTxO", subscriberUTxOs);
 
         const accountNFT = toUnit(
             accountPolicyId,
-            config.account_ref_name, //tokenNameWithoutFunc,
+            config.account_nft_tn,
         );
 
         const subscriberNFT = toUnit(
             accountPolicyId,
-            config.subscriber_nft_tn, //tokenNameWithoutFunc,
-        );
-
-        const subscriberUTxOs = yield* Effect.promise(() =>
-            lucid.utxosAt(subscriberAddress)
+            config.subscriber_nft_tn,
         );
 
         if (!subscriberUTxOs || !subscriberUTxOs.length) {
@@ -70,7 +68,7 @@ export const updateAccount = (
         }
 
         const accountData = yield* Effect.promise(
-            () => (getAccountValidatorDatum(accountUTxOs)),
+            () => (getAccountValidatorDatum([accountUTxO])),
         );
 
         const updatedDatum: AccountDatum = {
