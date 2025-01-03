@@ -67,6 +67,10 @@ or
 pnpm install @anastasia-labs/payment-subscription-offchain
 ```
 
+Below are the basic instructions on how to use the multisig endpoints.
+
+For a more comprehensive working example, checkout the [examples folder](https://github.com/Anastasia-Labs/payment-subscription-offchain/tree/main/examples)..
+
 ### Setup Lucid & Subscription Scripts
 
 ```ts
@@ -109,7 +113,7 @@ const subscriptionScripts = {
 ### Create a Service
 
 ```ts
-import { createService, CreateServiceConfig } from "@anastasia-labs/payment-subscription-offchain";
+import {  createService, CreateServiceConfig, LucidEvolution, } from "@anastasia-labs/payment-subscription-offchain";
 
 // Configure the service configuration
 const serviceConfig: CreateServiceConfig = {
@@ -127,25 +131,20 @@ const serviceConfig: CreateServiceConfig = {
   num_intervals: 12n, // 12 intervals (e.g., months)
   minimum_ada: 2_000_000n, // Minimum ADA required
   is_active: true,
-  scripts: {
-    spending: subscriptionScripts.serviceScript.script,
-    minting: '', // Minting script if applicable
-    staking: '', // Staking script if applicable
-  },
 };
 
 // Create the service
-const createServiceTxUnsigned = await createService(lucid, serviceConfig);
+  try {
+        lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
+        const createServiceUnSigned = await createService(lucid, serviceConfig);
+        const initTxSigned = await createServiceUnSigned.sign.withWallet()
+            .complete();
+        const initTxHash = await initTxSigned.submit();
 
-if (createServiceTxUnsigned.type === "ok") {
-  // Sign the transaction with the merchant's wallet
-  const createServiceTxSigned = await createServiceTxUnsigned.data.sign().complete();
-  const createServiceTxHash = await createServiceTxSigned.submit();
-  console.log(`Service Created: ${createServiceTxHash}`);
-} else {
-  console.error("Failed to create service:", createServiceTxUnsigned.error);
-}
-
+        console.log(`Service created successfully: ${initTxHash}`);
+    } catch (error) {
+        console.error("Failed to create service:", error);
+    }
 ```
 
 ### Create a User Account
@@ -153,31 +152,25 @@ if (createServiceTxUnsigned.type === "ok") {
 ```ts
 import { createAccount, CreateAccountConfig } from "@anastasia-labs/payment-subscription-offchain";
 
-// Define user address
-const userAddress = "addr_test1...";
-
 // Configure the account parameters
 const accountConfig: CreateAccountConfig = {
   email: 'user@example.com',
   phone: '+1234567890',
   account_created: BigInt(Math.floor(Date.now() / 1000)), // Current UNIX timestamp
-  scripts: {
-    spending: subscriptionScripts.accountScript.script,
-    minting: '', // Minting script if applicable
-    staking: '', // Staking script if applicable
-  },
-  // Create the user account
-  const createAccountTxUnsigned = await createAccount(lucid, accountConfig);
-
-  if (createAccountTxUnsigned.type === "ok") {
-    // Sign the transaction with the user's wallet
-    const createAccountTxSigned = await createAccountTxUnsigned.data.sign().complete();
-    const createAccountTxHash = await createAccountTxSigned.submit();
-    console.log(`Account Created: ${createAccountTxHash}`);
-  } else {
-    console.error("Failed to create account:", createAccountTxUnsigned.error);
-  }
 }
+  // Create the user account
+   try {
+        const createAccountUnsigned = await createAccount(lucid, accountConfig);
+        const createAccountSigned = await createAccountUnsigned.sign
+            .withWallet()
+            .complete();
+        const createAccountHash = await createAccountSigned.submit();
+
+        console.log(`Account created successfully: ${createAccountHash}`);
+    } catch (error) {
+        console.error("Failed to create Account:", error);
+    }
+
 ```
 ### Initiate a Subscription
 
@@ -206,26 +199,27 @@ const subscriptionConfig: InitPaymentConfig = {
   },
   penalty_fee_qty: 10_000_000n, // 10 ADA
   minimum_ada: 2_000_000n,
-  service_ref_token: 'SERVICE_REF_TOKEN', // Replace with actual unit
-  account_user_token: 'ACCOUNT_USER_TOKEN', // Replace with actual unit
-  scripts: {
-    spending: subscriptionScripts.paymentScript.script,
-    minting: '', // Minting script if applicable
-    staking: '', // Staking script if applicable
-  },
 };
 
 // Initiate the subscription
 const initiateSubTxUnsigned = await initiateSubscription(lucid, subscriptionConfig);
 
-if (initiateSubTxUnsigned.type === "ok") {
-  // Sign the transaction with the user's wallet
-  const initiateSubTxSigned = await initiateSubTxUnsigned.data.sign().complete();
-  const initiateSubTxHash = await initiateSubTxSigned.submit();
-  console.log(`Subscription Initiated: ${initiateSubTxHash}`);
-} else {
-  console.error("Failed to initiate subscription:", initiateSubTxUnsigned.error);
-}
+try {
+      const initSubscriptionUnsigned = await initiateSubscription(
+          lucid,
+          paymentConfig,
+      );
+      const initSubscriptionSigned = await initSubscriptionUnsigned.sign
+          .withWallet()
+          .complete();
+      const initSubscriptionHash = await initSubscriptionSigned.submit();
+
+      console.log(
+          `Subscription initiated successfully: ${initSubscriptionHash}`,
+      );
+  } catch (error) {
+      console.error("Failed to initiate subscription:", error);
+  }
 
 ```
 
@@ -237,29 +231,27 @@ import { unsubscribe, UnsubscribeConfig } from "@anastasia-labs/payment-subscrip
 // Configure the unsubscription parameters
 const unsubscribeConfig: UnsubscribeConfig = {
   service_nft_tn: 'SERVICE_NFT_TOKEN_NAME', // Replace with actual token name
-  account_nft_tn: 'ACCOUNT_NFT_TOKEN_NAME', // Replace with actual token name
+  subscriber_nft_tn: 'SUMSCRIBER_NFT_TOKEN_NAME', // Replace with actual token name
   currentTime: BigInt(Math.floor(Date.now() / 1000)),
-  user_token: 'USER_TOKEN_UNIT', // Replace with actual unit
-  ref_token: 'REF_TOKEN_UNIT', // Replace with actual unit
-  payment_policy_Id: 'PAYMENT_POLICY_ID', // Replace with actual policy ID
-  payment_scripts: {
-    spending: subscriptionScripts.paymentScript.script,
-    minting: '', // Minting script if applicable
-    staking: '', // Staking script if applicable
-  },
 };
 
 // Unsubscribe from the service
-const unsubscribeTxUnsigned = await unsubscribe(lucid, unsubscribeConfig);
+try {
+      const initSubscriptionUnsigned = await unsubscribe(
+          lucid,
+          unsubscribeConfig,
+      );
+      const initSubscriptionSigned = await initSubscriptionUnsigned.sign
+          .withWallet()
+          .complete();
+      const initSubscriptionHash = await initSubscriptionSigned.submit();
 
-if (unsubscribeTxUnsigned.type === "ok") {
-  // Sign the transaction with the user's wallet
-  const unsubscribeTxSigned = await unsubscribeTxUnsigned.data.sign().complete();
-  const unsubscribeTxHash = await unsubscribeTxSigned.submit();
-  console.log(`Unsubscribed Successfully: ${unsubscribeTxHash}`);
-} else {
-  console.error("Failed to unsubscribe:", unsubscribeTxUnsigned.error);
-}
+      console.log(
+          `Unsubscribed successfully: ${initSubscriptionHash}`,
+      );
+  } catch (error) {
+      console.error("Failed to unsubscribe:", error);
+  }
 ```
 
 ### Merchant Withdraw Subscription Fees
@@ -269,30 +261,26 @@ import { withdrawFees, WithdrawFeesConfig } from "@anastasia-labs/payment-subscr
 
 // Configure the withdrawal parameters
 const withdrawConfig: MerchantWithdrawConfig = {
-  last_claimed: previousClaimTimestamp, // As bigint
-  payment_policy_Id: 'PAYMENT_POLICY_ID', // Replace with actual policy ID
-  merchant_token: 'MERCHANT_TOKEN_UNIT', // Replace with actual unit
   service_ref_token: 'SERVICE_REF_TOKEN', // Replace with actual unit
-  serviceUTxOs: [], // Provide list of UTxOs if necessary
-  scripts: {
-    spending: subscriptionScripts.paymentScript.script,
-    minting: '', // Minting script if applicable
-    staking: '', // Staking script if applicable
-  },
+  merchant_token: 'MERCHANT_TOKEN_UNIT', // Replace with actual unit
+  last_claimed: previousClaimTimestamp, // As bigint
 };
 
-
 // Withdraw subscription fees
-const withdrawTxUnsigned = await withdrawFees(lucid, withdrawConfig);
+try {
+      const merchantWithdrawUnsigned = await merchantWithdraw(
+          lucid,
+          merchantWithdrawConfig,
+      );
+      const merchantWithdrawSigned = await merchantWithdrawUnsigned.sign
+          .withWallet()
+          .complete();
+      const merchantWithdrawTxHash = await merchantWithdrawSigned.submit();
 
-if (withdrawTxUnsigned.type === "ok") {
-  // Sign the transaction with the merchant's wallet
-  const withdrawTxSigned = await withdrawTxUnsigned.data.sign().complete();
-  const withdrawTxHash = await withdrawTxSigned.submit();
-  console.log(`Fees Withdrawn: ${withdrawTxHash}`);
-} else {
-  console.error("Failed to withdraw fees:", withdrawTxUnsigned.error);
-}
+      console.log(`Merchant Withdraw Successful: ${merchantWithdrawTxHash}`);
+  } catch (error) {
+      console.error("Failed to withdraw by Merchant:", error);
+  }
 
 ```
 

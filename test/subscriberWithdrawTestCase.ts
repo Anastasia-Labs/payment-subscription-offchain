@@ -1,12 +1,12 @@
 import {
     ServiceDatum,
-    subscriberWithdraw,
     SubscriberWithdrawConfig,
+    subscriberWithdrawProgram,
     toUnit,
 } from "../src/index.js";
 import { expect } from "vitest";
 import { Effect } from "effect";
-import { initiateSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
+import { initSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
 import { removeServiceTestCase } from "./removeServiceTestCase.js";
 import { SetupResult } from "./setupTest.js";
 import {
@@ -35,7 +35,7 @@ export const subscriberWithdrawTestCase = (
         }
 
         if (emulator && lucid.config().network === "Custom") {
-            const initResult = yield* initiateSubscriptionTestCase(setupResult);
+            const initResult = yield* initSubscriptionTestCase(setupResult);
 
             expect(initResult).toBeDefined();
             expect(typeof initResult.txHash).toBe("string"); // Assuming the initResult is a transaction hash
@@ -79,7 +79,7 @@ export const subscriberWithdrawTestCase = (
         };
 
         const subscriberWithdrawFlow = Effect.gen(function* (_) {
-            const subscriberWithdrawResult = yield* subscriberWithdraw(
+            const subscriberWithdrawResult = yield* subscriberWithdrawProgram(
                 lucid,
                 subscriberWithdrawConfig,
             );

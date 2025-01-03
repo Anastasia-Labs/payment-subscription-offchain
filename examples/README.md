@@ -1,21 +1,26 @@
-# Aiken Multisig Offchain – Examples
+# Payment Subscription Offchain – Examples
 
-This folder contains **practical** examples and a command-line interface (CLI) to demonstrate how to use the Aiken Multisig Offchain SDK on the **Preprod** network. These examples walk you through:
+This folder contains **practical** examples and a command-line interface (CLI) to demonstrate how to use the Payment Subscription Offchain SDK on the **Preprod** network. These examples walk you through:
 
-1. **Initializing a Multisig Contract** (locking funds).
-2. **Signing** a transaction with multiple signers.
-3. **Updating** the contract (adjust signers, threshold, or spending limit).
-4. **Ending** the contract (releasing funds).
+1. **Create a Service**. Mint a Service reference NFT and merchant NFT.
+2. **Update a Service**. Update the relevant datum fields.
+3. **Removing a Service**. Switching the isActive field in the datum to false..
+4. **Create an Account**. Mint an Account reference NFT and subscriber NFT.
+5. **Update an Account**. Update the relevant datum fields.
+5. **Remove an Account**. Burn the reference and user NFT
 
 ---
 
 ## Contents
 
 - **`cli.ts`**: A CLI entry point using Commander.  
-- **`init_multi_sig.ts`**: Demonstrates how to initiate a multisig contract.  
-- **`validate_sign.ts`**: Shows how to sign a transaction.  
-- **`validate_update.ts`**: Shows how to update signers, thresholds, or spending limits.  
-- **`end_multisig.ts`**: Closes the contract, releasing locked funds.
+- **`create_account.ts`**: Demonstrates how to create a subscriber account.  
+- **`update_account.ts`**: Shows how to update account details.  
+- **`remove_account.ts`**: Shows how to remove a subscriber from the system.
+- **`create_service.ts`**: Shows a merchant creates a subscription service.
+- **`update_service.ts`**: Shows how a merchant updates a subscription service.
+- **`remove_service.ts`**: Shows how to make a subscription service dormant.
+- **`init_subscription.ts`**: Shows how a subscriber creates a subscription by locking funds.
 
 You can adapt these scripts to your own workflow or environment.
 
@@ -34,11 +39,8 @@ You can adapt these scripts to your own workflow or environment.
 1. Configure Environment (create a .env or export variables):
     ```bash
     API_KEY=<Maestro API Key>
-    INITIATOR_SEED="seed words..."
-    SIGNER_ONE_SEED="seed words..."
-    SIGNER_TWO_SEED="seed words..."
-    SIGNER_THREE_SEED="seed words..."
-
+    SUBSCRIBER_WALLET_SEED="seed words..."
+    MERCHANT_WALLET_SEED="seed words..."
     ```
 Ensure you have correct credentials for Preprod.
 
@@ -46,26 +48,28 @@ Ensure you have correct credentials for Preprod.
 
 You can use the CLI subcommand approach, For example, we you have a subcommand named multisig:
 
-- Initialize a new contract.
+Execute a new transaction with the contract keyword for instance.
+- Service
 
     ```bash
-    pnpm start multisig init
+    pnpm start service create
+    pnpm start service update
+    pnpm start service remove
     ```
-- Sign a transaction.
+- Account
 
     ```bash
-    pnpm start multisig sign
-    ```
+    pnpm start account create
+    pnpm start account update
+    pnpm start account remove    ```
 
-- Update a contract.
-
-    ```bash
-    pnpm start multisig update
-    ```
-
-- End a multisig contract.
+- Payment
 
     ```bash
-    pnpm start multisig end
+    pnpm start payment init
+    pnpm start payment extend
+    pnpm start payment merchant_withdraw
+    pnpm start payment unsubscribe
+    pnpm start payment withdraw_penalty
+    pnpm start payment subscriber_withdraw
     ```
-

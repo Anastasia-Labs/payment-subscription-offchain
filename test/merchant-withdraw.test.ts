@@ -1,19 +1,13 @@
 import {
-    merchantWithdraw,
     MerchantWithdrawConfig,
-    toUnit,
+    merchantWithdrawProgram,
 } from "../src/index.js";
 import { expect, test } from "vitest";
 import { Effect } from "effect";
 
 import { LucidContext } from "./service/lucidContext.js";
-import { initiateSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
+import { initSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
 import { SetupResult, setupTest } from "./setupTest.js";
-import {
-    paymentPolicyId,
-    paymentScript,
-    servicePolicyId,
-} from "../src/core/validators/constants.js";
 
 type MerchantWithdrawResult = {
     txHash: string;
@@ -25,7 +19,6 @@ export const merchantWithdrawTestCase = (
 ): Effect.Effect<MerchantWithdrawResult, Error, never> => {
     const {
         context: { lucid, users, emulator },
-        serviceUTxOs,
         currentTime,
         serviceNftTn,
         merchantNftTn,
@@ -33,7 +26,7 @@ export const merchantWithdrawTestCase = (
 
     return Effect.gen(function* () {
         if (emulator && lucid.config().network === "Custom") {
-            const initResult = yield* initiateSubscriptionTestCase(setupResult);
+            const initResult = yield* initSubscriptionTestCase(setupResult);
 
             expect(initResult).toBeDefined();
             expect(typeof initResult.txHash).toBe("string"); // Assuming the initResult is a transaction hash
@@ -41,31 +34,20 @@ export const merchantWithdrawTestCase = (
             yield* Effect.sync(() => emulator.awaitBlock(10));
         }
 
-        // const serviceRefNft = toUnit(
-        //     servicePolicyId,
-        //     serviceRefName,
-        // );
-
-        // const serviceUserNft = toUnit(
-        //     servicePolicyId,
-        //     serviceUserName,
-        // );
-
         lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
         const merchantWithdrawConfig: MerchantWithdrawConfig = {
             service_nft_tn: serviceNftTn,
             merchant_nft_tn: merchantNftTn,
             last_claimed: currentTime + BigInt(1000 * 60 * 1), // 1 minute
-            service_utxos: serviceUTxOs,
         };
 
         const merchantWithdrawFlow = Effect.gen(function* (_) {
-            const merchantWithdrawResult = yield* merchantWithdraw(
+            const merchantWithdrawUnsigned = yield* merchantWithdrawProgram(
                 lucid,
                 merchantWithdrawConfig,
             );
             const merchantWithdrawSigned = yield* Effect.promise(() =>
-                merchantWithdrawResult.sign.withWallet().complete()
+                merchantWithdrawUnsigned.sign.withWallet().complete()
             );
 
             const merchantWithdrawTxHash = yield* Effect.promise(() =>

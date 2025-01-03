@@ -22,7 +22,7 @@
   "author": "Anastasia Labs",
   "license": "ISC",
   "dependencies": {
-    "@anastasia-labs/payment-subscription-offchain": "file:../anastasia-labs-aiken-multisig-offchain-1.0.1.tgz",
+    "@anastasia-labs/payment-subscription-offchain": "file:../anastasia-labs-payment-subscription-offchain-1.0.2.tgz",
     "commander": "^12.1.0",
     "tsup": "^8.3.5"
   },

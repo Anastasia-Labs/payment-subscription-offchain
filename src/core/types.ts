@@ -4,7 +4,6 @@ import {
   OutRef,
   Script,
   TxSignBuilder,
-  Unit,
   UTxO,
 } from "@lucid-evolution/lucid";
 import { AssetClassD } from "./contract.types.js";
@@ -60,12 +59,11 @@ export type CreateAccountConfig = {
 export type UpdateAccountConfig = {
   new_email: string;
   new_phone: string;
-  account_ref_name: string;
+  account_nft_tn: string;
   subscriber_nft_tn: string;
 };
 
 // TODO: Remove all datum fields and query from the UTxO
-
 export type InitPaymentConfig = {
   service_nft_tn: string; //AssetName,
   account_nft_tn: string;
@@ -83,16 +81,13 @@ export type InitPaymentConfig = {
 };
 
 export type ExtendPaymentConfig = {
-  acc_user_token: Unit;
-  subscriber_utxos: UTxO[];
-  service_utxos: UTxO[];
+  subscriber_nft_tn: string;
 };
 
 export type MerchantWithdrawConfig = {
   service_nft_tn: string;
   merchant_nft_tn: string;
   last_claimed: bigint;
-  service_utxos: UTxO[];
 };
 
 export type UnsubscribeConfig = {

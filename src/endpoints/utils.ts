@@ -1,24 +1,14 @@
-// src/test/utils.ts
-
 import {
     AccountDatum,
-    getMultiValidator,
     parseSafeDatum,
     PaymentDatum,
     PaymentValidatorDatum,
     PenaltyDatum,
     ServiceDatum,
     UTxO,
-    validatorToAddress,
 } from "../index.js"; // Adjust the import path as necessary
 import { Effect } from "effect";
-import {
-    LucidEvolution,
-    mintingPolicyToId,
-    PolicyId,
-    toUnit,
-    Unit,
-} from "@lucid-evolution/lucid";
+import { LucidEvolution, PolicyId, toUnit, Unit } from "@lucid-evolution/lucid";
 import { findCip68TokenNames } from "../core/utils/assets.js";
 
 /**

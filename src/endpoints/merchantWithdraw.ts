@@ -20,7 +20,7 @@ import {
   servicePolicyId,
 } from "../core/validators/constants.js";
 
-export const merchantWithdraw = (
+export const merchantWithdrawProgram = (
   lucid: LucidEvolution,
   config: MerchantWithdrawConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>

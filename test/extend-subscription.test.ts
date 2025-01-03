@@ -1,14 +1,12 @@
 import {
     ExtendPaymentConfig,
-    extendSubscription,
-    toUnit,
+    extendSubscriptionProgram,
 } from "../src/index.js";
 import { expect, test } from "vitest";
 import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
-import { initiateSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
+import { initSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
 import { SetupResult, setupTest } from "./setupTest.js";
-import { accountPolicyId } from "../src/core/validators/constants.js";
 
 type ExtendSubscriptionResult = {
     txHash: string;
@@ -21,13 +19,11 @@ export const extendSubscriptionTestCase = (
     return Effect.gen(function* () {
         const {
             context: { lucid, users, emulator },
-            serviceUTxOs,
-            subscriberUTxOs,
-            subscriberNftTn: accUserName,
+            subscriberNftTn,
         } = setupResult;
 
         if (emulator && lucid.config().network === "Custom") {
-            const initResult = yield* initiateSubscriptionTestCase(setupResult);
+            const initResult = yield* initSubscriptionTestCase(setupResult);
 
             expect(initResult).toBeDefined();
             expect(typeof initResult.txHash).toBe("string"); // Assuming the initResult is a transaction hash
@@ -35,27 +31,19 @@ export const extendSubscriptionTestCase = (
             yield* Effect.sync(() => emulator.awaitBlock(10));
         }
 
-        const accUsrNft = toUnit(
-            accountPolicyId,
-            accUserName,
-        );
-
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
         const extendPaymentConfig: ExtendPaymentConfig = {
-            // payment_policy_Id: paymentPolicyId,
-            acc_user_token: accUsrNft,
-            subscriber_utxos: subscriberUTxOs,
-            service_utxos: serviceUTxOs,
+            subscriber_nft_tn: subscriberNftTn,
         };
 
         const extendPaymentFlow = Effect.gen(function* (_) {
-            const extendResult = yield* extendSubscription(
+            const extendUnsigned = yield* extendSubscriptionProgram(
                 lucid,
                 extendPaymentConfig,
             );
             const extendSigned = yield* Effect.promise(() =>
-                extendResult.sign.withWallet().complete()
+                extendUnsigned.sign.withWallet().complete()
             );
 
             const extendTxHash = yield* Effect.promise(() =>

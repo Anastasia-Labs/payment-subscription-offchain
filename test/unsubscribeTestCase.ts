@@ -1,12 +1,9 @@
-import { toUnit, UnsubscribeConfig, unsubscribeService } from "../src/index.js";
+import { UnsubscribeConfig, unsubscribeProgram } from "../src/index.js";
 import { Effect } from "effect";
-import { initiateSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
+import { initSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
 import { expect } from "vitest";
 import { SetupResult } from "./setupTest.js";
-import {
-    accountPolicyId,
-    servicePolicyId,
-} from "../src/core/validators/constants.js";
+
 type UnsubscribeResult = {
     txHash: string;
 };
@@ -23,7 +20,7 @@ export const unsubscribeTestCase = (
         } = setupResult;
 
         if (emulator && lucid.config().network === "Custom") {
-            const initResult = yield* initiateSubscriptionTestCase(setupResult);
+            const initResult = yield* initSubscriptionTestCase(setupResult);
 
             expect(initResult).toBeDefined();
             expect(typeof initResult.txHash).toBe("string"); // Assuming the initResult is a transaction hash
@@ -36,12 +33,10 @@ export const unsubscribeTestCase = (
             service_nft_tn: serviceNftTn,
             subscriber_nft_tn: subscriberNftTn,
             current_time: currentTime,
-            // user_token: subscriberNft,
-            // ref_token: serviceRefNft,
         };
 
         const unsubscribeFlow = Effect.gen(function* (_) {
-            const unsubscribeResult = yield* unsubscribeService(
+            const unsubscribeResult = yield* unsubscribeProgram(
                 lucid,
                 unsubscribeConfig,
             );

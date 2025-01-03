@@ -19,7 +19,7 @@ import {
     deployScript,
 } from "../core/validators/constants.js";
 
-export const deployRefScripts = (
+export const deployRefScriptsProgram = (
     lucid: LucidEvolution,
     config: DeployRefScriptsConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>

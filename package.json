@@ -1,6 +1,6 @@
 {
   "name": "@anastasia-labs/payment-subscription-offchain",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Off-Chain SDK for Payment Subscription Smart Contract",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -12,7 +12,7 @@
     "test": "export NODE_ENV='emulator' && vitest run",
     "build": "tsup src/index.ts --minify --format esm,cjs --dts --clean",
     "lint": "eslint",
-    "repack": "pnpm run build  && pnpm pack",
+    "repack": "pnpm run build && pnpm pack",
     "ts-node": "ts-node"
   },
   "keywords": [],

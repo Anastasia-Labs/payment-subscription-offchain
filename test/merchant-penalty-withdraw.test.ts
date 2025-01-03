@@ -1,5 +1,5 @@
 import {
-    merchantPenaltyWithdraw,
+    merchantPenaltyWithdrawProgram,
     toUnit,
     WithdrawPenaltyConfig,
 } from "../src/index.js";
@@ -51,22 +51,23 @@ export const withdrawPenaltyTestCase = (
         lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
 
         const penaltyWithdrawFlow = Effect.gen(function* (_) {
-            const merchantWithdrawResult = yield* merchantPenaltyWithdraw(
-                lucid,
-                withdrawPenaltyConfig,
-            );
-            const merchantWithdrawSigned = yield* Effect.promise(() =>
-                merchantWithdrawResult.sign.withWallet().complete()
-            );
-
-            const merchantWithdrawTxHash = yield* Effect.promise(() =>
-                merchantWithdrawSigned.submit()
+            const penaltyWithdrawUnsigned =
+                yield* merchantPenaltyWithdrawProgram(
+                    lucid,
+                    withdrawPenaltyConfig,
+                );
+            const penaltyWithdrawSigned = yield* Effect.promise(() =>
+                penaltyWithdrawUnsigned.sign.withWallet().complete()
             );
 
-            return merchantWithdrawTxHash;
+            const penaltyWithdrawTxHash = yield* Effect.promise(() =>
+                penaltyWithdrawSigned.submit()
+            );
+
+            return penaltyWithdrawTxHash;
         });
 
-        const merchantWithdrawResult = yield* penaltyWithdrawFlow.pipe(
+        const penaltyWithdrawResult = yield* penaltyWithdrawFlow.pipe(
             Effect.tapError((error) =>
                 Effect.log(`Error creating Account: ${error}`)
             ),
@@ -76,7 +77,7 @@ export const withdrawPenaltyTestCase = (
         );
 
         return {
-            txHash: merchantWithdrawResult,
+            txHash: penaltyWithdrawResult,
             withdrawConfig: withdrawPenaltyConfig,
         };
     });
