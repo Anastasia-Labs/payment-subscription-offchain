@@ -6,12 +6,7 @@ import {
 
 export const runCreateAccount = async (
     lucid: LucidEvolution,
-    SUBSCRIBER_WALLET_SEED: string,
 ): Promise<Error | void> => {
-    // if (!SUBSCRIBER_WALLET_SEED) {
-    //     throw new Error("Missing required environment variables.");
-    // }
-
     const currentTime = BigInt(Date.now());
 
     const accountConfig: CreateAccountConfig = {

@@ -39,8 +39,8 @@ export const runMerchantWithdraw = async (
             .complete();
         const merchantWithdrawTxHash = await merchantWithdrawSigned.submit();
 
-        console.log(`Service created successfully: ${merchantWithdrawTxHash}`);
+        console.log(`Merchant Withdraw Successful: ${merchantWithdrawTxHash}`);
     } catch (error) {
-        console.error("Failed to create service:", error);
+        console.error("Failed to withdraw by Merchant:", error);
     }
 };

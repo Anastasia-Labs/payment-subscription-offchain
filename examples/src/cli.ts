@@ -101,7 +101,7 @@ accountCommand.command("create").action(async () => {
         // Usually select the wallet first if needed
         lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
 
-        await runCreateAccount(lucid, SUBSCRIBER_WALLET_SEED);
+        await runCreateAccount(lucid);
         process.exit(0);
     } catch (error) {
         console.error("Error creating account:", error);
