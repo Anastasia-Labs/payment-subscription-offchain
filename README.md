@@ -85,29 +85,6 @@ const lucid = await Lucid(
   "Preprod" // For MAINNET: "Mainnet"
 );
 
-lucid.selectWallet.fromPrivateKey("your secret key here e.g. ed25519_...");
-
-// Prepare the validator scripts
-const serviceScript: SpendingValidator = {
-  type: "PlutusV2",
-  script: serviceValidator.compiledCode,
-};
-
-const accountScript: SpendingValidator = {
-  type: "PlutusV2",
-  script: accountValidator.compiledCode,
-};
-
-const paymentScript: SpendingValidator = {
-  type: "PlutusV2",
-  script: paymentValidator.compiledCode,
-};
-
-const subscriptionScripts = {
-  service: serviceScript.script,
-  account: accountScript.script,
-  payment: paymentScript.script,
-};
 ```
 
 ### Create a Service
@@ -232,7 +209,7 @@ import { unsubscribe, UnsubscribeConfig } from "@anastasia-labs/payment-subscrip
 const unsubscribeConfig: UnsubscribeConfig = {
   service_nft_tn: 'SERVICE_NFT_TOKEN_NAME', // Replace with actual token name
   subscriber_nft_tn: 'SUMSCRIBER_NFT_TOKEN_NAME', // Replace with actual token name
-  currentTime: BigInt(Math.floor(Date.now() / 1000)),
+  current_time: BigInt(Math.floor(Date.now() / 1000)),
 };
 
 // Unsubscribe from the service
