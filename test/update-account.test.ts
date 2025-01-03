@@ -1,4 +1,4 @@
-import { updateAccount, UpdateAccountConfig } from "../src/index.js";
+import { UpdateAccountConfig, updateAccountProgram } from "../src/index.js";
 import { expect, test } from "vitest";
 import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
@@ -16,14 +16,14 @@ export const updateAccountTestCase = (
     return Effect.gen(function* () {
         const {
             context: { lucid, users },
-            accountNftTn,
             subscriberNftTn,
+            accountNftTn,
         } = setupResult;
 
         const updateAccountConfig: UpdateAccountConfig = {
             new_email: "new_business@web3.ada",
             new_phone: "(288) 481-2686-999",
-            account_ref_name: accountNftTn,
+            account_nft_tn: accountNftTn,
             subscriber_nft_tn: subscriberNftTn,
         };
 
@@ -31,7 +31,7 @@ export const updateAccountTestCase = (
         const updateAccountFlow = Effect.gen(function* (_) {
             const updateAccountResult = yield* Effect.promise(() =>
                 Effect.runPromise(
-                    updateAccount(lucid, updateAccountConfig),
+                    updateAccountProgram(lucid, updateAccountConfig),
                 )
             );
             const updateAccountSigned = yield* Effect.promise(() =>

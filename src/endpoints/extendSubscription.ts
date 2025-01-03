@@ -15,11 +15,13 @@ import { Effect } from "effect";
 import { tokenNameFromUTxO } from "../core/utils/assets.js";
 import { getPaymentValidatorDatum } from "./utils.js";
 import {
+  accountPolicyId,
   paymentPolicyId,
   paymentScript,
+  serviceScript,
 } from "../core/validators/constants.js";
 
-export const extendSubscription = (
+export const extendSubscriptionProgram = (
   lucid: LucidEvolution,
   config: ExtendPaymentConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
@@ -28,10 +30,15 @@ export const extendSubscription = (
       lucid.wallet().address()
     );
 
-    const validators = getMultiValidator(lucid, paymentScript);
+    const paymentValidator = getMultiValidator(lucid, paymentScript);
+    const serviceValidator = getMultiValidator(lucid, serviceScript);
+
+    const serviceUTxOs = yield* Effect.promise(() =>
+      lucid.utxosAt(serviceValidator.spendValAddress)
+    );
 
     const paymentUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(validators.spendValAddress)
+      lucid.utxosAt(paymentValidator.spendValAddress)
     );
 
     const payment_token_name = tokenNameFromUTxO(
@@ -50,17 +57,14 @@ export const extendSubscription = (
       )
     );
 
-    // const subscriberUTxOs = yield* Effect.promise(() =>
-    //   lucid.utxosAt(subscriberAddress)
-    // );
-
-    // if (!subscriberUTxOs || !subscriberUTxOs.length) {
-    //   console.error("No UTxO found at user address: " + subscriberAddress);
-    // }
+    const subscriberNFT = toUnit(
+      accountPolicyId,
+      config.subscriber_nft_tn,
+    );
 
     const subscriberUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
-        config.acc_user_token,
+        subscriberNFT,
       )
     );
 
@@ -128,20 +132,20 @@ export const extendSubscription = (
 
     const tx = yield* lucid
       .newTx()
-      .readFrom(config.service_utxos)
+      .readFrom(serviceUTxOs)
       .collectFrom([subscriberUTxO]) // subscriber user nft utxo
       .collectFrom(paymentUTxOs, extendRedeemer) // subscriber utxos
       .pay.ToAddress(subscriberAddress, {
-        [config.acc_user_token]: 1n,
+        [subscriberNFT]: 1n,
       })
-      .pay.ToAddressWithData(validators.spendValAddress, {
+      .pay.ToAddressWithData(paymentValidator.spendValAddress, {
         kind: "inline",
         value: paymentValDatum,
       }, {
         lovelace: newTotalSubscriptionFee,
         [paymentNFT]: 1n,
       })
-      .attach.SpendingValidator(validators.spendValidator)
+      .attach.SpendingValidator(paymentValidator.spendValidator)
       .completeProgram();
 
     return tx;

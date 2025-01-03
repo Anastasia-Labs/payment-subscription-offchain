@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { Effect } from "effect";
-import { LucidContext, makeLucidContext } from "./service/lucidContext.js";
+import { LucidContext } from "./service/lucidContext.js";
 import { removeServiceTestCase } from "./removeServiceTestCase.js";
 import { setupTest } from "./setupTest.js";
 

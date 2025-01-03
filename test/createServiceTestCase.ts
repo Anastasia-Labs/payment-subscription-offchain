@@ -1,4 +1,8 @@
-import { ADA, createService, CreateServiceConfig } from "../src/index.js";
+import {
+    ADA,
+    CreateServiceConfig,
+    createServiceProgram,
+} from "../src/index.js";
 import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
 import { serviceScript } from "../src/core/validators/constants.js";
@@ -23,11 +27,10 @@ export const createServiceTestCase = (
             num_intervals: 12n,
             minimum_ada: 2_000_000n,
             is_active: true,
-            // scripts: serviceScript,
         };
 
         const createServiceFlow = Effect.gen(function* (_) {
-            const createServiceUnSigned = yield* createService(
+            const createServiceUnSigned = yield* createServiceProgram(
                 lucid,
                 serviceConfig,
             );

@@ -22,7 +22,9 @@ export function readMultiValidators(
     policyIds: string[],
 ): Validators {
     const getValidator = (title: string): Script => {
-        const validator = blueprint.validators.find((v) => v.title === title);
+        const validator = blueprint.validators.find((v: { title: string }) =>
+            v.title === title
+        );
         if (!validator) throw new Error(`Validator not found: ${title}`);
 
         let script = applyDoubleCborEncoding(validator.compiledCode);

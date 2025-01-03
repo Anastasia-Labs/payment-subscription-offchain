@@ -1,12 +1,12 @@
 import {
     accountPolicyId,
+    ExtendPaymentConfig,
+    extendSubscription,
     findCip68TokenNames,
     LucidEvolution,
-    updateAccount,
-    UpdateAccountConfig,
 } from "@anastasia-labs/payment-subscription-offchain";
 
-export const runUpdateAccount = async (
+export const runExtendSubscription = async (
     lucid: LucidEvolution,
     accountAddress: string,
     subscriberAddress: string,
@@ -20,26 +20,23 @@ export const runUpdateAccount = async (
             accountPolicyId,
         );
 
-    const updateAccountConfig: UpdateAccountConfig = {
-        new_email: "new_business@web3.ada",
-        new_phone: "(288) 481-2686-999",
-        account_nft_tn: accountNftTn,
+    const extendPaymentConfig: ExtendPaymentConfig = {
         subscriber_nft_tn: subscriberNftTn,
     };
 
-    // Update Service
+    // Extend Subscription
     try {
-        const updateServiceUnsigned = await updateAccount(
+        const extendUnsigned = await extendSubscription(
             lucid,
-            updateAccountConfig,
+            extendPaymentConfig,
         );
-        const updateAccountSigned = await updateServiceUnsigned.sign
+        const extendSigned = await extendUnsigned.sign
             .withWallet()
             .complete();
-        const updateAccountHash = await updateAccountSigned.submit();
+        const extendTxHash = await extendSigned.submit();
 
-        console.log(`Account updated successfully: ${updateAccountHash}`);
+        console.log(`Service extended successfully: ${extendTxHash}`);
     } catch (error) {
-        console.error("Failed to update Account:", error);
+        console.error("Failed to extend service:", error);
     }
 };

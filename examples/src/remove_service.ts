@@ -3,18 +3,11 @@ import {
     removeService,
 } from "@anastasia-labs/payment-subscription-offchain";
 
-// TODO:
 export const runRemoveService = async (
     lucid: LucidEvolution,
-    MERCHANT_WALLET_SEED: string,
 ): Promise<Error | void> => {
-    if (!MERCHANT_WALLET_SEED) {
-        throw new Error("Missing required environment variables.");
-    }
-
     // Remove Service
     try {
-        lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
         const removeServiceUnsigned = await removeService(
             lucid,
         );

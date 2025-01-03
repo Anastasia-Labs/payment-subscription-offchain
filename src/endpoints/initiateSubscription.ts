@@ -24,7 +24,7 @@ import {
   servicePolicyId,
 } from "../core/validators/constants.js";
 
-export const initiateSubscription = (
+export const initSubscriptionProgram = (
   lucid: LucidEvolution,
   config: InitPaymentConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>

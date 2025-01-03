@@ -3,7 +3,6 @@ import {
     Constr,
     Data,
     LucidEvolution,
-    mintingPolicyToId,
     RedeemerBuilder,
     TransactionError,
     TxSignBuilder,
@@ -19,7 +18,7 @@ import {
     serviceScript,
 } from "../core/validators/constants.js";
 
-export const updateService = (
+export const updateServiceProgram = (
     lucid: LucidEvolution,
     config: UpdateServiceConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>

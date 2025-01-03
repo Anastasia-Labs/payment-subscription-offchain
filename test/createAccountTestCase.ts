@@ -1,4 +1,4 @@
-import { createAccount, CreateAccountConfig } from "../src/index.js";
+import { CreateAccountConfig, createAccountProgram } from "../src/index.js";
 import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
 
@@ -27,12 +27,12 @@ export const createAccountTestCase = (
         };
 
         const createAccountFlow = Effect.gen(function* (_) {
-            const createAccountResult = yield* createAccount(
+            const createAccountUnsigned = yield* createAccountProgram(
                 lucid,
                 accountConfig,
             );
             const createAccountSigned = yield* Effect.promise(() =>
-                createAccountResult.sign.withWallet().complete()
+                createAccountUnsigned.sign.withWallet().complete()
             );
             const createAccountHash = yield* Effect.promise(() =>
                 createAccountSigned.submit()

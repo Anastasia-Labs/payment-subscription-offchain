@@ -1,4 +1,4 @@
-import { removeAccount } from "../src/index.js";
+import { removeAccountProgram } from "../src/index.js";
 import { expect, test } from "vitest";
 import { Address, validatorToAddress } from "@lucid-evolution/lucid";
 import { Effect } from "effect";
@@ -34,12 +34,12 @@ export const removeAccountTestCase = ({
     // };
 
     const removeAccountFlow = Effect.gen(function* (_) {
-      const removeAccountResult = yield* removeAccount(
+      const removeAccountUnsigned = yield* removeAccountProgram(
         lucid,
         // removeAccountConfig,
       );
       const removeAccountSigned = yield* Effect.promise(() =>
-        removeAccountResult.sign.withWallet().complete()
+        removeAccountUnsigned.sign.withWallet().complete()
       );
 
       const removeAccountHash = yield* Effect.promise(() =>

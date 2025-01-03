@@ -92,7 +92,7 @@ export const makeLucidContext = (network?: Network) =>
         const API_KEY = process.env.API_KEY;
 
         const selectedNetwork = network ?? NETWORK; // Default to Preprod if not specified
-        // const selectedNetwork = "Preprod";
+        // console.log("selectedNetwork", selectedNetwork);
         if (API_KEY && selectedNetwork !== selectedNetwork) {
             // Use Maestro context
             return yield* $(makeMaestroContext(selectedNetwork));

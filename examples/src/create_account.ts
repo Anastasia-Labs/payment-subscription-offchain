@@ -8,9 +8,9 @@ export const runCreateAccount = async (
     lucid: LucidEvolution,
     SUBSCRIBER_WALLET_SEED: string,
 ): Promise<Error | void> => {
-    if (!SUBSCRIBER_WALLET_SEED) {
-        throw new Error("Missing required environment variables.");
-    }
+    // if (!SUBSCRIBER_WALLET_SEED) {
+    //     throw new Error("Missing required environment variables.");
+    // }
 
     const currentTime = BigInt(Date.now());
 
@@ -22,7 +22,6 @@ export const runCreateAccount = async (
 
     // Create Account
     try {
-        lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
         const createAccountUnsigned = await createAccount(lucid, accountConfig);
         const createAccountSigned = await createAccountUnsigned.sign
             .withWallet()

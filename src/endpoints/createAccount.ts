@@ -18,7 +18,7 @@ import { createCip68TokenNames } from "../core/utils/assets.js";
 import { Effect } from "effect";
 import { accountScript } from "../core/validators/constants.js";
 
-export const createAccount = (
+export const createAccountProgram = (
   lucid: LucidEvolution,
   config: CreateAccountConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
