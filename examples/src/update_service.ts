@@ -45,9 +45,9 @@ export const runUpdateService = async (
             lucid,
             updateServiceConfig,
         );
-        const initTxSigned = await updateServiceUnsigned.sign.withWallet()
+        const updateTxSigned = await updateServiceUnsigned.sign.withWallet()
             .complete();
-        const initTxHash = await initTxSigned.submit();
+        const initTxHash = await updateTxSigned.submit();
 
         console.log(`Service updated successfully: ${initTxHash}`);
     } catch (error) {
