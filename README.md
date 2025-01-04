@@ -67,7 +67,7 @@ or
 pnpm install @anastasia-labs/payment-subscription-offchain
 ```
 
-Below are the basic instructions on how to use the multisig endpoints.
+Below are the basic instructions on how to use the Payment Subscription endpoints.
 
 For a more comprehensive working example, checkout the [examples folder](https://github.com/Anastasia-Labs/payment-subscription-offchain/tree/main/examples)..
 
@@ -152,7 +152,7 @@ const accountConfig: CreateAccountConfig = {
 ### Initiate a Subscription
 
 ```ts
-import { initiateSubscription, InitiateSubscriptionConfig } from "@anastasia-labs/payment-subscription-offchain";
+import { initiateSubscription, InitPaymentConfig } from "@anastasia-labs/payment-subscription-offchain";
 
 // Configure the subscription parameters
 const subscriptionConfig: InitPaymentConfig = {
@@ -234,7 +234,7 @@ try {
 ### Merchant Withdraw Subscription Fees
 
 ```ts
-import { withdrawFees, WithdrawFeesConfig } from "@anastasia-labs/payment-subscription-offchain";
+import { merchantWithdraw, MerchantWithdrawConfig } from "@anastasia-labs/payment-subscription-offchain";
 
 // Configure the withdrawal parameters
 const withdrawConfig: MerchantWithdrawConfig = {
@@ -285,7 +285,7 @@ Test results:
 
 ![alt text](/docs/images/offchain_tests.png)
 
-Each test case is designed to validate specific aspects of the multi-signature contract,To run only specific tests, do:
+Each test case is designed to validate specific aspects of the payment subscription contract,To run only specific tests, do:
 
 ```sh
 pnpm test test/test-case-function-name.test.ts
