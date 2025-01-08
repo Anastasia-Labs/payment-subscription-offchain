@@ -23,8 +23,10 @@ export const runUpdateAccount = async (
     const updateAccountConfig: UpdateAccountConfig = {
         new_email: "new_business@web3.ada",
         new_phone: "(288) 481-2686-999",
-        account_nft_tn: accountNftTn,
-        subscriber_nft_tn: subscriberNftTn,
+        account_nft_tn:
+            "000643b000318c15f18d491b49daf82324da9b0bf8fe62d720cf7406d70e0f00",
+        subscriber_nft_tn:
+            "000de14000318c15f18d491b49daf82324da9b0bf8fe62d720cf7406d70e0f00",
     };
 
     // Update Service

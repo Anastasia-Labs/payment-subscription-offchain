@@ -68,17 +68,18 @@ serviceCommand.command("update").action(async () => {
 
 serviceCommand.command("remove").action(async () => {
     try {
-        const { lucid, MERCHANT_WALLET_SEED } = await setupLucid();
+        const { lucid, MERCHANT_WALLET_SEED, serviceAddress } =
+            await setupLucid();
 
         lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
-        // const merchantAddress: Address = await lucid.wallet().address();
+        const merchantAddress: Address = await lucid.wallet().address();
 
         // console.log("remove service called");
         // console.log("merchantAddress: ", merchantAddress);
         // const merchantUTxos = await lucid.utxosAt(merchantAddress);
         // console.log("merchantAddress utxos: ", merchantUTxos);
 
-        await runRemoveService(lucid);
+        await runRemoveService(lucid, serviceAddress, merchantAddress);
         process.exit(0);
     } catch (error) {
         console.error("Error removing service:", error);
@@ -129,11 +130,13 @@ accountCommand.command("update").action(async () => {
 
 accountCommand.command("remove").action(async () => {
     try {
-        const { lucid, SUBSCRIBER_WALLET_SEED } = await setupLucid();
+        const { lucid, SUBSCRIBER_WALLET_SEED, accountAddress } =
+            await setupLucid();
         console.log("remove account called");
         lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
+        const subscriberAddress: Address = await lucid.wallet().address();
 
-        await runRemoveAccount(lucid);
+        await runRemoveAccount(lucid, accountAddress, subscriberAddress);
         process.exit(0);
     } catch (error) {
         console.error("Error removing account:", error);
