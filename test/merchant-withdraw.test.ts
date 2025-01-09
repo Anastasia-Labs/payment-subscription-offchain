@@ -1,6 +1,10 @@
 import {
+    getMultiValidator,
     MerchantWithdrawConfig,
     merchantWithdrawProgram,
+    paymentPolicyId,
+    paymentScript,
+    tokenNameFromUTxO,
 } from "../src/index.js";
 import { expect, test } from "vitest";
 import { Effect } from "effect";
@@ -34,11 +38,22 @@ export const merchantWithdrawTestCase = (
             yield* Effect.sync(() => emulator.awaitBlock(10));
         }
 
+        const paymentValidator = getMultiValidator(lucid, paymentScript);
+
+        const paymentUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(paymentValidator.spendValAddress)
+        );
+
+        const paymentNftTn = tokenNameFromUTxO(
+            paymentUTxOs,
+            paymentPolicyId,
+        );
+
         lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
         const merchantWithdrawConfig: MerchantWithdrawConfig = {
             service_nft_tn: serviceNftTn,
             merchant_nft_tn: merchantNftTn,
-            last_claimed: currentTime + BigInt(1000 * 60 * 1), // 1 minute
+            payment_nft_tn: paymentNftTn,
         };
 
         const merchantWithdrawFlow = Effect.gen(function* (_) {

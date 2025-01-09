@@ -8,18 +8,7 @@ import {
 
 export const runRemoveService = async (
     lucid: LucidEvolution,
-    serviceAddress: string,
-    merchantAddress: string,
 ): Promise<Error | void> => {
-    const serviceUTxOs = await lucid.utxosAt(serviceAddress);
-    const merchantUTxOs = await lucid.utxosAt(merchantAddress);
-
-    const { refTokenName: serviceNftTn, userTokenName: merchantNftTn } =
-        findCip68TokenNames(
-            [...serviceUTxOs, ...merchantUTxOs],
-            servicePolicyId,
-        );
-
     const removeServiceConfig: RemoveServiceConfig = {
         service_nft_tn:
             "000643b001211d1f32d1cb5e4801ae7f2a413300a4d0035df831e5286f9dadaa",

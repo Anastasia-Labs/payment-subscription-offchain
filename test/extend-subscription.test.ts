@@ -1,6 +1,11 @@
 import {
     ExtendPaymentConfig,
     extendSubscriptionProgram,
+    getMultiValidator,
+    paymentPolicyId,
+    paymentScript,
+    paymentValidator,
+    tokenNameFromUTxO,
 } from "../src/index.js";
 import { expect, test } from "vitest";
 import { Effect } from "effect";
@@ -20,6 +25,7 @@ export const extendSubscriptionTestCase = (
         const {
             context: { lucid, users, emulator },
             subscriberNftTn,
+            serviceNftTn,
         } = setupResult;
 
         if (emulator && lucid.config().network === "Custom") {
@@ -31,10 +37,24 @@ export const extendSubscriptionTestCase = (
             yield* Effect.sync(() => emulator.awaitBlock(10));
         }
 
+        const paymentValidator = getMultiValidator(lucid, paymentScript);
+
+        const paymentUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(paymentValidator.spendValAddress)
+        );
+
+        const paymentNftTn = tokenNameFromUTxO(
+            paymentUTxOs,
+            paymentPolicyId,
+        );
+
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
         const extendPaymentConfig: ExtendPaymentConfig = {
+            service_nft_tn: serviceNftTn,
             subscriber_nft_tn: subscriberNftTn,
+            payment_nft_tn: paymentNftTn,
+            extension_intervals: BigInt(1), // Number of intervals to extend
         };
 
         const extendPaymentFlow = Effect.gen(function* (_) {

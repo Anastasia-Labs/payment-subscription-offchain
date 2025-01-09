@@ -35,14 +35,9 @@ export const merchantWithdrawProgram = (
       lucid.utxosAt(validators.spendValAddress)
     );
 
-    const payment_token_name = tokenNameFromUTxO(
-      paymentUTxOs,
-      paymentPolicyId,
-    );
-
     const paymentNFT = toUnit(
       paymentPolicyId,
-      payment_token_name, //tokenNameWithoutFunc,
+      config.payment_nft_tn, //tokenNameWithoutFunc,
     );
 
     const paymentUTxO = yield* Effect.promise(() =>
@@ -77,22 +72,24 @@ export const merchantWithdrawProgram = (
       )
     );
 
+    const currentTime = BigInt(Date.now()) + BigInt(1000 * 60 * 1); // 1 minute
+
     const paymentData = yield* Effect.promise(
       () => (getPaymentValidatorDatum(paymentUTxOs)),
     );
 
-    const extension_intervals = BigInt(1); // Number of intervals to extend
+    const intervals = BigInt(1); // Number of intervals
     const interval_amount = paymentData[0].interval_amount *
-      extension_intervals;
+      intervals;
     const newTotalSubscriptionFee = paymentData[0].total_subscription_fee +
-      (interval_amount * extension_intervals);
+      (interval_amount * intervals);
     const newNumIntervals = paymentData[0].num_intervals +
-      extension_intervals;
-    const extension_period = paymentData[0].interval_length *
-      extension_intervals;
+      intervals;
+    const withdrawal_period = paymentData[0].interval_length *
+      intervals;
 
     const newSubscriptionEnd = paymentData[0].subscription_end +
-      extension_period;
+      withdrawal_period;
 
     const paymentDatum: PaymentDatum = {
       service_nft_tn: paymentData[0].service_nft_tn,
@@ -104,7 +101,7 @@ export const merchantWithdrawProgram = (
       interval_length: paymentData[0].interval_length,
       interval_amount: interval_amount,
       num_intervals: newNumIntervals,
-      last_claimed: config.last_claimed,
+      last_claimed: currentTime,
       penalty_fee: paymentData[0].penalty_fee,
       penalty_fee_qty: paymentData[0].penalty_fee_qty,
       minimum_ada: paymentData[0].minimum_ada,

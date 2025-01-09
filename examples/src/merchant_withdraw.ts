@@ -1,30 +1,19 @@
 import {
-    findCip68TokenNames,
     LucidEvolution,
     merchantWithdraw,
     MerchantWithdrawConfig,
-    servicePolicyId,
 } from "@anastasia-labs/payment-subscription-offchain";
 
 export const runMerchantWithdraw = async (
     lucid: LucidEvolution,
-    serviceAddress: string,
-    merchantAddress: string,
 ): Promise<Error | void> => {
-    const serviceUTxOs = await lucid.utxosAt(serviceAddress);
-    const merchantUTxOs = await lucid.utxosAt(merchantAddress);
-
     const currentTime = BigInt(Date.now());
 
-    const { refTokenName: serviceNftTn, userTokenName: merchantNftTn } =
-        findCip68TokenNames(
-            [serviceUTxOs[0], merchantUTxOs[0]],
-            servicePolicyId,
-        );
-
     const merchantWithdrawConfig: MerchantWithdrawConfig = {
-        service_nft_tn: serviceNftTn,
-        merchant_nft_tn: merchantNftTn,
+        service_nft_tn:
+            "000643b001211d1f32d1cb5e4801ae7f2a413300a4d0035df831e5286f9dadaa",
+        merchant_nft_tn:
+            "000de14001211d1f32d1cb5e4801ae7f2a413300a4d0035df831e5286f9dadaa",
         last_claimed: currentTime + BigInt(1000 * 60 * 1), // 1 minute
     };
 

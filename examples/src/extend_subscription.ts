@@ -1,27 +1,19 @@
 import {
-    accountPolicyId,
     ExtendPaymentConfig,
     extendSubscription,
-    findCip68TokenNames,
     LucidEvolution,
 } from "@anastasia-labs/payment-subscription-offchain";
 
 export const runExtendSubscription = async (
     lucid: LucidEvolution,
-    accountAddress: string,
-    subscriberAddress: string,
 ): Promise<Error | void> => {
-    const accountUTxOs = await lucid.utxosAt(accountAddress);
-    const subscriberUTxOs = await lucid.utxosAt(subscriberAddress);
-
-    const { refTokenName: accountNftTn, userTokenName: subscriberNftTn } =
-        findCip68TokenNames(
-            [accountUTxOs[0], subscriberUTxOs[0]],
-            accountPolicyId,
-        );
-
     const extendPaymentConfig: ExtendPaymentConfig = {
-        subscriber_nft_tn: subscriberNftTn,
+        service_nft_tn:
+            "000643b001211d1f32d1cb5e4801ae7f2a413300a4d0035df831e5286f9dadaa",
+        subscriber_nft_tn:
+            "000de14000e42f7c1fc58d03f14017f2b8db108507b4c439b6b3c9e4b04c933f",
+        payment_nft_tn:
+            "0054f24765b4a49ffd8165cba6924be886c97a81cdc7e838caef286595aedc54",
     };
 
     // Extend Subscription

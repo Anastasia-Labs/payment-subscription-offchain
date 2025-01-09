@@ -76,22 +76,25 @@ export type RemoveAccountConfig = {
 };
 
 export type InitPaymentConfig = {
-  service_nft_tn: string; //AssetName,
+  service_nft_tn: string;
   subscriber_nft_tn: string;
 };
 
 export type ExtendPaymentConfig = {
+  service_nft_tn: string;
   subscriber_nft_tn: string;
+  payment_nft_tn: string;
+  extension_intervals: bigint;
 };
 
 export type MerchantWithdrawConfig = {
   service_nft_tn: string;
   merchant_nft_tn: string;
-  last_claimed: bigint;
+  payment_nft_tn: string;
 };
 
 export type UnsubscribeConfig = {
-  service_nft_tn: string; //AssetName,
+  service_nft_tn: string;
   subscriber_nft_tn: string;
   current_time: bigint;
 };
