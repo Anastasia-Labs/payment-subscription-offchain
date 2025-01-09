@@ -29,9 +29,9 @@ export const runUpdateService = async (
 
     const updateServiceConfig: UpdateServiceConfig = {
         service_nft_tn:
-            "000643b000ec9e1a5a9f39cc96d2f5c51f22d01de412428772a77ac176871b9b",
+            "000643b001211d1f32d1cb5e4801ae7f2a413300a4d0035df831e5286f9dadaa",
         merchant_nft_tn:
-            "000de14000ec9e1a5a9f39cc96d2f5c51f22d01de412428772a77ac176871b9b",
+            "000de14001211d1f32d1cb5e4801ae7f2a413300a4d0035df831e5286f9dadaa",
         new_service_fee: serviceData[0].service_fee,
         new_service_fee_qty: 9_500_000n,
         new_penalty_fee: serviceData[0].penalty_fee,

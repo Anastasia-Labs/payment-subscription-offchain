@@ -75,21 +75,9 @@ export type RemoveAccountConfig = {
   subscriber_nft_tn: string;
 };
 
-// TODO: Remove all datum fields and query from the UTxO
 export type InitPaymentConfig = {
   service_nft_tn: string; //AssetName,
-  account_nft_tn: string;
-  subscription_fee: AssetClassD;
-  total_subscription_fee: bigint;
-  subscription_start: bigint;
-  subscription_end: bigint;
-  interval_length: bigint;
-  interval_amount: bigint;
-  num_intervals: bigint;
-  last_claimed: bigint;
-  penalty_fee: AssetClassD;
-  penalty_fee_qty: bigint;
-  minimum_ada: bigint;
+  subscriber_nft_tn: string;
 };
 
 export type ExtendPaymentConfig = {

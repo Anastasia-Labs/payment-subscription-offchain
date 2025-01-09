@@ -9,10 +9,9 @@ import {
     TxSignBuilder,
 } from "@lucid-evolution/lucid";
 import { getMultiValidator } from "../core/utils/index.js";
-// import { RemoveServiceConfig } from "../core/types.js";
 import { ServiceDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
-import { extractTokens, getServiceValidatorDatum } from "./utils.js";
+import { getServiceValidatorDatum } from "./utils.js";
 import {
     servicePolicyId,
     serviceScript,
@@ -55,19 +54,6 @@ export const removeServiceProgram = (
             );
         }
 
-        // Get utxos where is_active in datum is set to true
-        const activeServiceUTxOs = serviceUTxOs.filter((utxo) => {
-            if (!utxo.datum) return false;
-
-            const datum = Data.from<ServiceDatum>(utxo.datum, ServiceDatum);
-
-            return datum.is_active === true;
-        });
-
-        const serviceData = yield* Effect.promise(
-            () => (getServiceValidatorDatum(activeServiceUTxOs)),
-        );
-
         if (!merchantUTxOs || !merchantUTxOs.length) {
             console.error("No UTxO found at user address: " + merchantAddress);
         }
@@ -87,6 +73,13 @@ export const removeServiceProgram = (
         if (!serviceUTxO) {
             throw new Error("Service NFT not found");
         }
+
+        const serviceData = yield* Effect.promise(
+            () => (getServiceValidatorDatum(serviceUTxO)),
+        );
+
+        console.log("serviceUTxO: ", serviceUTxO);
+        console.log("serviceData: ", serviceData);
 
         if (!serviceData || serviceData.length === 0) {
             throw new Error("serviceData is empty");

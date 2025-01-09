@@ -96,8 +96,10 @@ export const getAccountValidatorDatum = async (
 };
 
 export const getServiceValidatorDatum = async (
-    utxos: UTxO[],
+    utxoOrUtxos: UTxO | UTxO[],
 ): Promise<ServiceDatum[]> => {
+    const utxos = Array.isArray(utxoOrUtxos) ? utxoOrUtxos : [utxoOrUtxos];
+
     return utxos.flatMap((utxo, index) => {
         if (!utxo.datum) {
             console.error(`UTxO ${index} has no datum.`);

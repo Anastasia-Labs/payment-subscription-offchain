@@ -4,7 +4,6 @@ import {
   LucidEvolution,
   mintingPolicyToId,
   RedeemerBuilder,
-  selectUTxOs,
   toUnit,
   TransactionError,
   TxSignBuilder,
@@ -23,6 +22,7 @@ import {
   paymentScript,
   servicePolicyId,
 } from "../core/validators/constants.js";
+import { getServiceValidatorDatum } from "./utils.js";
 
 export const initSubscriptionProgram = (
   lucid: LucidEvolution,
@@ -43,73 +43,9 @@ export const initSubscriptionProgram = (
       console.error("No UTxO found at user address: " + subscriberAddress);
     }
 
-    // Selecting a utxo containing atleast 2 ADA to cover tx fees and min ADA
-    // Note: To avoid tx balancing errors, the utxo should only contain lovelaces
-    // Can make into optional function
-    const selectedUTxOs = selectUTxOs(subscriberUTxOs, {
-      ["lovelace"]: config.total_subscription_fee + 2000000n,
-    });
-
-    const tokenName = generateUniqueAssetName(selectedUTxOs[0], "");
-    console.log("payment tokenName " + tokenName);
-
-    const initiateSubscriptionRedeemer: RedeemerBuilder = {
-      kind: "selected",
-      makeRedeemer: (inputIndices: bigint[]) => {
-        // Construct the redeemer using the input indices
-        const subscriberIndex = inputIndices[0];
-
-        const paymentRedeemer: InitiatePayment = {
-          output_reference: {
-            txHash: {
-              hash: subscriberUTxOs[0].txHash,
-            },
-            outputIndex: BigInt(subscriberUTxOs[0].outputIndex),
-          },
-          input_index: subscriberIndex,
-        };
-
-        const redeemerData = Data.to(paymentRedeemer, InitiatePayment);
-
-        return redeemerData;
-      },
-      // Specify the inputs relevant to the redeemer
-      inputs: [selectedUTxOs[0]],
-    };
-
-    const paymentDatum: PaymentDatum = {
-      service_nft_tn: config.service_nft_tn,
-      account_nft_tn: config.account_nft_tn,
-      subscription_fee: config.subscription_fee,
-      total_subscription_fee: config.total_subscription_fee,
-      subscription_start: config.subscription_start,
-      subscription_end: config.subscription_end,
-      interval_length: config.interval_length,
-      interval_amount: config.interval_amount,
-      num_intervals: config.num_intervals,
-      last_claimed: config.last_claimed,
-      penalty_fee: config.penalty_fee,
-      penalty_fee_qty: config.penalty_fee_qty,
-      minimum_ada: config.minimum_ada,
-    };
-
-    const allDatums: PaymentValidatorDatum = {
-      Payment: [paymentDatum],
-    };
-
-    const paymentValDatum = Data.to<PaymentValidatorDatum>(
-      allDatums,
-      PaymentValidatorDatum,
-    );
-
-    const paymentNFT = toUnit(
-      paymentPolicyId,
-      tokenName,
-    );
-
     const subscriberNft = toUnit(
       accountPolicyId,
-      config.account_nft_tn,
+      config.subscriber_nft_tn,
     );
 
     const serviceNft = toUnit(
@@ -129,7 +65,79 @@ export const initSubscriptionProgram = (
       )
     );
 
+    const tokenName = generateUniqueAssetName(subscriberUTxO, "");
+    console.log("payment tokenName " + tokenName);
+
+    const paymentNFT = toUnit(
+      paymentPolicyId,
+      tokenName,
+    );
+
+    const initiateSubscriptionRedeemer: RedeemerBuilder = {
+      kind: "selected",
+      makeRedeemer: (inputIndices: bigint[]) => {
+        // Construct the redeemer using the input indices
+        const subscriberIndex = inputIndices[0];
+
+        const paymentRedeemer: InitiatePayment = {
+          output_reference: {
+            txHash: {
+              hash: subscriberUTxO.txHash,
+            },
+            outputIndex: BigInt(subscriberUTxO.outputIndex),
+          },
+          input_index: subscriberIndex,
+        };
+
+        const redeemerData = Data.to(paymentRedeemer, InitiatePayment);
+
+        return redeemerData;
+      },
+      // Specify the inputs relevant to the redeemer
+      inputs: [subscriberUTxO],
+    };
+
+    const currentTime = BigInt(Date.now());
+    const serviceData = yield* Effect.promise(
+      () => (getServiceValidatorDatum(serviceUTxO)),
+    );
+
+    const interval_amount = serviceData[0].service_fee_qty;
+    const interval_length = serviceData[0].interval_length;
+    const num_intervals = serviceData[0].num_intervals;
+    const subscription_end = currentTime +
+      interval_length * num_intervals;
+    const total_subscription_fee = interval_amount * num_intervals;
+
+    const paymentDatum: PaymentDatum = {
+      service_nft_tn: config.service_nft_tn,
+      account_nft_tn: config.subscriber_nft_tn,
+      subscription_fee: serviceData[0].service_fee,
+      total_subscription_fee: total_subscription_fee,
+      subscription_start: currentTime + BigInt(1000 * 60),
+      subscription_end: subscription_end + BigInt(1000 * 60),
+      interval_length: interval_length,
+      interval_amount: interval_amount,
+      num_intervals: num_intervals,
+      last_claimed: 0n,
+      penalty_fee: serviceData[0].penalty_fee,
+      penalty_fee_qty: serviceData[0].penalty_fee_qty,
+      minimum_ada: serviceData[0].minimum_ada,
+    };
+
+    const allDatums: PaymentValidatorDatum = {
+      Payment: [paymentDatum],
+    };
+
+    const paymentValDatum = Data.to<PaymentValidatorDatum>(
+      allDatums,
+      PaymentValidatorDatum,
+    );
+
+    console.log("accountAssets: begin");
     const accountAssets = subscriberUTxO.assets;
+
+    console.log("accountAssets: ", accountAssets);
 
     const tx = yield* lucid
       .newTx()
@@ -141,7 +149,7 @@ export const initSubscriptionProgram = (
         kind: "inline",
         value: paymentValDatum,
       }, {
-        lovelace: config.total_subscription_fee,
+        lovelace: total_subscription_fee,
         [paymentNFT]: 1n,
       })
       .attach.MintingPolicy(validators.mintValidator)

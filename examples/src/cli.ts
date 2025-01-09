@@ -156,33 +156,15 @@ paymentCommand.command("init").action(async () => {
     try {
         const {
             lucid,
-            MERCHANT_WALLET_SEED,
             SUBSCRIBER_WALLET_SEED,
-            serviceAddress,
-            accountAddress,
         } = await setupLucid();
 
-        console.log("init subscription called");
-
-        // 1. Merchant selects wallet, get merchant address
-        lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
-        const merchantAddress: Address = await lucid.wallet().address();
-
-        // 2. Subscriber selects wallet, get subscriber address
+        // 1. Subscriber selects wallet, get subscriber address
         lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
-        const subscriberAddress: Address = await lucid.wallet().address();
-        console.log("subscriberAddress: ", subscriberAddress);
 
-        const subscriberUTxOs = await lucid.utxosAt(subscriberAddress);
-        console.log("subscriberUTxO", subscriberUTxOs);
-
-        // 3. Call your init_subscription logic
+        // 2. Call your init_subscription logic
         await runInitSubscription(
             lucid,
-            serviceAddress,
-            merchantAddress,
-            accountAddress,
-            subscriberAddress,
         );
         process.exit(0);
     } catch (error) {
