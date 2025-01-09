@@ -10,17 +10,17 @@ import {
     TransactionError,
     TxSignBuilder,
 } from "@lucid-evolution/lucid";
-import { findCip68TokenNames, getMultiValidator } from "../core/utils/index.js";
+import { getMultiValidator } from "../core/utils/index.js";
 import { Effect } from "effect";
-import { extractTokens } from "./utils.js";
 import {
     accountPolicyId,
     accountScript,
 } from "../core/validators/constants.js";
+import { RemoveAccountConfig } from "../core/types.js";
 
 export const removeAccountProgram = (
     lucid: LucidEvolution,
-    // config: RemoveAccountConfig,
+    config: RemoveAccountConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
     Effect.gen(function* () { // return type ,
         const subscriberAddress: Address = yield* Effect.promise(() =>
@@ -36,20 +36,14 @@ export const removeAccountProgram = (
             lucid.utxosAt(subscriberAddress)
         );
 
-        const { refTokenName: accountNftTn, userTokenName: subscriberNftTn } =
-            findCip68TokenNames(
-                [accountUTxOs[0], subscriberUTxOs[0]],
-                accountPolicyId,
-            );
-
         const accountNFT = toUnit(
             accountPolicyId,
-            accountNftTn,
+            config.account_nft_tn,
         );
 
         const subscriberNFT = toUnit(
             accountPolicyId,
-            subscriberNftTn,
+            config.subscriber_nft_tn,
         );
 
         const mintingAssets: Assets = {

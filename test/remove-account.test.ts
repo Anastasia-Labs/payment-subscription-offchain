@@ -1,20 +1,25 @@
-import { removeAccountProgram } from "../src/index.js";
+import { RemoveAccountConfig, removeAccountProgram } from "../src/index.js";
 import { expect, test } from "vitest";
 import { Address, validatorToAddress } from "@lucid-evolution/lucid";
 import { Effect } from "effect";
 import { LucidContext, makeLucidContext } from "./service/lucidContext.js";
 import { createAccountTestCase } from "./createAccountTestCase.js";
+import { SetupResult, setupTest } from "./setupTest.js";
 
 type RemoveAccountResult = {
   txHash: string;
 };
 
-export const removeAccountTestCase = ({
-  lucid,
-  users,
-  emulator,
-}: LucidContext): Effect.Effect<RemoveAccountResult, Error, never> => {
+export const removeAccountTestCase = (
+  setupResult: SetupResult,
+): Effect.Effect<RemoveAccountResult, Error, never> => {
   return Effect.gen(function* () {
+    const {
+      context: { lucid, users, emulator },
+      accountNftTn,
+      subscriberNftTn,
+    } = setupResult;
+
     lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
     if (emulator && lucid.config().network === "Custom") {
@@ -29,14 +34,15 @@ export const removeAccountTestCase = ({
       yield* Effect.sync(() => emulator.awaitBlock(10));
     }
 
-    // const removeAccountConfig: RemoveAccountConfig = {
-    //   scripts: accountScript,
-    // };
+    const removeAccountConfig: RemoveAccountConfig = {
+      account_nft_tn: accountNftTn,
+      subscriber_nft_tn: subscriberNftTn,
+    };
 
     const removeAccountFlow = Effect.gen(function* (_) {
       const removeAccountUnsigned = yield* removeAccountProgram(
         lucid,
-        // removeAccountConfig,
+        removeAccountConfig,
       );
       const removeAccountSigned = yield* Effect.promise(() =>
         removeAccountUnsigned.sign.withWallet().complete()
@@ -66,8 +72,8 @@ export const removeAccountTestCase = ({
 
 test("Test 6 - Remove Account", async () => {
   const program = Effect.gen(function* () {
-    const context = yield* makeLucidContext();
-    const result = yield* removeAccountTestCase(context);
+    const setupContext = yield* setupTest();
+    const result = yield* removeAccountTestCase(setupContext);
     return result;
   });
   const result = await Effect.runPromise(program);

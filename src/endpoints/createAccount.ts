@@ -47,6 +47,9 @@ export const createAccountProgram = (
       selectedUTxOs[0],
     );
 
+    console.log("refTokenName: ", refTokenName);
+    console.log("userTokenName: ", userTokenName);
+
     const createAccountRedeemer: RedeemerBuilder = {
       kind: "selected",
       makeRedeemer: (inputIndices: bigint[]) => {

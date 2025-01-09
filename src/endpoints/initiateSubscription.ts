@@ -47,10 +47,11 @@ export const initSubscriptionProgram = (
     // Note: To avoid tx balancing errors, the utxo should only contain lovelaces
     // Can make into optional function
     const selectedUTxOs = selectUTxOs(subscriberUTxOs, {
-      ["lovelace"]: 2000000n,
+      ["lovelace"]: config.total_subscription_fee + 2000000n,
     });
 
     const tokenName = generateUniqueAssetName(selectedUTxOs[0], "");
+    console.log("payment tokenName " + tokenName);
 
     const initiateSubscriptionRedeemer: RedeemerBuilder = {
       kind: "selected",
@@ -106,25 +107,25 @@ export const initSubscriptionProgram = (
       tokenName,
     );
 
-    const accUsrNft = toUnit(
+    const subscriberNft = toUnit(
       accountPolicyId,
       config.account_nft_tn,
     );
 
-    const servcRefNft = toUnit(
+    const serviceNft = toUnit(
       servicePolicyId,
       config.service_nft_tn,
     );
 
     const serviceUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
-        servcRefNft,
+        serviceNft,
       )
     );
 
     const subscriberUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
-        accUsrNft,
+        subscriberNft,
       )
     );
 

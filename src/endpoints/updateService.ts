@@ -4,6 +4,7 @@ import {
     Data,
     LucidEvolution,
     RedeemerBuilder,
+    toUnit,
     TransactionError,
     TxSignBuilder,
     UTxO,
@@ -52,21 +53,31 @@ export const updateServiceProgram = (
             console.error("No UTxO found at user address: " + merchantAddress);
         }
 
-        let { user_token, ref_token } = extractTokens(
+        const serviceNFT = toUnit(
             servicePolicyId,
-            activeServiceUTxOs,
-            merchantUTxOs,
+            config.service_nft_tn,
         );
+
+        const merchantNFT = toUnit(
+            servicePolicyId,
+            config.merchant_nft_tn,
+        );
+
+        // let { user_token, ref_token } = extractTokens(
+        //     servicePolicyId,
+        //     activeServiceUTxOs,
+        //     merchantUTxOs,
+        // );
 
         const serviceUTxO = yield* Effect.promise(() =>
             lucid.utxoByUnit(
-                ref_token,
+                serviceNFT,
             )
         );
 
         const merchantUTxO = yield* Effect.promise(() =>
             lucid.utxoByUnit(
-                user_token,
+                merchantNFT,
             )
         );
 
@@ -115,13 +126,13 @@ export const updateServiceProgram = (
             .collectFrom([serviceUTxO], updateServiceRedeemer)
             .pay.ToAddress(merchantAddress, {
                 lovelace: config.new_minimum_ada,
-                [user_token]: 1n,
+                [merchantNFT]: 1n,
             })
             .pay.ToContract(serviceValAddress, {
                 kind: "inline",
                 value: directDatum,
             }, {
-                [ref_token]: 1n,
+                [serviceNFT]: 1n,
             })
             .attach.SpendingValidator(validators.spendValidator)
             .completeProgram();

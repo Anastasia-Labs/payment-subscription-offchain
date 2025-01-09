@@ -38,6 +38,8 @@ export type CreateServiceConfig = {
 };
 
 export type UpdateServiceConfig = {
+  service_nft_tn: string; //AssetName,
+  merchant_nft_tn: string;
   new_service_fee: AssetClassD;
   new_service_fee_qty: bigint;
   new_penalty_fee: AssetClassD;
@@ -46,6 +48,11 @@ export type UpdateServiceConfig = {
   new_num_intervals: bigint;
   new_minimum_ada: bigint;
   is_active: boolean;
+};
+
+export type RemoveServiceConfig = {
+  service_nft_tn: string; //AssetName,
+  merchant_nft_tn: string;
 };
 
 //TODO: Add account_updated field
@@ -59,6 +66,11 @@ export type CreateAccountConfig = {
 export type UpdateAccountConfig = {
   new_email: string;
   new_phone: string;
+  account_nft_tn: string;
+  subscriber_nft_tn: string;
+};
+
+export type RemoveAccountConfig = {
   account_nft_tn: string;
   subscriber_nft_tn: string;
 };

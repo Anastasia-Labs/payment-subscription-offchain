@@ -3,25 +3,25 @@ import {
     Constr,
     Data,
     LucidEvolution,
-    mintingPolicyToId,
     RedeemerBuilder,
     toUnit,
     TransactionError,
     TxSignBuilder,
 } from "@lucid-evolution/lucid";
-import { findCip68TokenNames, getMultiValidator } from "../core/utils/index.js";
+import { getMultiValidator } from "../core/utils/index.js";
 // import { RemoveServiceConfig } from "../core/types.js";
 import { ServiceDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
-import { getServiceValidatorDatum } from "./utils.js";
+import { extractTokens, getServiceValidatorDatum } from "./utils.js";
 import {
     servicePolicyId,
     serviceScript,
 } from "../core/validators/constants.js";
+import { RemoveServiceConfig } from "../core/types.js";
 
 export const removeServiceProgram = (
     lucid: LucidEvolution,
-    // config: RemoveServiceConfig,
+    config: RemoveServiceConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
     Effect.gen(function* () {
         const merchantAddress: Address = yield* Effect.promise(() =>
@@ -39,20 +39,14 @@ export const removeServiceProgram = (
             lucid.utxosAt(merchantAddress)
         );
 
-        const { refTokenName: serviceNftTn, userTokenName: merchantNftTn } =
-            findCip68TokenNames(
-                [serviceUTxOs[0], merchantUTxOs[0]],
-                servicePolicyId,
-            );
-
         const serviceNFT = toUnit(
             servicePolicyId,
-            serviceNftTn,
+            config.service_nft_tn,
         );
 
         const merchantNFT = toUnit(
             servicePolicyId,
-            merchantNftTn,
+            config.merchant_nft_tn,
         );
 
         if (!serviceUTxOs || !serviceUTxOs.length) {
@@ -78,12 +72,6 @@ export const removeServiceProgram = (
             console.error("No UTxO found at user address: " + merchantAddress);
         }
 
-        // let { user_token, ref_token } = extractTokens(
-        //     servicePolicyId,
-        //     serviceUTxOs,
-        //     merchantUTxOs,
-        // );
-
         const serviceUTxO = yield* Effect.promise(() =>
             lucid.utxoByUnit(
                 serviceNFT,
@@ -99,10 +87,6 @@ export const removeServiceProgram = (
         if (!serviceUTxO) {
             throw new Error("Service NFT not found");
         }
-
-        // const serviceData = yield* Effect.promise(
-        //     () => (getServiceValidatorDatum(serviceUTxOs)),
-        // );
 
         if (!serviceData || serviceData.length === 0) {
             throw new Error("serviceData is empty");

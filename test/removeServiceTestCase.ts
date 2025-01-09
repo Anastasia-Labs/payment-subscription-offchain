@@ -1,9 +1,4 @@
-import {
-  Data,
-  getServiceValidatorDatum,
-  removeServiceProgram,
-  ServiceDatum,
-} from "../src/index.js";
+import { RemoveServiceConfig, removeServiceProgram } from "../src/index.js";
 import { Effect } from "effect";
 import { SetupResult } from "./setupTest.js";
 
@@ -19,13 +14,21 @@ export const removeServiceTestCase = (
     const {
       context: { lucid, users },
       serviceUTxOs,
+      serviceNftTn,
+      merchantNftTn,
     } = setupResult;
 
     lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
 
+    const removeServiceConfig: RemoveServiceConfig = {
+      service_nft_tn: serviceNftTn,
+      merchant_nft_tn: merchantNftTn,
+    };
+
     const removeServiceFlow = Effect.gen(function* (_) {
       const removeServiceUnsigned = yield* removeServiceProgram(
         lucid,
+        removeServiceConfig,
       );
       const removeServiceSigned = yield* Effect.promise(() =>
         removeServiceUnsigned.sign.withWallet()

@@ -22,6 +22,8 @@ export const updateServiceTestCase = (
     const {
       context: { lucid, users, emulator },
       serviceUTxOs,
+      serviceNftTn,
+      merchantNftTn,
     } = setupResult;
 
     lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
@@ -44,6 +46,8 @@ export const updateServiceTestCase = (
     );
 
     const updateServiceConfig: UpdateServiceConfig = {
+      service_nft_tn: serviceNftTn,
+      merchant_nft_tn: merchantNftTn,
       new_service_fee: serviceData[0].service_fee,
       new_service_fee_qty: 9_500_000n,
       new_penalty_fee: serviceData[0].penalty_fee,

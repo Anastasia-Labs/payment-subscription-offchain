@@ -30,23 +30,33 @@ export const runInitSubscription = async (
     const subscription_end = currentTime +
         interval_length * num_intervals;
 
-    // const { refTokenName: serviceNftTn, userTokenName: merchantNftTn } =
-    //     findCip68TokenNames(
-    //         [serviceUTxOs[0], merchantUTxOs[0]],
-    //         servicePolicyId,
-    //     );
+    const { refTokenName: serviceNftTn, userTokenName: merchantNftTn } =
+        findCip68TokenNames(
+            [serviceUTxOs[0], merchantUTxOs[0]],
+            servicePolicyId,
+        );
 
-    // const { refTokenName: accountNftTn, userTokenName: subscriberNftTn } =
-    //     findCip68TokenNames(
-    //         [accountUTxOs[0], subscriberUTxOs[0]],
-    //         accountPolicyId,
-    //     );
+    const { refTokenName: accountNftTn, userTokenName: subscriberNftTn } =
+        findCip68TokenNames(
+            [accountUTxOs[0], subscriberUTxOs[0]],
+            accountPolicyId,
+        );
+    console.log("dinamic serviceNftTn tokenName " + serviceNftTn);
+    console.log("dinamic accountNftTn tokenName " + subscriberNftTn);
+    console.log(
+        "static serviceNftTn tokenName " +
+            "000643b000ec9e1a5a9f39cc96d2f5c51f22d01de412428772a77ac176871b9b",
+    );
+    console.log(
+        "static accountNftTn tokenName " +
+            "000de14000318c15f18d491b49daf82324da9b0bf8fe62d720cf7406d70e0f00",
+    );
 
     const paymentConfig: InitPaymentConfig = {
         service_nft_tn:
-            "000643b0007d578ee9f1ebf3a07615a7264bffee9b22ffce4c0a99f3ae9537b8",
+            "000643b000ec9e1a5a9f39cc96d2f5c51f22d01de412428772a77ac176871b9b",
         account_nft_tn:
-            "000643b000318c15f18d491b49daf82324da9b0bf8fe62d720cf7406d70e0f00",
+            "000de14000318c15f18d491b49daf82324da9b0bf8fe62d720cf7406d70e0f00",
         subscription_fee: ADA,
         total_subscription_fee: interval_amount * num_intervals,
         subscription_start: currentTime + BigInt(1000 * 60),
