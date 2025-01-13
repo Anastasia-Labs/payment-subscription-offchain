@@ -37,8 +37,10 @@ const serviceCommand = program.command("service").description(
 serviceCommand.command("create").action(async () => {
     try {
         const { lucid, MERCHANT_WALLET_SEED } = await setupLucid();
-        console.log("create service called");
-        await runCreateService(lucid, MERCHANT_WALLET_SEED);
+
+        lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
+
+        await runCreateService(lucid);
         process.exit(0);
     } catch (error) {
         console.error("Error creating service:", error);
@@ -50,7 +52,6 @@ serviceCommand.command("update").action(async () => {
     try {
         const { lucid, MERCHANT_WALLET_SEED, serviceAddress } =
             await setupLucid();
-        console.log("update service called");
         await runUpdateService(lucid, serviceAddress, MERCHANT_WALLET_SEED);
         process.exit(0);
     } catch (error) {
@@ -85,7 +86,6 @@ const accountCommand = program.command("account").description(
 accountCommand.command("create").action(async () => {
     try {
         const { lucid, SUBSCRIBER_WALLET_SEED } = await setupLucid();
-        console.log("create account called");
         // Usually select the wallet first if needed
         lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
 
@@ -101,11 +101,9 @@ accountCommand.command("update").action(async () => {
     try {
         const { lucid, SUBSCRIBER_WALLET_SEED, accountAddress } =
             await setupLucid();
-        console.log("update account called");
         lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
 
-        const subscriberAddress: Address = await lucid.wallet().address();
-        await runUpdateAccount(lucid, accountAddress, subscriberAddress);
+        await runUpdateAccount(lucid);
         process.exit(0);
     } catch (error) {
         console.error("Error updating account:", error);
@@ -117,7 +115,6 @@ accountCommand.command("remove").action(async () => {
     try {
         const { lucid, SUBSCRIBER_WALLET_SEED, accountAddress } =
             await setupLucid();
-        console.log("remove account called");
         lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
         const subscriberAddress: Address = await lucid.wallet().address();
 
@@ -165,8 +162,6 @@ paymentCommand.command("extend").action(async () => {
             SUBSCRIBER_WALLET_SEED,
         } = await setupLucid();
 
-        console.log("extend subscription called");
-
         lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
 
         await runExtendSubscription(
@@ -186,8 +181,6 @@ paymentCommand.command("merchant_withdraw").action(async () => {
             MERCHANT_WALLET_SEED,
         } = await setupLucid();
 
-        console.log("merchant_withdraw called");
-
         lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
 
         await runMerchantWithdraw(
@@ -205,24 +198,12 @@ paymentCommand.command("unsubscribe").action(async () => {
         const {
             lucid,
             SUBSCRIBER_WALLET_SEED,
-            MERCHANT_WALLET_SEED,
-            serviceAddress,
-            accountAddress,
         } = await setupLucid();
 
-        console.log("unsubscribe called");
-        lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
-        const merchantAddress: Address = await lucid.wallet().address();
-
         lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
-        const subscriberAddress: Address = await lucid.wallet().address();
 
         await runUnsubscribe(
             lucid,
-            serviceAddress,
-            merchantAddress,
-            accountAddress,
-            subscriberAddress,
         );
         process.exit(0);
     } catch (error) {
@@ -236,17 +217,12 @@ paymentCommand.command("withdraw_penalty").action(async () => {
         const {
             lucid,
             MERCHANT_WALLET_SEED,
-            serviceAddress,
         } = await setupLucid();
 
-        console.log("withdraw_penalty called");
         lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
-        const merchantAddress: Address = await lucid.wallet().address();
 
         await runWithdrawPenalty(
             lucid,
-            serviceAddress,
-            merchantAddress,
         );
         process.exit(0);
     } catch (error) {

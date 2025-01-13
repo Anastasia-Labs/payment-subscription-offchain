@@ -115,7 +115,7 @@ export const MerchantWithdraw = WithdrawSchema as unknown as MerchantWithdraw;
 
 export const PaymentDatumSchema = Data.Object({
     service_nft_tn: Data.Bytes(), //AssetName,
-    account_nft_tn: Data.Bytes(),
+    subscriber_nft_tn: Data.Bytes(),
     subscription_fee: AssetClassSchema,
     total_subscription_fee: Data.Integer(),
     subscription_start: Data.Integer(),
@@ -134,7 +134,7 @@ export const PaymentDatum = PaymentDatumSchema as unknown as PaymentDatum;
 
 export const PenaltyDatumSchema = Data.Object({
     service_nft_tn: Data.Bytes(),
-    account_nft_tn: Data.Bytes(),
+    subscriber_nft_tn: Data.Bytes(),
     penalty_fee: AssetClassSchema,
     penalty_fee_qty: Data.Integer(),
 });

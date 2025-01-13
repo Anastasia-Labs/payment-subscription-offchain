@@ -9,9 +9,10 @@ export const runInitSubscription = async (
 ): Promise<Error | void> => {
     const paymentConfig: InitPaymentConfig = {
         service_nft_tn:
-            "000643b001211d1f32d1cb5e4801ae7f2a413300a4d0035df831e5286f9dadaa",
+            "000643b00072210afcd6d8c4d4794e74b602f2cbb81bd16c4ad4605720c3d4a1",
         subscriber_nft_tn:
-            "000de14000e42f7c1fc58d03f14017f2b8db108507b4c439b6b3c9e4b04c933f",
+            "000de140004916b57591943940e8c3a1d9dd55bb790752f2200eaa43fe1d61da",
+        num_intervals: 3n,
     };
 
     // Create Service

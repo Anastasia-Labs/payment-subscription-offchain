@@ -1,6 +1,7 @@
 import {
+    getMultiValidator,
     merchantPenaltyWithdrawProgram,
-    toUnit,
+    tokenNameFromUTxO,
     WithdrawPenaltyConfig,
 } from "../src/index.js";
 import { expect, test } from "vitest";
@@ -12,7 +13,6 @@ import { unsubscribeTestCase } from "./unsubscribeTestCase.js";
 import {
     paymentPolicyId,
     paymentScript,
-    servicePolicyId,
 } from "../src/core/validators/constants.js";
 
 type MerchantPenaltyResult = {
@@ -27,8 +27,6 @@ export const withdrawPenaltyTestCase = (
         const {
             context: { lucid, users, emulator },
             serviceNftTn,
-            serviceUTxOs,
-            merchantUTxOs,
             merchantNftTn,
         } = setupResult;
 
@@ -41,11 +39,21 @@ export const withdrawPenaltyTestCase = (
             yield* Effect.sync(() => emulator.awaitBlock(10));
         }
 
+        const paymentValidator = getMultiValidator(lucid, paymentScript);
+
+        const paymentUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(paymentValidator.spendValAddress)
+        );
+
+        const paymentNftTn = tokenNameFromUTxO(
+            paymentUTxOs,
+            paymentPolicyId,
+        );
+
         const withdrawPenaltyConfig: WithdrawPenaltyConfig = {
             service_nft_tn: serviceNftTn,
             merchant_nft_tn: merchantNftTn,
-            merchant_utxos: merchantUTxOs,
-            service_utxos: serviceUTxOs,
+            payment_nft_tn: paymentNftTn,
         };
 
         lucid.selectWallet.fromSeed(users.merchant.seedPhrase);

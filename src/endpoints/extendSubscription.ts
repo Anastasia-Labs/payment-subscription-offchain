@@ -84,7 +84,7 @@ export const extendSubscriptionProgram = (
 
     const paymentDatum: PaymentDatum = {
       service_nft_tn: paymentData[0].service_nft_tn,
-      account_nft_tn: paymentData[0].account_nft_tn,
+      subscriber_nft_tn: paymentData[0].subscriber_nft_tn,
       subscription_fee: paymentData[0].subscription_fee,
       total_subscription_fee: newTotalSubscriptionFee,
       subscription_start: paymentData[0].subscription_start,

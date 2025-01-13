@@ -38,6 +38,10 @@ export const merchantPenaltyWithdrawProgram = (
       lucid.utxosAt(paymentAddress)
     );
 
+    const merchantUTxOs = yield* Effect.promise(() =>
+      lucid.utxosAt(merchantAddress)
+    );
+
     const penaltyUTxOs = paymentUTxOs.filter((utxo: UTxO) => {
       if (!utxo.datum) return false;
 
@@ -64,49 +68,9 @@ export const merchantPenaltyWithdrawProgram = (
       }
     });
 
-    const payment_token_name = tokenNameFromUTxO(
-      penaltyUTxOs,
-      paymentPolicyId,
-    );
-
     const paymentNFT = toUnit(
       paymentPolicyId,
-      payment_token_name,
-    );
-
-    const penaltyData = yield* Effect.promise(
-      () => (getPenaltyDatum(penaltyUTxOs)),
-    );
-
-    const serviceRefNft = toUnit(
-      servicePolicyId,
-      config.service_nft_tn,
-    );
-
-    const merchantNft = toUnit(
-      servicePolicyId,
-      config.merchant_nft_tn,
-    );
-
-    const merchantUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAtWithUnit(
-        merchantAddress,
-        merchantNft,
-      )
-    );
-
-    if (!config.merchant_utxos || !config.merchant_utxos.length) {
-      yield* Effect.fail(
-        new TxBuilderError({
-          cause: "No UTxO found at user address: " + merchantAddress,
-        }),
-      );
-    }
-
-    const merchantUTxO = yield* Effect.promise(() =>
-      lucid.utxoByUnit(
-        merchantNft,
-      )
+      config.payment_nft_tn,
     );
 
     const penaltyUTxO = yield* Effect.promise(() =>
@@ -115,9 +79,29 @@ export const merchantPenaltyWithdrawProgram = (
       )
     );
 
+    const penaltyData = yield* Effect.promise(
+      () => (getPenaltyDatum(penaltyUTxO)),
+    );
+
+    const serviceRefNft = toUnit(
+      servicePolicyId,
+      config.service_nft_tn,
+    );
+
     const serviceUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
         serviceRefNft,
+      )
+    );
+
+    const merchantNft = toUnit(
+      servicePolicyId,
+      config.merchant_nft_tn,
+    );
+
+    const merchantUTxO = yield* Effect.promise(() =>
+      lucid.utxoByUnit(
+        merchantNft,
       )
     );
 

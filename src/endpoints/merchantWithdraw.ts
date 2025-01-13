@@ -13,7 +13,6 @@ import { PaymentDatum, PaymentValidatorDatum } from "../core/contract.types.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
 import { getPaymentValidatorDatum } from "./utils.js";
-import { tokenNameFromUTxO } from "../core/utils/assets.js";
 import {
   paymentPolicyId,
   paymentScript,
@@ -75,31 +74,98 @@ export const merchantWithdrawProgram = (
     const currentTime = BigInt(Date.now()) + BigInt(1000 * 60 * 1); // 1 minute
 
     const paymentData = yield* Effect.promise(
-      () => (getPaymentValidatorDatum(paymentUTxOs)),
+      () => (getPaymentValidatorDatum(paymentUTxO)),
     );
 
-    const intervals = BigInt(1); // Number of intervals
-    const interval_amount = paymentData[0].interval_amount *
-      intervals;
-    const newTotalSubscriptionFee = paymentData[0].total_subscription_fee +
-      (interval_amount * intervals);
-    const newNumIntervals = paymentData[0].num_intervals +
-      intervals;
-    const withdrawal_period = paymentData[0].interval_length *
-      intervals;
+    // Calculate withdrawable amount based on time elapsed since last claim
+    const calculateWithdrawal = (
+      currentTime: bigint,
+      paymentData: PaymentDatum,
+    ) => {
+      if (currentTime < paymentData.subscription_start) {
+        return {
+          withdrawableAmount: BigInt(0),
+          intervalsToWithdraw: 0,
+        };
+      }
 
-    const newSubscriptionEnd = paymentData[0].subscription_end +
-      withdrawal_period;
+      // Debug time values
+      console.log("Current Time:", currentTime);
+      console.log("Subscription Start:", paymentData.subscription_start);
+      console.log("Last Claimed:", paymentData.last_claimed);
+      console.log("Interval Length:", paymentData.interval_length);
+      console.log("Number of Intervals:", paymentData.num_intervals);
+
+      const timeElapsed = currentTime - paymentData.subscription_start;
+      console.log("Time Elapsed:", timeElapsed);
+
+      // Calculate complete intervals
+      const completeIntervals = Math.floor(
+        Number(timeElapsed) / Number(paymentData.interval_length),
+      );
+      console.log("Complete Intervals:", completeIntervals);
+
+      // Ensure last_claimed is not before subscription_start
+      const lastClaimedTime =
+        paymentData.last_claimed < paymentData.subscription_start
+          ? paymentData.subscription_start
+          : paymentData.last_claimed;
+
+      const claimedIntervals = Math.floor(
+        Number(lastClaimedTime - paymentData.subscription_start) /
+          Number(paymentData.interval_length),
+      );
+      console.log("Claimed Intervals:", claimedIntervals);
+
+      // Calculate withdrawable intervals
+      const intervalsToWithdraw = Math.max(
+        0,
+        completeIntervals - claimedIntervals,
+      );
+      console.log("Intervals To Withdraw:", intervalsToWithdraw);
+
+      const withdrawableAmount = BigInt(intervalsToWithdraw) *
+        paymentData.interval_amount;
+
+      return {
+        withdrawableAmount,
+        intervalsToWithdraw,
+      };
+    };
+
+    const { withdrawableAmount, intervalsToWithdraw } = calculateWithdrawal(
+      currentTime,
+      paymentData[0],
+    );
+
+    // Calculate remaining subscription fee after withdrawal
+    const newTotalSubscriptionFee = paymentData[0].total_subscription_fee -
+      withdrawableAmount;
+
+    // const intervals = BigInt(1); // Number of intervals
+    // const interval_amount = paymentData[0].interval_amount *
+    //   intervals;
+    // const newTotalSubscriptionFee = paymentData[0].total_subscription_fee +
+    //   (interval_amount * intervals);
+    const newNumIntervals = paymentData[0].num_intervals -
+      BigInt(intervalsToWithdraw);
+    console.log("Withdrawable Amount: ", withdrawableAmount);
+    console.log("intervalsToWithdraw: ", intervalsToWithdraw);
+    // const withdrawal_period = paymentData[0].interval_length *
+    //   intervals;
+
+    // const newSubscriptionEnd = paymentData[0].subscription_end +
+    //   withdrawal_period;
 
     const paymentDatum: PaymentDatum = {
       service_nft_tn: paymentData[0].service_nft_tn,
-      account_nft_tn: paymentData[0].account_nft_tn,
+      subscriber_nft_tn: paymentData[0].subscriber_nft_tn,
       subscription_fee: paymentData[0].subscription_fee,
       total_subscription_fee: newTotalSubscriptionFee,
       subscription_start: paymentData[0].subscription_start,
-      subscription_end: newSubscriptionEnd,
+      subscription_end: paymentData[0].subscription_end,
       interval_length: paymentData[0].interval_length,
-      interval_amount: interval_amount,
+      interval_amount: paymentData[0].interval_amount,
       num_intervals: newNumIntervals,
       last_claimed: currentTime,
       penalty_fee: paymentData[0].penalty_fee,
@@ -139,7 +205,7 @@ export const merchantWithdrawProgram = (
       .collectFrom([paymentUTxO], merchantWithdrawRedeemer)
       .readFrom([serviceUTxO])
       .pay.ToAddress(merchantAddress, {
-        lovelace: paymentData[0].minimum_ada,
+        lovelace: withdrawableAmount + paymentData[0].minimum_ada,
         [merchantNft]: 1n,
       })
       .pay.ToContract(validators.spendValAddress, {

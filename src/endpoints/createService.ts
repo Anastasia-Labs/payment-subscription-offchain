@@ -84,6 +84,7 @@ export const createServiceProgram = (
       minimum_ada: config.minimum_ada,
       is_active: config.is_active,
     };
+    console.log(`Service config.interval_lengt: ${config.interval_length}`);
 
     const directDatum = Data.to<ServiceDatum>(currDatum, ServiceDatum);
 

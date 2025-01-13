@@ -1,4 +1,11 @@
-import { UnsubscribeConfig, unsubscribeProgram } from "../src/index.js";
+import {
+    getMultiValidator,
+    paymentPolicyId,
+    paymentScript,
+    tokenNameFromUTxO,
+    UnsubscribeConfig,
+    unsubscribeProgram,
+} from "../src/index.js";
 import { Effect } from "effect";
 import { initSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
 import { expect } from "vitest";
@@ -28,11 +35,22 @@ export const unsubscribeTestCase = (
             yield* Effect.sync(() => emulator.awaitBlock(10));
         }
 
+        const paymentValidator = getMultiValidator(lucid, paymentScript);
+
+        const paymentUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(paymentValidator.spendValAddress)
+        );
+
+        const paymentNftTn = tokenNameFromUTxO(
+            paymentUTxOs,
+            paymentPolicyId,
+        );
+
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
         const unsubscribeConfig: UnsubscribeConfig = {
             service_nft_tn: serviceNftTn,
             subscriber_nft_tn: subscriberNftTn,
-            current_time: currentTime,
+            payment_nft_tn: paymentNftTn,
         };
 
         const unsubscribeFlow = Effect.gen(function* (_) {

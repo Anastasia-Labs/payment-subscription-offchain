@@ -104,21 +104,25 @@ export const initSubscriptionProgram = (
 
     const interval_amount = serviceData[0].service_fee_qty;
     const interval_length = serviceData[0].interval_length;
-    const num_intervals = serviceData[0].num_intervals;
+    // const subscription_fee_qty = serviceData[0].num_intervals * interval_amount;
     const subscription_end = currentTime +
-      interval_length * num_intervals;
-    const total_subscription_fee = interval_amount * num_intervals;
+      interval_length * config.num_intervals;
+
+    // const initial_subscription_fee = interval_amount * num_intervals;
+    const total_subscription_fee = interval_amount *
+      config.num_intervals;
+    console.log("interval_length: ", interval_length);
 
     const paymentDatum: PaymentDatum = {
       service_nft_tn: config.service_nft_tn,
-      account_nft_tn: config.subscriber_nft_tn,
+      subscriber_nft_tn: config.subscriber_nft_tn,
       subscription_fee: serviceData[0].service_fee,
       total_subscription_fee: total_subscription_fee,
       subscription_start: currentTime + BigInt(1000 * 60),
       subscription_end: subscription_end + BigInt(1000 * 60),
       interval_length: interval_length,
       interval_amount: interval_amount,
-      num_intervals: num_intervals,
+      num_intervals: config.num_intervals,
       last_claimed: 0n,
       penalty_fee: serviceData[0].penalty_fee,
       penalty_fee_qty: serviceData[0].penalty_fee_qty,

@@ -162,8 +162,10 @@ export const getPaymentValidatorDatum = async (
 };
 
 export const getPenaltyDatum = async (
-    utxos: UTxO[],
+    utxoOrUtxos: UTxO | UTxO[],
 ): Promise<PenaltyDatum[]> => {
+    const utxos = Array.isArray(utxoOrUtxos) ? utxoOrUtxos : [utxoOrUtxos];
+
     return utxos.flatMap((utxo) => {
         const result = parseSafeDatum<PaymentValidatorDatum>(
             utxo.datum,

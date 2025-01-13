@@ -85,29 +85,7 @@ const lucid = await Lucid(
   "Preprod" // For MAINNET: "Mainnet"
 );
 
-lucid.selectWallet.fromPrivateKey("your secret key here e.g. ed25519_...");
 
-// Prepare the validator scripts
-const serviceScript: SpendingValidator = {
-  type: "PlutusV2",
-  script: serviceValidator.compiledCode,
-};
-
-const accountScript: SpendingValidator = {
-  type: "PlutusV2",
-  script: accountValidator.compiledCode,
-};
-
-const paymentScript: SpendingValidator = {
-  type: "PlutusV2",
-  script: paymentValidator.compiledCode,
-};
-
-const subscriptionScripts = {
-  service: serviceScript.script,
-  account: accountScript.script,
-  payment: paymentScript.script,
-};
 ```
 
 ### Create a Service
@@ -118,13 +96,13 @@ import {  createService, CreateServiceConfig, LucidEvolution, } from "@anastasia
 // Configure the service configuration
 const serviceConfig: CreateServiceConfig = {
   service_fee: {
-    policyId: '', // For ADA, use empty string
-    assetName: '',      // For ADA, use empty string
+    policy_id: '', // For ADA, use empty string
+    asset_name: '',      // For ADA, use empty string
   },
   service_fee_qty: 100_000_000n, // 100 ADA in lovelace
   penalty_fee: {
-    policyId: '', // For ADA, use empty string
-    assetName: '',      // For ADA, use empty string
+    policy_id: '', // For ADA, use empty string
+    asset_name: '',      // For ADA, use empty string
   },
   penalty_fee_qty: 10_000_000n,  // 10 ADA in lovelace
   interval_length: 30n * 24n * 60n * 60n * 1000n, // 30 days in milliseconds
@@ -152,11 +130,13 @@ const serviceConfig: CreateServiceConfig = {
 ```ts
 import { createAccount, CreateAccountConfig } from "@anastasia-labs/payment-subscription-offchain";
 
+const currentTime = BigInt(Date.now());
+
 // Configure the account parameters
 const accountConfig: CreateAccountConfig = {
   email: 'user@example.com',
   phone: '+1234567890',
-  account_created: BigInt(Math.floor(Date.now() / 1000)), // Current UNIX timestamp
+  account_created: currentTime,
 }
   // Create the user account
    try {
@@ -175,30 +155,14 @@ const accountConfig: CreateAccountConfig = {
 ### Initiate a Subscription
 
 ```ts
-import { initiateSubscription, InitiateSubscriptionConfig } from "@anastasia-labs/payment-subscription-offchain";
+import { initiateSubscription, InitPaymentConfig, LucidEvolution} from "@anastasia-labs/payment-subscription-offchain";
 
 // Configure the subscription parameters
 const subscriptionConfig: InitPaymentConfig = {
   service_nft_tn: 'SERVICE_NFT_TOKEN_NAME', // Replace with actual token name
   account_nft_tn: 'ACCOUNT_NFT_TOKEN_NAME', // Replace with actual token name
-  subscription_fee: {
-    policyId: '', // For ADA, use empty string
-    assetName: '',      // For ADA, use empty string
-  },
-  total_subscription_fee: 1_200_000_000n, // Total for 12 months (1,200 ADA)
-  subscription_start: BigInt(Math.floor(Date.now() / 1000)),
-  subscription_end:
-    BigInt(Math.floor(Date.now() / 1000)) + 12n * 30n * 24n * 60n * 60n, // 12 months later
-  interval_length: 30n * 24n * 60n * 60n, // 30 days in seconds
-  interval_amount: 100_000_000n, // 100 ADA per interval
-  num_intervals: 12n,
-  last_claimed: BigInt(Math.floor(Date.now() / 1000)),
-  penalty_fee: {
-    policyId: '', // For ADA, use empty string
-    assetName: '',      // For ADA, use empty string
-  },
-  penalty_fee_qty: 10_000_000n, // 10 ADA
-  minimum_ada: 2_000_000n,
+  num_intervals: 3n, // Replace with actual intervals to pay for
+
 };
 
 // Initiate the subscription
@@ -226,13 +190,13 @@ try {
 ### Unsubscribe
 
 ```ts
-import { unsubscribe, UnsubscribeConfig } from "@anastasia-labs/payment-subscription-offchain";
+import { unsubscribe, UnsubscribeConfig, LucidEvolution } from "@anastasia-labs/payment-subscription-offchain";
 
 // Configure the unsubscription parameters
 const unsubscribeConfig: UnsubscribeConfig = {
   service_nft_tn: 'SERVICE_NFT_TOKEN_NAME', // Replace with actual token name
-  subscriber_nft_tn: 'SUMSCRIBER_NFT_TOKEN_NAME', // Replace with actual token name
-  currentTime: BigInt(Math.floor(Date.now() / 1000)),
+  subscriber_nft_tn: 'SUBSCRIBER_NFT_TOKEN_NAME', // Replace with actual token name
+  payment_nft_tn: 'PAYMENT_NFT_TOKEN_NAME', // Replace with actual token name
 };
 
 // Unsubscribe from the service
@@ -263,7 +227,7 @@ import { withdrawFees, WithdrawFeesConfig } from "@anastasia-labs/payment-subscr
 const withdrawConfig: MerchantWithdrawConfig = {
   service_ref_token: 'SERVICE_REF_TOKEN', // Replace with actual unit
   merchant_token: 'MERCHANT_TOKEN_UNIT', // Replace with actual unit
-  last_claimed: previousClaimTimestamp, // As bigint
+  payment_nft_tn: 'PAYMENT_NFT_TOKEN_NAME', // Replace with actual token name
 };
 
 // Withdraw subscription fees

@@ -32,6 +32,7 @@ export const initSubscriptionTestCase = (
         const paymentConfig: InitPaymentConfig = {
             service_nft_tn: serviceNftTn,
             subscriber_nft_tn: subscriberNftTn,
+            num_intervals: 12n,
         };
 
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);

@@ -78,6 +78,7 @@ export type RemoveAccountConfig = {
 export type InitPaymentConfig = {
   service_nft_tn: string;
   subscriber_nft_tn: string;
+  num_intervals: bigint;
 };
 
 export type ExtendPaymentConfig = {
@@ -96,14 +97,13 @@ export type MerchantWithdrawConfig = {
 export type UnsubscribeConfig = {
   service_nft_tn: string;
   subscriber_nft_tn: string;
-  current_time: bigint;
+  payment_nft_tn: string;
 };
 
 export type WithdrawPenaltyConfig = {
   service_nft_tn: string;
   merchant_nft_tn: string;
-  merchant_utxos: UTxO[];
-  service_utxos: UTxO[];
+  payment_nft_tn: string;
 };
 
 export type SubscriberWithdrawConfig = {

@@ -41,14 +41,14 @@ export const unsubscribeProgram = (
             lucid.utxosAt(paymentAddress)
         );
 
-        const payment_token_name = tokenNameFromUTxO(
-            paymentUTxOs,
-            paymentPolicyId,
-        );
+        // const payment_token_name = tokenNameFromUTxO(
+        //     paymentUTxOs,
+        //     paymentPolicyId,
+        // );
 
         const paymentNFT = toUnit(
             paymentPolicyId,
-            payment_token_name,
+            config.payment_nft_tn,
         );
 
         const subscriberUTxOs = yield* Effect.promise(() =>
@@ -105,16 +105,18 @@ export const unsubscribeProgram = (
         }
 
         const paymentData = yield* Effect.promise(
-            () => (getPaymentValidatorDatum(paymentUTxOs)),
+            () => (getPaymentValidatorDatum(paymentUTxO)),
         );
 
         const total_subscription_time = BigInt(
             paymentData[0].subscription_end - paymentData[0].subscription_start,
         );
 
+        const currentTime = BigInt(Date.now());
+
         const time_elapsed = BigInt(
             Math.min(
-                Number(config.current_time - paymentData[0].subscription_start),
+                Number(currentTime - paymentData[0].subscription_start),
                 Number(total_subscription_time),
             ),
         );
@@ -124,7 +126,7 @@ export const unsubscribeProgram = (
 
         const penaltyDatum: PenaltyDatum = {
             service_nft_tn: config.service_nft_tn,
-            account_nft_tn: config.subscriber_nft_tn,
+            subscriber_nft_tn: config.subscriber_nft_tn,
             penalty_fee: paymentData[0].penalty_fee,
             penalty_fee_qty: paymentData[0].penalty_fee_qty,
         };
@@ -157,7 +159,7 @@ export const unsubscribeProgram = (
                 return wrappedRedeemer;
             },
             // Specify the inputs relevant to the redeemer
-            inputs: [selectedUTxOs[0], paymentUTxO],
+            inputs: [subscriberUTxO, paymentUTxO],
         };
 
         const tx = yield* lucid

@@ -1,6 +1,4 @@
 import {
-    accountPolicyId,
-    findCip68TokenNames,
     LucidEvolution,
     updateAccount,
     UpdateAccountConfig,
@@ -8,25 +6,14 @@ import {
 
 export const runUpdateAccount = async (
     lucid: LucidEvolution,
-    accountAddress: string,
-    subscriberAddress: string,
 ): Promise<Error | void> => {
-    const accountUTxOs = await lucid.utxosAt(accountAddress);
-    const subscriberUTxOs = await lucid.utxosAt(subscriberAddress);
-
-    const { refTokenName: accountNftTn, userTokenName: subscriberNftTn } =
-        findCip68TokenNames(
-            [accountUTxOs[0], subscriberUTxOs[0]],
-            accountPolicyId,
-        );
-
     const updateAccountConfig: UpdateAccountConfig = {
         new_email: "new_business@web3.ada",
         new_phone: "(288) 481-2686-999",
         account_nft_tn:
-            "000643b000318c15f18d491b49daf82324da9b0bf8fe62d720cf7406d70e0f00",
+            "000643b0004916b57591943940e8c3a1d9dd55bb790752f2200eaa43fe1d61da",
         subscriber_nft_tn:
-            "000de14000318c15f18d491b49daf82324da9b0bf8fe62d720cf7406d70e0f00",
+            "000de140004916b57591943940e8c3a1d9dd55bb790752f2200eaa43fe1d61da",
     };
 
     // Update Service

@@ -9,11 +9,12 @@ export const runExtendSubscription = async (
 ): Promise<Error | void> => {
     const extendPaymentConfig: ExtendPaymentConfig = {
         service_nft_tn:
-            "000643b001211d1f32d1cb5e4801ae7f2a413300a4d0035df831e5286f9dadaa",
+            "000643b000b306620f9429f6b25941a392feef614b9bbcd18435447499e2effc",
         subscriber_nft_tn:
-            "000de14000e42f7c1fc58d03f14017f2b8db108507b4c439b6b3c9e4b04c933f",
+            "000de14000f502a27c73b12ab74a86af46a71ff2f3cdc39ec600928f6aaa450c",
         payment_nft_tn:
-            "0054f24765b4a49ffd8165cba6924be886c97a81cdc7e838caef286595aedc54",
+            "0069f95d11e42670cbbfb85024e0c5a230b792f5c96cc9b98875fb19e33cce98",
+        extension_intervals: 1n,
     };
 
     // Extend Subscription

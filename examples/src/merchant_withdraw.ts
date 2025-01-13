@@ -7,14 +7,13 @@ import {
 export const runMerchantWithdraw = async (
     lucid: LucidEvolution,
 ): Promise<Error | void> => {
-    const currentTime = BigInt(Date.now());
-
     const merchantWithdrawConfig: MerchantWithdrawConfig = {
         service_nft_tn:
-            "000643b001211d1f32d1cb5e4801ae7f2a413300a4d0035df831e5286f9dadaa",
+            "000643b00072210afcd6d8c4d4794e74b602f2cbb81bd16c4ad4605720c3d4a1",
         merchant_nft_tn:
-            "000de14001211d1f32d1cb5e4801ae7f2a413300a4d0035df831e5286f9dadaa",
-        last_claimed: currentTime + BigInt(1000 * 60 * 1), // 1 minute
+            "000de1400072210afcd6d8c4d4794e74b602f2cbb81bd16c4ad4605720c3d4a1",
+        payment_nft_tn:
+            "004df979b99093bc6fa8176dcfd776dacc65f4f724bed5a50a0c3b932369a934",
     };
 
     // Merchant Withdraw
