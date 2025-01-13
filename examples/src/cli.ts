@@ -182,6 +182,11 @@ paymentCommand.command("merchant_withdraw").action(async () => {
         } = await setupLucid();
 
         lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
+        const merchantAddress: Address = await lucid.wallet().address();
+        console.log("merchantAddress: ", merchantAddress);
+
+        const merchantUTxO = await lucid.utxosAt(merchantAddress);
+        console.log("merchantUTxO: ", merchantUTxO);
 
         await runMerchantWithdraw(
             lucid,

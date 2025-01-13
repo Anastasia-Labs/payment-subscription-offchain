@@ -43,7 +43,7 @@ packages:
     resolution: {integrity: sha512-Jy7QKahRQJgX6OFeuQvPXO0ejKfT9cQ8m3PFLBhbM04jjzFnaxlJJJ5+7qNHe3xdy40fMbMMe2SgAYPJ4gZ2Xw==}
 
   '@anastasia-labs/payment-subscription-offchain@file:../anastasia-labs-payment-subscription-offchain-1.0.4.tgz':
-    resolution: {integrity: sha512-PhsAloN0oIxKQkjnI2O16CuZvouAhqjtgQaw+QAD9LF3/xlulJEW4ttZjP+7keGPw99MkLBdwwXuHAHL06X39w==, tarball: file:../anastasia-labs-payment-subscription-offchain-1.0.4.tgz}
+    resolution: {integrity: sha512-t/xBechJgQuc943rE0735JvLl8GM6zEkyofEpxUkqZ4suToilMgHH6T1EpDHSc6b+31bZSOQdLSpzFRUbw/gvQ==, tarball: file:../anastasia-labs-payment-subscription-offchain-1.0.4.tgz}
     version: 1.0.4
 
   '@cbor-extract/cbor-extract-darwin-arm64@2.2.0':
@@ -678,6 +678,11 @@ packages:
   mz@2.7.0:
     resolution: {integrity: sha512-z81GNO7nnYMEhrGh9LeymoE4+Yr0Wn5McHIZMK5cfQCl+NDX08sCZgUc9/6MHni9IWuFLm1Z3HTCXu2z9fN62Q==}
 
+  nanoid@5.0.9:
+    resolution: {integrity: sha512-Aooyr6MXU6HpvvWXKoVoXwKMs/KyVakWwg7xQfv5/S/RIgJMy0Ifa45H9qqYy7pTCszrHzP21Uk4PZq2HpEM8Q==}
+    engines: {node: ^18 || >=20}
+    hasBin: true
+
   node-gyp-build-optional-packages@5.1.1:
     resolution: {integrity: sha512-+P72GAjVAbTxjjwUmwjVrqrdZROD4nf8KgpBoDxqXXTiYZZt/ud60dE5yvCSr9lRO8e8yv6kgJIC0K0PfZFVQw==}
     hasBin: true
@@ -890,6 +895,7 @@ snapshots:
       '@noble/hashes': 1.6.1
       dotenv: 16.4.7
       effect: 3.12.0
+      nanoid: 5.0.9
     transitivePeerDependencies:
       - '@harmoniclabs/bytestring'
       - '@harmoniclabs/cbor'
@@ -1471,6 +1477,8 @@ snapshots:
       any-promise: 1.3.0
       object-assign: 4.1.1
       thenify-all: 1.6.0
+
+  nanoid@5.0.9: {}
 
   node-gyp-build-optional-packages@5.1.1:
     dependencies:

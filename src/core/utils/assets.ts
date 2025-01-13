@@ -26,6 +26,7 @@ const generateUniqueAssetName = (utxo: UTxO, prefix: string): string => {
     }
 };
 
+//TODO: Use userNFT to locate refNFT
 const findCip68TokenNames = (
     utxos: UTxO[],
     policyId: string,

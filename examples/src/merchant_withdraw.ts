@@ -9,11 +9,11 @@ export const runMerchantWithdraw = async (
 ): Promise<Error | void> => {
     const merchantWithdrawConfig: MerchantWithdrawConfig = {
         service_nft_tn:
-            "000643b00072210afcd6d8c4d4794e74b602f2cbb81bd16c4ad4605720c3d4a1",
+            "000643b000c8623b17d87945ce4c3846b0b4cde072602b8ce166c94127fddb8e",
         merchant_nft_tn:
-            "000de1400072210afcd6d8c4d4794e74b602f2cbb81bd16c4ad4605720c3d4a1",
+            "000de14000c8623b17d87945ce4c3846b0b4cde072602b8ce166c94127fddb8e",
         payment_nft_tn:
-            "004df979b99093bc6fa8176dcfd776dacc65f4f724bed5a50a0c3b932369a934",
+            "00a010341a97e7125d211352a863cbe6e7f71891bca2acb02a50326726ffd59a",
     };
 
     // Merchant Withdraw
