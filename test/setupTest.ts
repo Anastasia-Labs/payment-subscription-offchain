@@ -80,7 +80,8 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
     // Find CIP68 Token Names
     const { refTokenName: serviceNftTn, userTokenName: merchantNftTn } =
       findCip68TokenNames(
-        [serviceUTxOs[0], merchantUTxOs[0]],
+        serviceUTxOs,
+        merchantUTxOs,
         servicePolicyId,
       );
 
@@ -106,7 +107,8 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
 
     const { refTokenName: accountNftTn, userTokenName: subscriberNftTn } =
       findCip68TokenNames(
-        [accountUTxOs[0], subscriberUTxOs[0]],
+        subscriberUTxOs,
+        accountUTxOs,
         accountPolicyId,
       );
 

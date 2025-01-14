@@ -1,19 +1,17 @@
 import {
-    findCip68TokenNames,
     LucidEvolution,
     removeService,
     RemoveServiceConfig,
-    servicePolicyId,
 } from "@anastasia-labs/payment-subscription-offchain";
 
 export const runRemoveService = async (
     lucid: LucidEvolution,
+    serviceNftTn: string,
+    merchantNftTn: string,
 ): Promise<Error | void> => {
     const removeServiceConfig: RemoveServiceConfig = {
-        service_nft_tn:
-            "000643b001211d1f32d1cb5e4801ae7f2a413300a4d0035df831e5286f9dadaa",
-        merchant_nft_tn:
-            "000de14001211d1f32d1cb5e4801ae7f2a413300a4d0035df831e5286f9dadaa",
+        service_nft_tn: serviceNftTn,
+        merchant_nft_tn: merchantNftTn,
     };
 
     // Remove Service

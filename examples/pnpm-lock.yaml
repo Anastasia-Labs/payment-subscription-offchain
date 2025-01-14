@@ -43,7 +43,7 @@ packages:
     resolution: {integrity: sha512-Jy7QKahRQJgX6OFeuQvPXO0ejKfT9cQ8m3PFLBhbM04jjzFnaxlJJJ5+7qNHe3xdy40fMbMMe2SgAYPJ4gZ2Xw==}
 
   '@anastasia-labs/payment-subscription-offchain@file:../anastasia-labs-payment-subscription-offchain-1.0.4.tgz':
-    resolution: {integrity: sha512-t/xBechJgQuc943rE0735JvLl8GM6zEkyofEpxUkqZ4suToilMgHH6T1EpDHSc6b+31bZSOQdLSpzFRUbw/gvQ==, tarball: file:../anastasia-labs-payment-subscription-offchain-1.0.4.tgz}
+    resolution: {integrity: sha512-OFQtU/zLh04WZ/Rpn7KZY9GlWTlCyvra9IzBBpS3CohgYrBdXwmoXuI7DzsEk1usx7J7KpJWqIiUvzqi5hwV+w==, tarball: file:../anastasia-labs-payment-subscription-offchain-1.0.4.tgz}
     version: 1.0.4
 
   '@cbor-extract/cbor-extract-darwin-arm64@2.2.0':

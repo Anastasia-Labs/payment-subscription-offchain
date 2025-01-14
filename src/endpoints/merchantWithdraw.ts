@@ -151,6 +151,7 @@ export const merchantWithdrawProgram = (
       BigInt(intervalsToWithdraw);
     console.log("Withdrawable Amount: ", withdrawableAmount);
     console.log("intervalsToWithdraw: ", intervalsToWithdraw);
+
     // const withdrawal_period = paymentData[0].interval_length *
     //   intervals;
 

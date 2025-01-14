@@ -111,7 +111,7 @@ export const initSubscriptionProgram = (
     // const initial_subscription_fee = interval_amount * num_intervals;
     const total_subscription_fee = interval_amount *
       config.num_intervals;
-    console.log("interval_length: ", interval_length);
+    // console.log("interval_length: ", interval_length);
 
     const paymentDatum: PaymentDatum = {
       service_nft_tn: config.service_nft_tn,
@@ -120,7 +120,7 @@ export const initSubscriptionProgram = (
       total_subscription_fee: total_subscription_fee,
       subscription_start: currentTime + BigInt(1000 * 60),
       subscription_end: subscription_end + BigInt(1000 * 60),
-      interval_length: interval_length,
+      interval_length: serviceData[0].interval_length,
       interval_amount: interval_amount,
       num_intervals: config.num_intervals,
       last_claimed: 0n,

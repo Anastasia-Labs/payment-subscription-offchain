@@ -6,17 +6,17 @@ import {
 
 export const runUpdateAccount = async (
     lucid: LucidEvolution,
+    accountNftTn: string,
+    subscriberNftTn: string,
 ): Promise<Error | void> => {
     const updateAccountConfig: UpdateAccountConfig = {
         new_email: "new_business@web3.ada",
         new_phone: "(288) 481-2686-999",
-        account_nft_tn:
-            "000643b0004916b57591943940e8c3a1d9dd55bb790752f2200eaa43fe1d61da",
-        subscriber_nft_tn:
-            "000de140004916b57591943940e8c3a1d9dd55bb790752f2200eaa43fe1d61da",
+        account_nft_tn: accountNftTn,
+        subscriber_nft_tn: subscriberNftTn,
     };
 
-    // Update Service
+    // Update Account
     try {
         const updateServiceUnsigned = await updateAccount(
             lucid,

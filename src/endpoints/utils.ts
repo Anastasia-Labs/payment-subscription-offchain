@@ -11,12 +11,12 @@ import { Effect } from "effect";
 import { LucidEvolution, PolicyId, toUnit, Unit } from "@lucid-evolution/lucid";
 import { findCip68TokenNames } from "../core/utils/assets.js";
 
-/**
- * Extracts token units (userNft and refNft) from UTxOs.
- * @param validatorUTxOs - Array of UTxOs from the validator address.
- * @param walletUTxOs - Array of UTxOs from the wallet address.
- * @returns An object containing userNft and refNft.
- */
+// /**
+//  * Extracts token units (userNft and refNft) from UTxOs.
+//  * @param validatorUTxOs - Array of UTxOs from the validator address.
+//  * @param walletUTxOs - Array of UTxOs from the wallet address.
+//  * @returns An object containing userNft and refNft.
+//  */
 export const extractTokens = (
     policyId: PolicyId,
     validatorUTxOs: UTxO[],
@@ -26,7 +26,8 @@ export const extractTokens = (
     let ref_token: Unit;
     if (validatorUTxOs.length > 0 && walletUTxOs.length > 0) {
         const { refTokenName, userTokenName } = findCip68TokenNames(
-            [...validatorUTxOs, ...walletUTxOs],
+            validatorUTxOs,
+            walletUTxOs,
             policyId,
         );
 

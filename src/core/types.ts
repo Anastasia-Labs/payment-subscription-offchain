@@ -40,14 +40,11 @@ export type CreateServiceConfig = {
 export type UpdateServiceConfig = {
   service_nft_tn: string; //AssetName,
   merchant_nft_tn: string;
-  new_service_fee: AssetClassD;
   new_service_fee_qty: bigint;
-  new_penalty_fee: AssetClassD;
   new_penalty_fee_qty: bigint;
   new_interval_length: bigint;
   new_num_intervals: bigint;
   new_minimum_ada: bigint;
-  is_active: boolean;
 };
 
 export type RemoveServiceConfig = {
@@ -84,7 +81,6 @@ export type InitPaymentConfig = {
 export type ExtendPaymentConfig = {
   service_nft_tn: string;
   subscriber_nft_tn: string;
-  payment_nft_tn: string;
   extension_intervals: bigint;
 };
 

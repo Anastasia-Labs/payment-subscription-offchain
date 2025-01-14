@@ -38,11 +38,6 @@ export const extendSubscriptionProgram = (
       config.service_nft_tn, //tokenNameWithoutFunc,
     );
 
-    const paymentNFT = toUnit(
-      paymentPolicyId,
-      config.payment_nft_tn, //tokenNameWithoutFunc,
-    );
-
     const subscriberNFT = toUnit(
       accountPolicyId,
       config.subscriber_nft_tn,
@@ -60,10 +55,46 @@ export const extendSubscriptionProgram = (
       )
     );
 
-    const paymentUTxO = yield* Effect.promise(() =>
-      lucid.utxoByUnit(
-        paymentNFT,
-      )
+    const paymentUTxOs = yield* Effect.promise(() =>
+      lucid.utxosAt(paymentValidator.spendValAddress)
+    );
+
+    const results = yield* Effect.forEach(
+      paymentUTxOs,
+      (utxo) =>
+        Effect.tryPromise(() => getPaymentValidatorDatum(utxo)).pipe(
+          Effect.map((datum) =>
+            datum[0].service_nft_tn === config.service_nft_tn &&
+              datum[0].subscriber_nft_tn === config.subscriber_nft_tn
+              ? utxo
+              : null
+          ),
+          Effect.catchAll(() => Effect.succeed(null)),
+        ),
+    );
+
+    const paymentUTxO = results.find((utxo) => utxo !== null);
+    if (!paymentUTxO) {
+      throw new Error("No active subscription found");
+    }
+
+    if (!paymentUTxO) {
+      throw new Error("No active subscription found");
+    }
+    console.log("paymentUTxO: ", paymentUTxO);
+
+    // Get payment NFT token name from the relevant UTxO
+    const paymentNftTn = tokenNameFromUTxO([paymentUTxO], paymentPolicyId);
+
+    // const paymentUTxO = yield* Effect.promise(() =>
+    //   lucid.utxoByUnit(
+    //     paymentNFT,
+    //   )
+    // );
+
+    const paymentNFT = toUnit(
+      paymentPolicyId,
+      paymentNftTn, //tokenNameWithoutFunc,
     );
 
     const paymentData = yield* Effect.promise(
@@ -126,10 +157,6 @@ export const extendSubscriptionProgram = (
       // Specify the inputs relevant to the redeemer
       inputs: [subscriberUTxO, paymentUTxO],
     };
-
-    const paymentUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(paymentValidator.spendValAddress)
-    );
 
     const subscriberUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(subscriberAddress)

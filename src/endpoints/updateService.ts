@@ -13,7 +13,7 @@ import { getMultiValidator } from "../core/utils/index.js";
 import { UpdateServiceConfig } from "../core/types.js";
 import { ServiceDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
-import { extractTokens } from "./utils.js";
+import { getServiceValidatorDatum } from "./utils.js";
 import {
     servicePolicyId,
     serviceScript,
@@ -38,17 +38,6 @@ export const updateServiceProgram = (
             lucid.utxosAt(serviceValAddress)
         );
 
-        const activeServiceUTxOs = allServiceUTxOs.filter((utxo: UTxO) => {
-            if (!utxo.datum) return false;
-
-            const datum = Data.from<ServiceDatum>(utxo.datum, ServiceDatum);
-
-            return datum.is_active === true;
-        });
-        // const serviceUTxOs = yield* Effect.promise(() =>
-        //     lucid.utxosAt(serviceValAddress)
-        // );
-
         if (!merchantUTxOs || !merchantUTxOs.length) {
             console.error("No UTxO found at user address: " + merchantAddress);
         }
@@ -62,12 +51,6 @@ export const updateServiceProgram = (
             servicePolicyId,
             config.merchant_nft_tn,
         );
-
-        // let { user_token, ref_token } = extractTokens(
-        //     servicePolicyId,
-        //     activeServiceUTxOs,
-        //     merchantUTxOs,
-        // );
 
         const serviceUTxO = yield* Effect.promise(() =>
             lucid.utxoByUnit(
@@ -85,15 +68,27 @@ export const updateServiceProgram = (
             throw new Error("Service NFT not found");
         }
 
+        const activeServiceUTxOs = allServiceUTxOs.filter((utxo: UTxO) => {
+            if (!utxo.datum) return false;
+
+            const datum = Data.from<ServiceDatum>(utxo.datum, ServiceDatum);
+
+            return datum.is_active === true;
+        });
+
+        const serviceData = yield* Effect.promise(
+            () => (getServiceValidatorDatum(activeServiceUTxOs)),
+        );
+
         const updatedDatum: ServiceDatum = {
-            service_fee: config.new_service_fee,
+            service_fee: serviceData[0].service_fee,
             service_fee_qty: config.new_service_fee_qty,
-            penalty_fee: config.new_penalty_fee,
+            penalty_fee: serviceData[0].penalty_fee,
             penalty_fee_qty: config.new_penalty_fee_qty,
             interval_length: config.new_interval_length,
             num_intervals: config.new_num_intervals,
             minimum_ada: config.new_minimum_ada,
-            is_active: config.is_active,
+            is_active: serviceData[0].is_active,
         };
 
         const directDatum = Data.to<ServiceDatum>(updatedDatum, ServiceDatum);

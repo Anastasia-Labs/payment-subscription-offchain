@@ -23,13 +23,15 @@ export const runSubscriberWithdraw = async (
 
     const { refTokenName: serviceNftTn, userTokenName: merchantNftTn } =
         findCip68TokenNames(
-            [serviceUTxOs[0], merchantUTxOs[0]],
+            serviceUTxOs,
+            merchantUTxOs,
             servicePolicyId,
         );
 
     const { refTokenName: accountNftTn, userTokenName: subscriberNftTn } =
         findCip68TokenNames(
-            [accountUTxOs[0], subscriberUTxOs[0]],
+            accountUTxOs,
+            subscriberUTxOs,
             accountPolicyId,
         );
 

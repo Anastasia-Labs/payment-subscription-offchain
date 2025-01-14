@@ -1,14 +1,17 @@
 import {
+    accountPolicyId,
     accountValidator,
+    findCip68TokenNames,
     Lucid,
     Maestro,
+    paymentPolicyId,
+    paymentValidator,
+    servicePolicyId,
     serviceValidator,
+    tokenNameFromUTxO,
     validatorToAddress,
 } from "@anastasia-labs/payment-subscription-offchain";
 
-/**
- * Helper function to set up Lucid and other environment variables once.
- */
 export async function setupLucid() {
     const API_KEY = process.env.API_KEY!;
     const SUBSCRIBER_WALLET_SEED = process.env.SUBSCRIBER_WALLET_SEED!;
@@ -42,6 +45,37 @@ export async function setupLucid() {
         network,
         accountValidator.spendAccount,
     );
+    const paymentAddress = validatorToAddress(
+        network,
+        paymentValidator.spendPayment,
+    );
+
+    // Get merchant and subscriber addresses
+    lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
+    const merchantAddress = await lucid.wallet().address();
+
+    lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
+    const subscriberAddress = await lucid.wallet().address();
+
+    // Get UTxOs
+    const serviceUTxOs = await lucid.utxosAt(serviceAddress);
+    const merchantUTxOs = await lucid.utxosAt(merchantAddress);
+    const accountUTxOs = await lucid.utxosAt(accountAddress);
+    const subscriberUTxOs = await lucid.utxosAt(subscriberAddress);
+    const paymentUTxOs = await lucid.utxosAt(paymentAddress);
+
+    // Find token names
+    const serviceTokens = findCip68TokenNames(
+        serviceUTxOs,
+        merchantUTxOs,
+        servicePolicyId,
+    );
+
+    const accountTokens = findCip68TokenNames(
+        accountUTxOs,
+        subscriberUTxOs,
+        accountPolicyId,
+    );
 
     return {
         lucid,
@@ -49,5 +83,13 @@ export async function setupLucid() {
         MERCHANT_WALLET_SEED,
         serviceAddress,
         accountAddress,
+        merchantAddress,
+        subscriberAddress,
+        tokenNames: {
+            serviceNftTn: serviceTokens.refTokenName,
+            merchantNftTn: serviceTokens.userTokenName,
+            accountNftTn: accountTokens.refTokenName,
+            subscriberNftTn: accountTokens.userTokenName,
+        },
     };
 }
