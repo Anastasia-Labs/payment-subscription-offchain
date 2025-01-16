@@ -14,6 +14,9 @@ importers:
       commander:
         specifier: ^12.1.0
         version: 12.1.0
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.4.7
       tsup:
         specifier: ^8.3.5
         version: 8.3.5(typescript@5.7.2)
@@ -43,7 +46,7 @@ packages:
     resolution: {integrity: sha512-Jy7QKahRQJgX6OFeuQvPXO0ejKfT9cQ8m3PFLBhbM04jjzFnaxlJJJ5+7qNHe3xdy40fMbMMe2SgAYPJ4gZ2Xw==}
 
   '@anastasia-labs/payment-subscription-offchain@file:../anastasia-labs-payment-subscription-offchain-1.0.4.tgz':
-    resolution: {integrity: sha512-OFQtU/zLh04WZ/Rpn7KZY9GlWTlCyvra9IzBBpS3CohgYrBdXwmoXuI7DzsEk1usx7J7KpJWqIiUvzqi5hwV+w==, tarball: file:../anastasia-labs-payment-subscription-offchain-1.0.4.tgz}
+    resolution: {integrity: sha512-Wcx2tuZYcKMulopMgnXeV03P2fg/QgxxgAQaKZ7j8Hj4xNIC6E1yAT58nYfvhtZnCAGDZlwGG8sr/fmHS89uLg==, tarball: file:../anastasia-labs-payment-subscription-offchain-1.0.4.tgz}
     version: 1.0.4
 
   '@cbor-extract/cbor-extract-darwin-arm64@2.2.0':
@@ -893,7 +896,6 @@ snapshots:
     dependencies:
       '@lucid-evolution/lucid': 0.4.16(@harmoniclabs/bytestring@1.0.0)(@harmoniclabs/cbor@1.5.0)(@harmoniclabs/crypto@0.2.4)(@harmoniclabs/pair@1.0.0)(fast-check@3.23.2)
       '@noble/hashes': 1.6.1
-      dotenv: 16.4.7
       effect: 3.12.0
       nanoid: 5.0.9
     transitivePeerDependencies:

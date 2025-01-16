@@ -121,7 +121,7 @@ export const unsubscribeProgram = (
             ),
         );
 
-        const refund_amount = paymentData[0].total_subscription_fee *
+        const refund_amount = paymentData[0].subscription_fee_qty *
             (total_subscription_time - time_elapsed) / total_subscription_time;
 
         const penaltyDatum: PenaltyDatum = {

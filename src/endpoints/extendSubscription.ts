@@ -19,7 +19,6 @@ import {
   paymentPolicyId,
   paymentScript,
   servicePolicyId,
-  serviceScript,
 } from "../core/validators/constants.js";
 
 export const extendSubscriptionProgram = (
@@ -78,23 +77,14 @@ export const extendSubscriptionProgram = (
       throw new Error("No active subscription found");
     }
 
-    if (!paymentUTxO) {
-      throw new Error("No active subscription found");
-    }
     console.log("paymentUTxO: ", paymentUTxO);
 
     // Get payment NFT token name from the relevant UTxO
     const paymentNftTn = tokenNameFromUTxO([paymentUTxO], paymentPolicyId);
 
-    // const paymentUTxO = yield* Effect.promise(() =>
-    //   lucid.utxoByUnit(
-    //     paymentNFT,
-    //   )
-    // );
-
     const paymentNFT = toUnit(
       paymentPolicyId,
-      paymentNftTn, //tokenNameWithoutFunc,
+      paymentNftTn,
     );
 
     const paymentData = yield* Effect.promise(
@@ -103,7 +93,7 @@ export const extendSubscriptionProgram = (
 
     const interval_amount = paymentData[0].interval_amount *
       config.extension_intervals;
-    const newTotalSubscriptionFee = paymentData[0].total_subscription_fee +
+    const newTotalSubscriptionFee = paymentData[0].subscription_fee_qty +
       (interval_amount * config.extension_intervals);
     const newNumIntervals = paymentData[0].num_intervals +
       config.extension_intervals;
@@ -117,7 +107,7 @@ export const extendSubscriptionProgram = (
       service_nft_tn: paymentData[0].service_nft_tn,
       subscriber_nft_tn: paymentData[0].subscriber_nft_tn,
       subscription_fee: paymentData[0].subscription_fee,
-      total_subscription_fee: newTotalSubscriptionFee,
+      subscription_fee_qty: newTotalSubscriptionFee,
       subscription_start: paymentData[0].subscription_start,
       subscription_end: newSubscriptionEnd,
       interval_length: paymentData[0].interval_length,

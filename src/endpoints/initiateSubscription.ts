@@ -66,7 +66,8 @@ export const initSubscriptionProgram = (
     );
 
     const tokenName = generateUniqueAssetName(subscriberUTxO, "");
-    console.log("payment tokenName " + tokenName);
+
+    console.log("paymentNFT: ", tokenName);
 
     const paymentNFT = toUnit(
       paymentPolicyId,
@@ -104,26 +105,23 @@ export const initSubscriptionProgram = (
 
     const interval_amount = serviceData[0].service_fee_qty;
     const interval_length = serviceData[0].interval_length;
-    // const subscription_fee_qty = serviceData[0].num_intervals * interval_amount;
     const subscription_end = currentTime +
       interval_length * config.num_intervals;
 
-    // const initial_subscription_fee = interval_amount * num_intervals;
-    const total_subscription_fee = interval_amount *
+    const subscription_fee_qty = interval_amount *
       config.num_intervals;
-    // console.log("interval_length: ", interval_length);
 
     const paymentDatum: PaymentDatum = {
       service_nft_tn: config.service_nft_tn,
       subscriber_nft_tn: config.subscriber_nft_tn,
       subscription_fee: serviceData[0].service_fee,
-      total_subscription_fee: total_subscription_fee,
+      subscription_fee_qty: subscription_fee_qty,
       subscription_start: currentTime + BigInt(1000 * 60),
       subscription_end: subscription_end + BigInt(1000 * 60),
       interval_length: serviceData[0].interval_length,
       interval_amount: interval_amount,
       num_intervals: config.num_intervals,
-      last_claimed: 0n,
+      last_claimed: currentTime + BigInt(1000 * 60),
       penalty_fee: serviceData[0].penalty_fee,
       penalty_fee_qty: serviceData[0].penalty_fee_qty,
       minimum_ada: serviceData[0].minimum_ada,
@@ -138,22 +136,19 @@ export const initSubscriptionProgram = (
       PaymentValidatorDatum,
     );
 
-    console.log("accountAssets: begin");
-    const accountAssets = subscriberUTxO.assets;
-
-    console.log("accountAssets: ", accountAssets);
+    const subscriberAssets = subscriberUTxO.assets;
 
     const tx = yield* lucid
       .newTx()
       .readFrom([serviceUTxO])
-      .collectFrom(subscriberUTxOs)
+      .collectFrom([subscriberUTxO])
       .mintAssets({ [paymentNFT]: 1n }, initiateSubscriptionRedeemer)
-      .pay.ToAddress(subscriberAddress, accountAssets)
+      .pay.ToAddress(subscriberAddress, subscriberAssets)
       .pay.ToAddressWithData(validators.spendValAddress, {
         kind: "inline",
         value: paymentValDatum,
       }, {
-        lovelace: total_subscription_fee,
+        lovelace: subscription_fee_qty,
         [paymentNFT]: 1n,
       })
       .attach.MintingPolicy(validators.mintValidator)

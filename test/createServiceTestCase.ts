@@ -23,7 +23,7 @@ export const createServiceTestCase = (
             service_fee_qty: 10_000_000n,
             penalty_fee: ADA,
             penalty_fee_qty: 1_000_000n,
-            interval_length: 30n * 24n * 60n * 60n * 1000n, // 30 days in milliseconds,
+            interval_length: 60n * 1000n * 2n, //30n * 24n * 60n * 60n * 1000n, // 30 days in milliseconds,
             num_intervals: 12n,
             minimum_ada: 2_000_000n,
             is_active: true,

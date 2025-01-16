@@ -37,7 +37,6 @@
   "dependencies": {
     "@lucid-evolution/lucid": "0.4.16",
     "@noble/hashes": "^1.6.1",
-    "dotenv": "^16.4.7",
     "effect": "^3.11.2",
     "nanoid": "^5.0.9"
   },

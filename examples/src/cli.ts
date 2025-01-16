@@ -19,7 +19,6 @@ import { runInitSubscription } from "./init_subscription.js";
 import { runExtendSubscription } from "./extend_subscription.js"; // if you have one
 import { setupLucid } from "./setup.js";
 import { runMerchantWithdraw } from "./merchant_withdraw.js";
-import { runUnsubscribe } from "./unsubscribe.js";
 import { runWithdrawPenalty } from "./withdraw_penalty.js";
 import { runSubscriberWithdraw } from "./subscriber_withdraw.js";
 
@@ -42,8 +41,12 @@ const serviceCommand = program.command("service").description(
 
 serviceCommand.command("create").action(async () => {
     try {
-        const { lucid, MERCHANT_WALLET_SEED } = await setupLucid();
+        const { lucid, MERCHANT_WALLET_SEED } = await setupLucid("create");
         lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
+        const merchantAddress: Address = await lucid.wallet().address();
+
+        const merchantUTxOs = await lucid.utxosAt(merchantAddress);
+        console.log("merchantUTxOs: ", merchantUTxOs);
 
         await runCreateService(lucid);
         process.exit(0);
@@ -100,7 +103,7 @@ const accountCommand = program.command("account").description(
 
 accountCommand.command("create").action(async () => {
     try {
-        const { lucid, SUBSCRIBER_WALLET_SEED } = await setupLucid();
+        const { lucid, SUBSCRIBER_WALLET_SEED } = await setupLucid("create");
         // Usually select the wallet first if needed
         lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
 
@@ -167,6 +170,10 @@ paymentCommand.command("init").action(async () => {
         } = await setupLucid();
 
         lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
+        const subscriberAddress: Address = await lucid.wallet().address();
+
+        const subscriberUTxOs = await lucid.utxosAt(subscriberAddress);
+        console.log("subscriberUTxOs: ", subscriberUTxOs);
 
         await runInitSubscription(
             lucid,

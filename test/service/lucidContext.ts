@@ -7,6 +7,7 @@ import {
     PROTOCOL_PARAMETERS_DEFAULT,
 } from "@lucid-evolution/lucid";
 import { Effect } from "effect";
+import { generateAccountSeedPhrase } from "../../src";
 
 export type LucidContext = {
     lucid: LucidEvolution;
@@ -83,17 +84,22 @@ export const makeMaestroContext = (network: Network) =>
         });
 
         const lucid = yield* Effect.promise(() => Lucid(maestro, network));
+        const seed = yield* Effect.promise(() =>
+            generateAccountSeedPhrase({ lovelace: BigInt(1_000_000_000) })
+        );
 
+        console.log("Seed Phrase: ", seed);
         return { lucid, users, emulator: undefined } as LucidContext;
     });
 
 export const makeLucidContext = (network?: Network) =>
     Effect.gen(function* ($) {
         const API_KEY = process.env.API_KEY;
+        const SUBSCRIBER_WALLET_SEED = process.env.SUBSCRIBER_WALLET_SEED!;
 
         const selectedNetwork = network ?? NETWORK; // Default to Preprod if not specified
         // console.log("selectedNetwork", selectedNetwork);
-        if (API_KEY && selectedNetwork !== selectedNetwork) {
+        if (API_KEY && selectedNetwork) {
             // Use Maestro context
             return yield* $(makeMaestroContext(selectedNetwork));
         } else {

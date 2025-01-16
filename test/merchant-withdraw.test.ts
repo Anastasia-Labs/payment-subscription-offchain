@@ -35,7 +35,7 @@ export const merchantWithdrawTestCase = (
             expect(initResult).toBeDefined();
             expect(typeof initResult.txHash).toBe("string"); // Assuming the initResult is a transaction hash
 
-            yield* Effect.sync(() => emulator.awaitBlock(10));
+            yield* Effect.sync(() => emulator.awaitBlock(1000));
         }
 
         const paymentValidator = getMultiValidator(lucid, paymentScript);
@@ -54,6 +54,7 @@ export const merchantWithdrawTestCase = (
             service_nft_tn: serviceNftTn,
             merchant_nft_tn: merchantNftTn,
             payment_nft_tn: paymentNftTn,
+            current_time: currentTime,
         };
 
         const merchantWithdrawFlow = Effect.gen(function* (_) {

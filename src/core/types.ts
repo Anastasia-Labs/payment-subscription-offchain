@@ -88,6 +88,7 @@ export type MerchantWithdrawConfig = {
   service_nft_tn: string;
   merchant_nft_tn: string;
   payment_nft_tn: string;
+  current_time: bigint;
 };
 
 export type UnsubscribeConfig = {

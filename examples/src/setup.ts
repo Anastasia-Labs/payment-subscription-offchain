@@ -4,15 +4,13 @@ import {
     findCip68TokenNames,
     Lucid,
     Maestro,
-    paymentPolicyId,
     paymentValidator,
     servicePolicyId,
     serviceValidator,
-    tokenNameFromUTxO,
     validatorToAddress,
 } from "@anastasia-labs/payment-subscription-offchain";
 
-export async function setupLucid() {
+export async function setupLucid(command: "create" | "other" = "other") {
     const API_KEY = process.env.API_KEY!;
     const SUBSCRIBER_WALLET_SEED = process.env.SUBSCRIBER_WALLET_SEED!;
     const MERCHANT_WALLET_SEED = process.env.MERCHANT_WALLET_SEED!;
@@ -64,18 +62,32 @@ export async function setupLucid() {
     const subscriberUTxOs = await lucid.utxosAt(subscriberAddress);
     const paymentUTxOs = await lucid.utxosAt(paymentAddress);
 
-    // Find token names
-    const serviceTokens = findCip68TokenNames(
-        serviceUTxOs,
-        merchantUTxOs,
-        servicePolicyId,
-    );
+    let serviceTokens: { refTokenName: string; userTokenName: string } = {
+        refTokenName: "",
+        userTokenName: "",
+    };
+    let accountTokens: { refTokenName: string; userTokenName: string } = {
+        refTokenName: "",
+        userTokenName: "",
+    };
+    if (command !== "create") {
+        // Find token names
+        serviceTokens = findCip68TokenNames(
+            serviceUTxOs,
+            merchantUTxOs,
+            servicePolicyId,
+        );
 
-    const accountTokens = findCip68TokenNames(
-        accountUTxOs,
-        subscriberUTxOs,
-        accountPolicyId,
-    );
+        if (!serviceTokens) {
+            throw new Error("Failed to initialize serviceTokens");
+        }
+
+        accountTokens = findCip68TokenNames(
+            accountUTxOs,
+            subscriberUTxOs,
+            accountPolicyId,
+        );
+    }
 
     return {
         lucid,

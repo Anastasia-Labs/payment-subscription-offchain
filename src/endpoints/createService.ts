@@ -35,6 +35,8 @@ export const createServiceProgram = (
       lucid.utxosAt(merchantAddress)
     );
 
+    console.log("merchantUTxOs: ", merchantUTxOs);
+
     if (!merchantUTxOs || !merchantUTxOs.length) {
       console.error("No UTxO found at user address: " + merchantAddress);
     }

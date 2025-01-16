@@ -39,6 +39,7 @@ export const merchantWithdrawProgram = (
       config.payment_nft_tn, //tokenNameWithoutFunc,
     );
 
+    // TODO: Filter through the transaction requirements.
     const paymentUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
         paymentNFT,
@@ -71,104 +72,109 @@ export const merchantWithdrawProgram = (
       )
     );
 
-    const currentTime = BigInt(Date.now()) + BigInt(1000 * 60 * 1); // 1 minute
-
     const paymentData = yield* Effect.promise(
       () => (getPaymentValidatorDatum(paymentUTxO)),
     );
 
-    // Calculate withdrawable amount based on time elapsed since last claim
     const calculateWithdrawal = (
       currentTime: bigint,
       paymentData: PaymentDatum,
     ) => {
-      if (currentTime < paymentData.subscription_start) {
-        return {
-          withdrawableAmount: BigInt(0),
-          intervalsToWithdraw: 0,
-        };
+      // Calculate time since last claim
+      const timeSinceLastClaim = currentTime > paymentData.last_claimed
+        ? currentTime - paymentData.last_claimed
+        : BigInt(0);
+
+      // Calculate time remaining until subscription end
+      const timeUntilEnd = paymentData.subscription_end - currentTime;
+
+      // Calculate intervals based on both time since last claim and remaining intervals
+      const intervalsPassed = Number(timeSinceLastClaim) /
+        Number(paymentData.interval_length);
+
+      // Consider both passed intervals and remaining intervals
+      let claimableIntervals = Math.min(
+        intervalsPassed,
+        Number(paymentData.num_intervals),
+      );
+
+      // If this is potentially the final interval, check remaining funds
+      if (
+        paymentData.num_intervals <= 1n &&
+        timeUntilEnd <= paymentData.interval_length
+      ) {
+        claimableIntervals = Math.max(1, claimableIntervals);
       }
 
-      // Debug time values
+      const withdrawableAmount = BigInt(Math.floor(claimableIntervals)) *
+        paymentData.interval_amount;
+
+      // Debug logging
       console.log("Current Time:", currentTime);
       console.log("Subscription Start:", paymentData.subscription_start);
+      console.log("Subscription End:", paymentData.subscription_end);
       console.log("Last Claimed:", paymentData.last_claimed);
+      console.log("timeSinceLastClaim:", timeSinceLastClaim);
+      console.log("timeUntilEnd:", timeUntilEnd);
       console.log("Interval Length:", paymentData.interval_length);
       console.log("Number of Intervals:", paymentData.num_intervals);
-
-      const timeElapsed = currentTime - paymentData.subscription_start;
-      console.log("Time Elapsed:", timeElapsed);
-
-      // Calculate complete intervals
-      const completeIntervals = Math.floor(
-        Number(timeElapsed) / Number(paymentData.interval_length),
-      );
-      console.log("Complete Intervals:", completeIntervals);
-
-      // Ensure last_claimed is not before subscription_start
-      const lastClaimedTime =
-        paymentData.last_claimed < paymentData.subscription_start
-          ? paymentData.subscription_start
-          : paymentData.last_claimed;
-
-      const claimedIntervals = Math.floor(
-        Number(lastClaimedTime - paymentData.subscription_start) /
-          Number(paymentData.interval_length),
-      );
-      console.log("Claimed Intervals:", claimedIntervals);
-
-      // Calculate withdrawable intervals
-      const intervalsToWithdraw = Math.max(
-        0,
-        completeIntervals - claimedIntervals,
-      );
-      console.log("Intervals To Withdraw:", intervalsToWithdraw);
-
-      const withdrawableAmount = BigInt(intervalsToWithdraw) *
-        paymentData.interval_amount;
+      console.log("intervalsPassed:", intervalsPassed);
+      console.log("claimableIntervals:", claimableIntervals);
 
       return {
         withdrawableAmount,
-        intervalsToWithdraw,
+        intervalsToWithdraw: Math.floor(claimableIntervals),
       };
     };
 
+    // Debug time values
+
     const { withdrawableAmount, intervalsToWithdraw } = calculateWithdrawal(
-      currentTime,
+      config.current_time,
       paymentData[0],
     );
 
-    // Calculate remaining subscription fee after withdrawal
-    const newTotalSubscriptionFee = paymentData[0].total_subscription_fee -
-      withdrawableAmount;
+    console.log(
+      "paymentData[0].subscription_fee_qty: ",
+      paymentData[0].subscription_fee_qty,
+    );
 
-    // const intervals = BigInt(1); // Number of intervals
-    // const interval_amount = paymentData[0].interval_amount *
-    //   intervals;
-    // const newTotalSubscriptionFee = paymentData[0].total_subscription_fee +
-    //   (interval_amount * intervals);
+    console.log(
+      "paymentUTxO.assets : ",
+      paymentUTxO.assets["lovelace"],
+    );
+
+    // Calculate remaining subscription fee after withdrawal
+    const payment_value = paymentUTxO.assets["lovelace"];
+    const minimum_ada = paymentData[0].minimum_ada;
+
+    let withdrawnAmount = 0n;
+    if ((payment_value - withdrawableAmount) > minimum_ada) {
+      withdrawnAmount = withdrawableAmount;
+    } else {
+      withdrawnAmount = withdrawableAmount - minimum_ada;
+    }
+
+    const newTotalSubscriptionFee = paymentUTxO.assets["lovelace"] -
+      withdrawnAmount;
+
     const newNumIntervals = paymentData[0].num_intervals -
       BigInt(intervalsToWithdraw);
-    console.log("Withdrawable Amount: ", withdrawableAmount);
+    console.log("withdrawnAmount Amount: ", withdrawnAmount);
+    console.log("interval_amount: ", paymentData[0].interval_amount);
     console.log("intervalsToWithdraw: ", intervalsToWithdraw);
-
-    // const withdrawal_period = paymentData[0].interval_length *
-    //   intervals;
-
-    // const newSubscriptionEnd = paymentData[0].subscription_end +
-    //   withdrawal_period;
 
     const paymentDatum: PaymentDatum = {
       service_nft_tn: paymentData[0].service_nft_tn,
       subscriber_nft_tn: paymentData[0].subscriber_nft_tn,
       subscription_fee: paymentData[0].subscription_fee,
-      total_subscription_fee: newTotalSubscriptionFee,
+      subscription_fee_qty: newTotalSubscriptionFee,
       subscription_start: paymentData[0].subscription_start,
       subscription_end: paymentData[0].subscription_end,
       interval_length: paymentData[0].interval_length,
       interval_amount: paymentData[0].interval_amount,
       num_intervals: newNumIntervals,
-      last_claimed: currentTime,
+      last_claimed: config.current_time,
       penalty_fee: paymentData[0].penalty_fee,
       penalty_fee_qty: paymentData[0].penalty_fee_qty,
       minimum_ada: paymentData[0].minimum_ada,
@@ -182,6 +188,8 @@ export const merchantWithdrawProgram = (
       allDatums,
       PaymentValidatorDatum,
     );
+
+    console.log("paymentValDatum: ", paymentValDatum);
 
     const merchantWithdrawRedeemer: RedeemerBuilder = {
       kind: "selected",
@@ -199,6 +207,12 @@ export const merchantWithdrawProgram = (
       // Specify the inputs relevant to the redeemer
       inputs: [merchantUTxO, paymentUTxO],
     };
+    if (withdrawableAmount < paymentData[0].minimum_ada) {
+      console.error("Not enough Withdrawable Amount: ", withdrawableAmount);
+    }
+    console.log("newTotalSubscriptionFee: ", newTotalSubscriptionFee);
+
+    // TODO input-payment - withdrawable amoun = newTotalSubscriptionFrr
 
     const tx = yield* lucid
       .newTx()
@@ -206,7 +220,7 @@ export const merchantWithdrawProgram = (
       .collectFrom([paymentUTxO], merchantWithdrawRedeemer)
       .readFrom([serviceUTxO])
       .pay.ToAddress(merchantAddress, {
-        lovelace: withdrawableAmount + paymentData[0].minimum_ada,
+        lovelace: withdrawnAmount, // Payment output
         [merchantNft]: 1n,
       })
       .pay.ToContract(validators.spendValAddress, {
@@ -216,7 +230,7 @@ export const merchantWithdrawProgram = (
         lovelace: newTotalSubscriptionFee,
         [paymentNFT]: 1n,
       })
-      .validFrom(Number(paymentData[0].subscription_start) + Number(1000 * 60)) // 1 minute
+      .validFrom(Number(config.current_time) - Number(1000 * 60)) // 1 minute
       .attach.SpendingValidator(validators.spendValidator)
       .completeProgram();
 
