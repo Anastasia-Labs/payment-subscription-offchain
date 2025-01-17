@@ -93,7 +93,7 @@ export const extendSubscriptionProgram = (
 
     const interval_amount = paymentData[0].interval_amount *
       config.extension_intervals;
-    const newTotalSubscriptionFee = paymentData[0].subscription_fee_qty +
+    const newTotalSubscriptionFee = paymentData[0].total_subscription_fee_qty +
       (interval_amount * config.extension_intervals);
     const newNumIntervals = paymentData[0].num_intervals +
       config.extension_intervals;
@@ -107,7 +107,7 @@ export const extendSubscriptionProgram = (
       service_nft_tn: paymentData[0].service_nft_tn,
       subscriber_nft_tn: paymentData[0].subscriber_nft_tn,
       subscription_fee: paymentData[0].subscription_fee,
-      subscription_fee_qty: newTotalSubscriptionFee,
+      total_subscription_fee_qty: newTotalSubscriptionFee,
       subscription_start: paymentData[0].subscription_start,
       subscription_end: newSubscriptionEnd,
       interval_length: paymentData[0].interval_length,
@@ -122,6 +122,8 @@ export const extendSubscriptionProgram = (
     const allDatums: PaymentValidatorDatum = {
       Payment: [paymentDatum],
     };
+
+    console.log("allDatums: ", allDatums);
 
     const paymentValDatum = Data.to<PaymentValidatorDatum>(
       allDatums,

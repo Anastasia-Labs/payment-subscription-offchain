@@ -29,6 +29,7 @@ export const initSubscriptionProgram = (
   config: InitPaymentConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
   Effect.gen(function* () {
+    const finalCurrentTime = config.current_time - BigInt(6000 * 3);
     const subscriberAddress: Address = yield* Effect.promise(() =>
       lucid.wallet().address()
     );
@@ -58,6 +59,7 @@ export const initSubscriptionProgram = (
         serviceNft,
       )
     );
+    console.log("serviceUTxO: ", subscriberUTxOs);
 
     const subscriberUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
@@ -66,8 +68,6 @@ export const initSubscriptionProgram = (
     );
 
     const tokenName = generateUniqueAssetName(subscriberUTxO, "");
-
-    console.log("paymentNFT: ", tokenName);
 
     const paymentNFT = toUnit(
       paymentPolicyId,
@@ -98,14 +98,14 @@ export const initSubscriptionProgram = (
       inputs: [subscriberUTxO],
     };
 
-    const currentTime = BigInt(Date.now());
+    // const currentTime = BigInt(Date.now());
     const serviceData = yield* Effect.promise(
       () => (getServiceValidatorDatum(serviceUTxO)),
     );
 
     const interval_amount = serviceData[0].service_fee_qty;
     const interval_length = serviceData[0].interval_length;
-    const subscription_end = currentTime +
+    const subscription_end = finalCurrentTime +
       interval_length * config.num_intervals;
 
     const subscription_fee_qty = interval_amount *
@@ -115,13 +115,13 @@ export const initSubscriptionProgram = (
       service_nft_tn: config.service_nft_tn,
       subscriber_nft_tn: config.subscriber_nft_tn,
       subscription_fee: serviceData[0].service_fee,
-      subscription_fee_qty: subscription_fee_qty,
-      subscription_start: currentTime + BigInt(1000 * 60),
+      total_subscription_fee_qty: subscription_fee_qty,
+      subscription_start: finalCurrentTime,
       subscription_end: subscription_end + BigInt(1000 * 60),
       interval_length: serviceData[0].interval_length,
       interval_amount: interval_amount,
       num_intervals: config.num_intervals,
-      last_claimed: currentTime + BigInt(1000 * 60),
+      last_claimed: finalCurrentTime,
       penalty_fee: serviceData[0].penalty_fee,
       penalty_fee_qty: serviceData[0].penalty_fee_qty,
       minimum_ada: serviceData[0].minimum_ada,
@@ -137,11 +137,12 @@ export const initSubscriptionProgram = (
     );
 
     const subscriberAssets = subscriberUTxO.assets;
+    console.log("paymentNFT: ", tokenName);
 
     const tx = yield* lucid
       .newTx()
       .readFrom([serviceUTxO])
-      .collectFrom([subscriberUTxO])
+      .collectFrom(subscriberUTxOs)
       .mintAssets({ [paymentNFT]: 1n }, initiateSubscriptionRedeemer)
       .pay.ToAddress(subscriberAddress, subscriberAssets)
       .pay.ToAddressWithData(validators.spendValAddress, {
@@ -153,6 +154,7 @@ export const initSubscriptionProgram = (
       })
       .attach.MintingPolicy(validators.mintValidator)
       .completeProgram();
+    console.log("/////////////////////////////////: ");
 
     return tx;
   });

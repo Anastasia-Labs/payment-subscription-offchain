@@ -14,6 +14,7 @@ export const runInitSubscription = async (
         service_nft_tn: serviceNftTn,
         subscriber_nft_tn: subscriberNftTn,
         num_intervals: 3n,
+        current_time: BigInt(Date.now()),
     };
 
     // Create Service

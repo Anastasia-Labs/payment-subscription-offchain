@@ -24,6 +24,7 @@ export const merchantWithdrawProgram = (
   config: MerchantWithdrawConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
   Effect.gen(function* () {
+    const finalCurrentTime = config.current_time - BigInt(6000 * 3);
     const merchantAddress: Address = yield* Effect.promise(() =>
       lucid.wallet().address()
     );
@@ -130,13 +131,13 @@ export const merchantWithdrawProgram = (
     // Debug time values
 
     const { withdrawableAmount, intervalsToWithdraw } = calculateWithdrawal(
-      config.current_time,
+      finalCurrentTime,
       paymentData[0],
     );
 
     console.log(
       "paymentData[0].subscription_fee_qty: ",
-      paymentData[0].subscription_fee_qty,
+      paymentData[0].total_subscription_fee_qty,
     );
 
     console.log(
@@ -164,17 +165,19 @@ export const merchantWithdrawProgram = (
     console.log("interval_amount: ", paymentData[0].interval_amount);
     console.log("intervalsToWithdraw: ", intervalsToWithdraw);
 
+    console.log("Payment Datum 0: ", paymentData[0]);
+
     const paymentDatum: PaymentDatum = {
       service_nft_tn: paymentData[0].service_nft_tn,
       subscriber_nft_tn: paymentData[0].subscriber_nft_tn,
       subscription_fee: paymentData[0].subscription_fee,
-      subscription_fee_qty: newTotalSubscriptionFee,
+      total_subscription_fee_qty: newTotalSubscriptionFee,
       subscription_start: paymentData[0].subscription_start,
       subscription_end: paymentData[0].subscription_end,
       interval_length: paymentData[0].interval_length,
       interval_amount: paymentData[0].interval_amount,
       num_intervals: newNumIntervals,
-      last_claimed: config.current_time,
+      last_claimed: finalCurrentTime,
       penalty_fee: paymentData[0].penalty_fee,
       penalty_fee_qty: paymentData[0].penalty_fee_qty,
       minimum_ada: paymentData[0].minimum_ada,
@@ -189,7 +192,7 @@ export const merchantWithdrawProgram = (
       PaymentValidatorDatum,
     );
 
-    console.log("paymentValDatum: ", paymentValDatum);
+    console.log("new Datum: ", allDatums);
 
     const merchantWithdrawRedeemer: RedeemerBuilder = {
       kind: "selected",
@@ -230,7 +233,7 @@ export const merchantWithdrawProgram = (
         lovelace: newTotalSubscriptionFee,
         [paymentNFT]: 1n,
       })
-      .validFrom(Number(config.current_time) - Number(1000 * 60)) // 1 minute
+      .validFrom(Number(finalCurrentTime))
       .attach.SpendingValidator(validators.spendValidator)
       .completeProgram();
 

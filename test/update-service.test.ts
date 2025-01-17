@@ -37,7 +37,7 @@ export const updateServiceTestCase = (
       merchant_nft_tn: merchantNftTn,
       new_service_fee_qty: 9_500_000n,
       new_penalty_fee_qty: 1_000_000n,
-      new_interval_length: 1n,
+      new_interval_length: 60000n,
       new_num_intervals: 12n,
       new_minimum_ada: 2_000_000n,
     };

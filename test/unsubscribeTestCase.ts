@@ -51,6 +51,7 @@ export const unsubscribeTestCase = (
             service_nft_tn: serviceNftTn,
             subscriber_nft_tn: subscriberNftTn,
             payment_nft_tn: paymentNftTn,
+            current_time: currentTime,
         };
 
         const unsubscribeFlow = Effect.gen(function* (_) {

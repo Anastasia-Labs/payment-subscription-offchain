@@ -76,6 +76,7 @@ export type InitPaymentConfig = {
   service_nft_tn: string;
   subscriber_nft_tn: string;
   num_intervals: bigint;
+  current_time: bigint;
 };
 
 export type ExtendPaymentConfig = {
@@ -95,6 +96,7 @@ export type UnsubscribeConfig = {
   service_nft_tn: string;
   subscriber_nft_tn: string;
   payment_nft_tn: string;
+  current_time: bigint;
 };
 
 export type WithdrawPenaltyConfig = {

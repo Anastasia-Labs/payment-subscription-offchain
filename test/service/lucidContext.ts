@@ -101,6 +101,7 @@ export const makeLucidContext = (network?: Network) =>
         // console.log("selectedNetwork", selectedNetwork);
         if (API_KEY && selectedNetwork) {
             // Use Maestro context
+            console.log("selectedNetwork", selectedNetwork);
             return yield* $(makeMaestroContext(selectedNetwork));
         } else {
             // Use Emulator context

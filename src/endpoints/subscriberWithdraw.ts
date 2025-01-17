@@ -97,7 +97,7 @@ export const subscriberWithdrawProgram = (
       service_nft_tn: paymentData[0].service_nft_tn,
       subscriber_nft_tn: paymentData[0].subscriber_nft_tn,
       subscription_fee: paymentData[0].subscription_fee,
-      subscription_fee_qty: paymentData[0].subscription_fee_qty,
+      total_subscription_fee_qty: paymentData[0].total_subscription_fee_qty,
       subscription_start: paymentData[0].subscription_start,
       subscription_end: paymentData[0].subscription_end,
       interval_length: paymentData[0].interval_length,

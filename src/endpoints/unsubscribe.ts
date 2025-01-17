@@ -28,6 +28,7 @@ export const unsubscribeProgram = (
     config: UnsubscribeConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
     Effect.gen(function* () {
+        const finalCurrentTime = config.current_time - BigInt(6000 * 3);
         const subscriberAddress: Address = yield* Effect.promise(() =>
             lucid.wallet().address()
         );
@@ -112,16 +113,14 @@ export const unsubscribeProgram = (
             paymentData[0].subscription_end - paymentData[0].subscription_start,
         );
 
-        const currentTime = BigInt(Date.now());
-
         const time_elapsed = BigInt(
             Math.min(
-                Number(currentTime - paymentData[0].subscription_start),
+                Number(finalCurrentTime - paymentData[0].subscription_start),
                 Number(total_subscription_time),
             ),
         );
 
-        const refund_amount = paymentData[0].subscription_fee_qty *
+        const refund_amount = paymentData[0].total_subscription_fee_qty *
             (total_subscription_time - time_elapsed) / total_subscription_time;
 
         const penaltyDatum: PenaltyDatum = {

@@ -19,6 +19,7 @@ export const initSubscriptionTestCase = (
     return Effect.gen(function* () {
         const {
             context: { lucid, users },
+            currentTime,
             subscriberUTxOs,
             subscriberNftTn,
             serviceNftTn,
@@ -33,6 +34,7 @@ export const initSubscriptionTestCase = (
             service_nft_tn: serviceNftTn,
             subscriber_nft_tn: subscriberNftTn,
             num_intervals: 12n,
+            current_time: currentTime,
         };
 
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
@@ -42,14 +44,20 @@ export const initSubscriptionTestCase = (
                 lucid,
                 paymentConfig,
             );
+            console.log(`initSubscriptionFlow`);
 
             const initSubscriptionSigned = yield* Effect.tryPromise(() =>
                 initSubscriptionUnsigned.sign.withWallet().complete()
+            );
+            console.log(
+                `initSubscriptionSigned`,
+                initSubscriptionSigned.toCBOR(),
             );
 
             const initSubscriptionHash = yield* Effect.tryPromise(() =>
                 initSubscriptionSigned.submit()
             );
+            console.log(`initSubscriptionHash`);
 
             return initSubscriptionHash;
         });

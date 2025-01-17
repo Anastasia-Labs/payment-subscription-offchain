@@ -117,7 +117,7 @@ export const PaymentDatumSchema = Data.Object({
     service_nft_tn: Data.Bytes(), //AssetName,
     subscriber_nft_tn: Data.Bytes(),
     subscription_fee: AssetClassSchema,
-    subscription_fee_qty: Data.Integer(),
+    total_subscription_fee_qty: Data.Integer(),
     subscription_start: Data.Integer(),
     subscription_end: Data.Integer(),
     interval_length: Data.Integer(),
