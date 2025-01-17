@@ -15,7 +15,6 @@ import { UnsubscribeConfig } from "../core/types.js";
 import { PaymentValidatorDatum, PenaltyDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
 import { getPaymentValidatorDatum } from "./utils.js";
-import { tokenNameFromUTxO } from "../core/utils/assets.js";
 import {
     accountPolicyId,
     paymentPolicyId,
@@ -38,9 +37,9 @@ export const unsubscribeProgram = (
         );
         const paymentAddress = paymentValidators.spendValAddress;
 
-        const paymentUTxOs = yield* Effect.promise(() =>
-            lucid.utxosAt(paymentAddress)
-        );
+        // const paymentUTxOs = yield* Effect.promise(() =>
+        //     lucid.utxosAt(paymentAddress)
+        // );
 
         // const payment_token_name = tokenNameFromUTxO(
         //     paymentUTxOs,

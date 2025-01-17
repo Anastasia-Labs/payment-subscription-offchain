@@ -9,7 +9,7 @@ import {
     TransactionError,
     TxSignBuilder,
 } from "@lucid-evolution/lucid";
-import { findCip68TokenNames, getMultiValidator } from "../core/utils/index.js";
+import { getMultiValidator } from "../core/utils/index.js";
 import { UpdateAccountConfig } from "../core/types.js";
 import { AccountDatum } from "../core/contract.types.js";
 import { Effect } from "effect";

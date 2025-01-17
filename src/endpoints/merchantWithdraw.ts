@@ -31,9 +31,9 @@ export const merchantWithdrawProgram = (
 
     const validators = getMultiValidator(lucid, paymentScript);
 
-    const paymentUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(validators.spendValAddress)
-    );
+    // const paymentUTxOs = yield* Effect.promise(() =>
+    //   lucid.utxosAt(validators.spendValAddress)
+    // );
 
     const paymentNFT = toUnit(
       paymentPolicyId,

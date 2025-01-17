@@ -6,15 +6,12 @@ import {
   RedeemerBuilder,
   toUnit,
   TransactionError,
-  TxBuilderError,
   TxSignBuilder,
-  UTxO,
 } from "@lucid-evolution/lucid";
 import { WithdrawPenaltyConfig } from "../core/types.js";
-import { getMultiValidator, PaymentValidatorDatum } from "../core/index.js";
+import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
 import { getPenaltyDatum } from "./utils.js";
-import { tokenNameFromUTxO } from "../core/utils/assets.js";
 import {
   paymentPolicyId,
   paymentScript,
@@ -32,41 +29,41 @@ export const merchantPenaltyWithdrawProgram = (
 
     const validators = getMultiValidator(lucid, paymentScript);
 
-    const paymentAddress = validators.spendValAddress;
+    // const paymentAddress = validators.spendValAddress;
 
-    const paymentUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(paymentAddress)
-    );
+    // const paymentUTxOs = yield* Effect.promise(() =>
+    //   lucid.utxosAt(paymentAddress)
+    // );
 
     const merchantUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(merchantAddress)
     );
 
-    const penaltyUTxOs = paymentUTxOs.filter((utxo: UTxO) => {
-      if (!utxo.datum) return false;
+    // const penaltyUTxOs = paymentUTxOs.filter((utxo: UTxO) => {
+    //   if (!utxo.datum) return false;
 
-      try {
-        const validatorDatum = Data.from<PaymentValidatorDatum>(
-          utxo.datum,
-          PaymentValidatorDatum,
-        );
+    //   try {
+    //     const validatorDatum = Data.from<PaymentValidatorDatum>(
+    //       utxo.datum,
+    //       PaymentValidatorDatum,
+    //     );
 
-        // Check the structure of the datum
-        if (validatorDatum && typeof validatorDatum === "object") {
-          // Check if it's a Penalty variant
-          if (
-            "Penalty" in validatorDatum && Array.isArray(validatorDatum.Penalty)
-          ) {
-            const datum = validatorDatum.Penalty[0];
-            return datum.penalty_fee_qty > 0;
-          }
-        }
-        return false;
-      } catch (error) {
-        console.error("Error parsing datum:", error);
-        return false;
-      }
-    });
+    //     // Check the structure of the datum
+    //     if (validatorDatum && typeof validatorDatum === "object") {
+    //       // Check if it's a Penalty variant
+    //       if (
+    //         "Penalty" in validatorDatum && Array.isArray(validatorDatum.Penalty)
+    //       ) {
+    //         const datum = validatorDatum.Penalty[0];
+    //         return datum.penalty_fee_qty > 0;
+    //       }
+    //     }
+    //     return false;
+    //   } catch (error) {
+    //     console.error("Error parsing datum:", error);
+    //     return false;
+    //   }
+    // });
 
     const paymentNFT = toUnit(
       paymentPolicyId,

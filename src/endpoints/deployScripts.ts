@@ -11,13 +11,10 @@ import {
     TxSignBuilder,
     unixTimeToSlot,
 } from "@lucid-evolution/lucid";
-import { DeployRefScriptsConfig, Result } from "../core/types.js";
+import { DeployRefScriptsConfig } from "../core/types.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
-import {
-    alwaysFailScript,
-    deployScript,
-} from "../core/validators/constants.js";
+import { alwaysFailScript } from "../core/validators/constants.js";
 
 export const deployRefScriptsProgram = (
     lucid: LucidEvolution,
@@ -25,7 +22,7 @@ export const deployRefScriptsProgram = (
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
     Effect.gen(function* () {
         const alwaysFailsVal = getMultiValidator(lucid, alwaysFailScript);
-        const validators = getMultiValidator(lucid, deployScript);
+        // const validators = getMultiValidator(lucid, deployScript);
 
         // TODO: Calculate the script size to know how many scripts to deploy.
         // console.log(
@@ -50,13 +47,13 @@ export const deployRefScriptsProgram = (
             );
         }
 
-        const providerUTxOs = yield* Effect.promise(() =>
-            lucid.utxosAt(providerAddress)
-        );
+        // const providerUTxOs = yield* Effect.promise(() =>
+        //     lucid.utxosAt(providerAddress)
+        // );
 
-        const alwaysFailsUTxOs = yield* Effect.promise(() =>
-            lucid.utxosAt(alwaysFailsVal.spendValAddress)
-        );
+        // const alwaysFailsUTxOs = yield* Effect.promise(() =>
+        //     lucid.utxosAt(alwaysFailsVal.spendValAddress)
+        // );
 
         const deployKey = getAddressDetails(providerAddress)
             .paymentCredential?.hash;

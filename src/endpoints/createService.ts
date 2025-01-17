@@ -1,7 +1,6 @@
 import {
   Address,
   Assets,
-  Constr,
   Data,
   LucidEvolution,
   mintingPolicyToId,

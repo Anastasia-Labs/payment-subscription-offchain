@@ -4,7 +4,6 @@ import {
     Constr,
     Data,
     LucidEvolution,
-    mintingPolicyToId,
     RedeemerBuilder,
     toUnit,
     TransactionError,
