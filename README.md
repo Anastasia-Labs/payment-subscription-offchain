@@ -299,7 +299,7 @@ export const runUpdateAccount = async (
 
 ```
 
-### Update an Account
+### Remove an Account
 
 This endpoint completely removes the Account from the Payment Subscription system.
 
