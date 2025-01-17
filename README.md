@@ -144,14 +144,9 @@ import {
     UpdateServiceConfig,
 } from "@anastasia-labs/payment-subscription-offchain";
 
-export const runUpdateService = async (
-    lucid: LucidEvolution,
-    serviceNftTn: string,
-    merchantNftTn: string,
-): Promise<Error | void> => {
     const updateServiceConfig: UpdateServiceConfig = {
-        service_nft_tn: serviceNftTn,
-        merchant_nft_tn: merchantNftTn,
+        service_nft_tn: 'SERVICE_NFT_TOKEN_NAME', // Replace with actual token name
+        merchant_nft_tn: 'MERCHANT_TOKEN_UNIT', // Replace with actual unit
         new_service_fee_qty: 9_500_000n,
         new_penalty_fee_qty: 1_000_000n,
         new_interval_length: 1n,
@@ -173,7 +168,6 @@ export const runUpdateService = async (
     } catch (error) {
         console.error("Failed to update service:", error);
     }
-};
 
 ```
 
@@ -190,14 +184,9 @@ import {
     RemoveServiceConfig,
 } from "@anastasia-labs/payment-subscription-offchain";
 
-export const runRemoveService = async (
-    lucid: LucidEvolution,
-    serviceNftTn: string,
-    merchantNftTn: string,
-): Promise<Error | void> => {
     const removeServiceConfig: RemoveServiceConfig = {
-        service_nft_tn: serviceNftTn,
-        merchant_nft_tn: merchantNftTn,
+        service_nft_tn: 'SERVICE_NFT_TOKEN_NAME', // Replace with actual token name
+        merchant_nft_tn: 'MERCHANT_TOKEN_UNIT', // Replace with actual unit
     };
 
     // Remove Service
@@ -217,7 +206,7 @@ export const runRemoveService = async (
     } catch (error) {
         console.error("Failed to remove Service:", error);
     }
-};
+
 
 ```
 ## Account Endpoints
@@ -268,16 +257,11 @@ import {
     UpdateAccountConfig,
 } from "@anastasia-labs/payment-subscription-offchain";
 
-export const runUpdateAccount = async (
-    lucid: LucidEvolution,
-    accountNftTn: string,
-    subscriberNftTn: string,
-): Promise<Error | void> => {
     const updateAccountConfig: UpdateAccountConfig = {
         new_email: "new_business@web3.ada",
         new_phone: "(288) 481-2686-999",
-        account_nft_tn: accountNftTn,
-        subscriber_nft_tn: subscriberNftTn,
+        account_nft_tn: 'ACCOUNT_NFT_TOKEN_NAME', // Replace with actual token name
+        subscriber_nft_tn: 'SUBSCRIBER_NFT_TOKEN_NAME', // Replace with actual token name
     };
 
     // Update Account
@@ -295,7 +279,7 @@ export const runUpdateAccount = async (
     } catch (error) {
         console.error("Failed to update Account:", error);
     }
-};
+
 
 ```
 
@@ -310,14 +294,9 @@ import {
     RemoveAccountConfig,
 } from "@anastasia-labs/payment-subscription-offchain";
 
-export const runRemoveAccount = async (
-    lucid: LucidEvolution,
-    accountNftTn: string,
-    subscriberNftTn: string,
-): Promise<Error | void> => {
     const removeAccountConfig: RemoveAccountConfig = {
-        account_nft_tn: accountNftTn,
-        subscriber_nft_tn: subscriberNftTn,
+      account_nft_tn: 'ACCOUNT_NFT_TOKEN_NAME', // Replace with actual token name
+      subscriber_nft_tn: 'SUBSCRIBER_NFT_TOKEN_NAME', // Replace with actual token name
     };
 
     // Remove Account
@@ -335,7 +314,7 @@ export const runRemoveAccount = async (
     } catch (error) {
         console.error("Failed to remove Account:", error);
     }
-};
+
 
 ```
 
@@ -390,7 +369,7 @@ import { withdrawFees, WithdrawFeesConfig } from "@anastasia-labs/payment-subscr
 // Configure the withdrawal parameters
 const withdrawConfig: MerchantWithdrawConfig = {
   service_ref_token: 'SERVICE_REF_TOKEN', // Replace with actual unit
-  merchant_token: 'MERCHANT_TOKEN_UNIT', // Replace with actual unit
+  merchant_nft_tn: 'MERCHANT_TOKEN_UNIT', // Replace with actual unit
   payment_nft_tn: 'PAYMENT_NFT_TOKEN_NAME', // Replace with actual token name
   current_time: BigInt(Date.now()),
 
@@ -426,14 +405,10 @@ import {
     LucidEvolution,
 } from "@anastasia-labs/payment-subscription-offchain";
 
-export const runExtendSubscription = async (
-    lucid: LucidEvolution,
-    serviceNftTn: string,
-    subscriberNftTn: string,
-): Promise<Error | void> => {
+
     const extendPaymentConfig: ExtendPaymentConfig = {
         service_nft_tn: serviceNftTn,
-        subscriber_nft_tn: subscriberNftTn,
+        subscriber_nft_tn: 'SUBSCRIBER_NFT_TOKEN_NAME', // Replace with actual token name
         extension_intervals: 1n,
     };
 
@@ -452,7 +427,6 @@ export const runExtendSubscription = async (
     } catch (error) {
         console.error("Failed to extend service:", error);
     }
-};
 
 ```
 
@@ -504,9 +478,6 @@ import {
     WithdrawPenaltyConfig,
 } from "@anastasia-labs/payment-subscription-offchain";
 
-export const runWithdrawPenalty = async (
-    lucid: LucidEvolution,
-): Promise<Error | void> => {
     const withdrawPenaltyConfig: WithdrawPenaltyConfig = {
       service_nft_tn: 'SERVICE_NFT_TOKEN_NAME', // Replace with actual token name
       subscriber_nft_tn: 'SUBSCRIBER_NFT_TOKEN_NAME', // Replace with actual token name
@@ -546,10 +517,6 @@ import {
     SubscriberWithdrawConfig,
 } from "@anastasia-labs/payment-subscription-offchain";
 
-export const runSubscriberWithdraw = async (
-    lucid: LucidEvolution,
-    serviceAddress: string,
-): Promise<Error | void> => {
     const serviceUTxOs = await lucid.utxosAt(serviceAddress);
 
   const inActiveServiceUTxOs = serviceUTxOs.filter((utxo) => {
@@ -582,10 +549,8 @@ export const runSubscriberWithdraw = async (
     } catch (error) {
         console.error("Failed to create service:", error);
     }
-};
 
 ```
-
 
 ## Local Build
 
