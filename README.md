@@ -165,11 +165,11 @@ export const runUpdateService = async (
             lucid,
             updateServiceConfig,
         );
-        const initTxSigned = await updateServiceUnsigned.sign.withWallet()
+        const updateTxSigned = await updateServiceUnsigned.sign.withWallet()
             .complete();
-        const initTxHash = await initTxSigned.submit();
+        const updateTxHash = await updateTxSigned.submit();
 
-        console.log(`Service updated successfully: ${initTxHash}`);
+        console.log(`Service updated successfully: ${updateTxHash}`);
     } catch (error) {
         console.error("Failed to update service:", error);
     }
@@ -411,6 +411,48 @@ try {
   } catch (error) {
       console.error("Failed to withdraw by Merchant:", error);
   }
+
+```
+
+### Extend Subscription
+
+This allows the the Subscriber to update their subscription by extending it to as many intervals as they wish.
+
+```ts
+
+import {
+    ExtendPaymentConfig,
+    extendSubscription,
+    LucidEvolution,
+} from "@anastasia-labs/payment-subscription-offchain";
+
+export const runExtendSubscription = async (
+    lucid: LucidEvolution,
+    serviceNftTn: string,
+    subscriberNftTn: string,
+): Promise<Error | void> => {
+    const extendPaymentConfig: ExtendPaymentConfig = {
+        service_nft_tn: serviceNftTn,
+        subscriber_nft_tn: subscriberNftTn,
+        extension_intervals: 1n,
+    };
+
+    // Extend Subscription
+    try {
+        const extendUnsigned = await extendSubscription(
+            lucid,
+            extendPaymentConfig,
+        );
+        const extendSigned = await extendUnsigned.sign
+            .withWallet()
+            .complete();
+        const extendTxHash = await extendSigned.submit();
+
+        console.log(`Service extended successfully: ${extendTxHash}`);
+    } catch (error) {
+        console.error("Failed to extend service:", error);
+    }
+};
 
 ```
 
