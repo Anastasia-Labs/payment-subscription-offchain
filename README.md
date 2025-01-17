@@ -67,7 +67,7 @@ or
 pnpm install @anastasia-labs/payment-subscription-offchain
 ```
 
-Below are the basic instructions on how to use the multisig endpoints.
+Below are the basic instructions on how to use the Payment Subscription endpoints.
 
 For a more comprehensive working example, checkout the [examples folder](https://github.com/Anastasia-Labs/payment-subscription-offchain/tree/main/examples)..
 
@@ -84,7 +84,6 @@ const lucid = await Lucid(
   }),
   "Preprod" // For MAINNET: "Mainnet"
 );
-
 
 ```
 ## Service Endpoints
@@ -135,7 +134,6 @@ const serviceConfig: CreateServiceConfig = {
 ### Update a Service
 
 Also initiated by the Merchant. This endpoint allows the Merchant to make changes to their initial configurations.
-
 
 ```ts
 import {
@@ -212,7 +210,6 @@ import {
 ## Account Endpoints
 
 These endpoints are all initiated by the Subscriber.
-
 
 ### Create a User Account
 
@@ -318,6 +315,7 @@ import {
 
 ```
 
+
 ### Initiate a Subscription
 
 This endpoint allows a Subscriber to Subscribe to a Service. 
@@ -333,7 +331,6 @@ const subscriptionConfig: InitPaymentConfig = {
   account_nft_tn: 'ACCOUNT_NFT_TOKEN_NAME', // Replace with actual token name
   num_intervals: 3n, // Replace with actual intervals to pay for
   current_time: BigInt(Date.now()),
-
 
 };
 
@@ -437,6 +434,7 @@ It is at this point that the penalty fee is deducted from the subscription_fee t
 ```ts
 import { unsubscribe, UnsubscribeConfig, LucidEvolution } from "@anastasia-labs/payment-subscription-offchain";
 
+
 // Configure the unsubscription parameters
 const unsubscribeConfig: UnsubscribeConfig = {
   service_nft_tn: 'SERVICE_NFT_TOKEN_NAME', // Replace with actual token name
@@ -534,14 +532,14 @@ import {
 
     // Subscriber Withdraw
     try {
-        const merchantWithdrawUnsigned = await subscriberWithdraw(
+        const subscriberWithdrawUnsigned = await subscriberWithdraw(
             lucid,
             subscriberWithdrawConfig,
         );
-        const merchantWithdrawSigned = await merchantWithdrawUnsigned.sign
+        const subscriberWithdrawSigned = await subscriberWithdrawUnsigned.sign
             .withWallet()
             .complete();
-        const merchantWithdrawTxHash = await merchantWithdrawSigned.submit();
+        const subscriberWithdrawTxHash = await subscriberWithdrawSigned.submit();
 
         console.log(`Service created successfully: ${merchantWithdrawTxHash}`);
     } catch (error) {
@@ -574,7 +572,7 @@ Test results:
 
 ![alt text](/docs/images/offchain_tests.png)
 
-Each test case is designed to validate specific aspects of the multi-signature contract,To run only specific tests, do:
+Each test case is designed to validate specific aspects of the payment subscription contract,To run only specific tests, do:
 
 ```sh
 pnpm test test/test-case-function-name.test.ts

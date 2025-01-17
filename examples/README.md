@@ -46,9 +46,9 @@ Ensure you have correct credentials for Preprod.
 
 ## Running the CLI
 
-You can use the CLI subcommand approach, For example, we you have a subcommand named multisig:
+You can use the CLI subcommand approach, For example, we you have a subcommand named service, account and payment:
 
-Execute a new transaction with the contract keyword for instance.
+Execute a new transaction with the contract subcommand for instance.
 - Service
 
     ```bash
