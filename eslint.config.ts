@@ -1,15 +1,12 @@
 export default [
     {
-        ignores: ["node_modules/**", "dist/**"],
-    },
-    {
         files: ["**/*.js"],
+        ignores: ["node_modules/**", "dist/**"],
         languageOptions: {
             ecmaVersion: "latest",
             sourceType: "module",
         },
         rules: {
-            // Add your desired rules here
             "no-unused-vars": ["warn", { "varsIgnorePattern": "_" }],
             "no-console": "off",
             // ...other rules
