@@ -42,18 +42,13 @@ export const runMerchantWithdraw = async (
             throw new Error("No active subscription found");
         }
 
-        // Get payment datum for validation and logging
-        const paymentDatum = await getPaymentValidatorDatum(paymentUTxO);
         const paymentNftTn = tokenNameFromUTxO([paymentUTxO], paymentPolicyId);
         const currentTime = BigInt(Date.now());
 
         const merchantWithdrawConfig: MerchantWithdrawConfig = {
-            service_nft_tn:
-                "000643b0002990f56b0fd73d689bd5642ea6090c3c79463c22f67b24faf598d2",
-            merchant_nft_tn:
-                "000de140002990f56b0fd73d689bd5642ea6090c3c79463c22f67b24faf598d2",
-            payment_nft_tn:
-                "00dfb41cfdb88c5d52672990fc3f257465a01ba2cca9f7b20c4c98fad1014ed5",
+            service_nft_tn: serviceNftTn,
+            merchant_nft_tn: merchantNftTn,
+            payment_nft_tn: paymentNftTn,
             current_time: currentTime,
         };
 

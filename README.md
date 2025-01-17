@@ -337,8 +337,6 @@ const subscriptionConfig: InitPaymentConfig = {
 
 };
 
-// Initiate the subscription
-const initiateSubTxUnsigned = await initiateSubscription(lucid, subscriptionConfig);
 
 try {
       const initSubscriptionUnsigned = await initiateSubscription(
@@ -449,17 +447,17 @@ const unsubscribeConfig: UnsubscribeConfig = {
 
 // Unsubscribe from the service
 try {
-      const initSubscriptionUnsigned = await unsubscribe(
+      const unsubscribeUnsigned = await unsubscribe(
           lucid,
           unsubscribeConfig,
       );
-      const initSubscriptionSigned = await initSubscriptionUnsigned.sign
+      const unsubscribeSigned = await unsubscribeUnsigned.sign
           .withWallet()
           .complete();
-      const initSubscriptionHash = await initSubscriptionSigned.submit();
+      const unsubscribeHash = await unsubscribeSigned.submit();
 
       console.log(
-          `Unsubscribed successfully: ${initSubscriptionHash}`,
+          `Unsubscribed successfully: ${unsubscribeHash}`,
       );
   } catch (error) {
       console.error("Failed to unsubscribe:", error);
@@ -534,7 +532,7 @@ import {
       service_utxos: inActiveServiceUTxOs,
     };
 
-    // Merchant Withdraw
+    // Subscriber Withdraw
     try {
         const merchantWithdrawUnsigned = await subscriberWithdraw(
             lucid,

@@ -21,14 +21,14 @@ export const runSubscriberWithdraw = async (
     const accountUTxOs = await lucid.utxosAt(accountAddress);
     const subscriberUTxOs = await lucid.utxosAt(subscriberAddress);
 
-    const { refTokenName: serviceNftTn, userTokenName: merchantNftTn } =
+    const { refTokenName: serviceNftTn, userTokenName: _merchantNftTn } =
         findCip68TokenNames(
             serviceUTxOs,
             merchantUTxOs,
             servicePolicyId,
         );
 
-    const { refTokenName: accountNftTn, userTokenName: subscriberNftTn } =
+    const { refTokenName: _accountNftTn, userTokenName: subscriberNftTn } =
         findCip68TokenNames(
             accountUTxOs,
             subscriberUTxOs,

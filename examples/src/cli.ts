@@ -217,16 +217,6 @@ paymentCommand.command("merchant_withdraw").action(async () => {
             tokenNames,
         } = await setupLucid();
 
-        const paymentValidator = getMultiValidator(lucid, paymentScript);
-        const paymentUTxOs = await lucid.utxosAt(
-            paymentValidator.spendValAddress,
-        );
-
-        const paymentTokenName = tokenNameFromUTxO(
-            paymentUTxOs,
-            paymentPolicyId,
-        );
-
         lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
         await runMerchantWithdraw(
             lucid,
