@@ -117,7 +117,7 @@ export const initSubscriptionProgram = (
       subscription_fee: serviceData[0].service_fee,
       total_subscription_fee_qty: subscription_fee_qty,
       subscription_start: finalCurrentTime,
-      subscription_end: subscription_end + BigInt(1000 * 60),
+      subscription_end: subscription_end,
       interval_length: serviceData[0].interval_length,
       interval_amount: interval_amount,
       num_intervals: config.num_intervals,

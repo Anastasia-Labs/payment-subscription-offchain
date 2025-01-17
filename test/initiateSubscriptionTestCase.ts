@@ -44,20 +44,14 @@ export const initSubscriptionTestCase = (
                 lucid,
                 paymentConfig,
             );
-            console.log(`initSubscriptionFlow`);
 
             const initSubscriptionSigned = yield* Effect.tryPromise(() =>
                 initSubscriptionUnsigned.sign.withWallet().complete()
-            );
-            console.log(
-                `initSubscriptionSigned`,
-                initSubscriptionSigned.toCBOR(),
             );
 
             const initSubscriptionHash = yield* Effect.tryPromise(() =>
                 initSubscriptionSigned.submit()
             );
-            console.log(`initSubscriptionHash`);
 
             return initSubscriptionHash;
         });

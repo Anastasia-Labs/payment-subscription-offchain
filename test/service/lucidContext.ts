@@ -37,7 +37,7 @@ export const makeEmulatorContext = () =>
             [users.dappProvider, users.subscriber, users.merchant],
             {
                 ...PROTOCOL_PARAMETERS_DEFAULT,
-                maxTxSize: 21000,
+                maxTxSize: 23000,
             },
         );
 
@@ -97,7 +97,7 @@ export const makeLucidContext = (network?: Network) =>
         const API_KEY = process.env.API_KEY;
         const SUBSCRIBER_WALLET_SEED = process.env.SUBSCRIBER_WALLET_SEED!;
 
-        const selectedNetwork = network ?? NETWORK; // Default to Preprod if not specified
+        const selectedNetwork = ""; //network ?? NETWORK; // Default to Preprod if not specified
         // console.log("selectedNetwork", selectedNetwork);
         if (API_KEY && selectedNetwork) {
             // Use Maestro context
