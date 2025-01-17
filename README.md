@@ -497,12 +497,9 @@ This endpoint allow the Subscriber to unlock funds from the Payment Contract of 
 ```ts
 
 import {
-    accountPolicyId,
     Data,
-    findCip68TokenNames,
     LucidEvolution,
     ServiceDatum,
-    servicePolicyId,
     subscriberWithdraw,
     SubscriberWithdrawConfig,
 } from "@anastasia-labs/payment-subscription-offchain";
