@@ -84,11 +84,11 @@ export const makeMaestroContext = (network: Network) =>
         });
 
         const lucid = yield* Effect.promise(() => Lucid(maestro, network));
-        const seed = yield* Effect.promise(() =>
-            generateAccountSeedPhrase({ lovelace: BigInt(1_000_000_000) })
-        );
+        // const seed = yield* Effect.promise(() =>
+        //     generateAccountSeedPhrase({ lovelace: BigInt(1_000_000_000) })
+        // );
 
-        console.log("Seed Phrase: ", seed);
+        // console.log("Seed Phrase: ", seed);
         return { lucid, users, emulator: undefined } as LucidContext;
     });
 

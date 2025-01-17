@@ -4,9 +4,11 @@ import {
   LucidEvolution,
   mintingPolicyToId,
   RedeemerBuilder,
+  selectUTxOs,
   toUnit,
   TransactionError,
   TxSignBuilder,
+  UTxO,
 } from "@lucid-evolution/lucid";
 import { InitPaymentConfig } from "../core/types.js";
 import {
@@ -108,14 +110,14 @@ export const initSubscriptionProgram = (
     const subscription_end = finalCurrentTime +
       interval_length * config.num_intervals;
 
-    const subscription_fee_qty = interval_amount *
+    const totalSubscriptionQty = interval_amount *
       config.num_intervals;
 
     const paymentDatum: PaymentDatum = {
       service_nft_tn: config.service_nft_tn,
       subscriber_nft_tn: config.subscriber_nft_tn,
       subscription_fee: serviceData[0].service_fee,
-      total_subscription_fee_qty: subscription_fee_qty,
+      total_subscription_fee_qty: totalSubscriptionQty,
       subscription_start: finalCurrentTime,
       subscription_end: subscription_end,
       interval_length: serviceData[0].interval_length,
@@ -136,6 +138,15 @@ export const initSubscriptionProgram = (
       PaymentValidatorDatum,
     );
 
+    const richUtxo: UTxO = subscriberUTxOs.find((utxo) =>
+      utxo.assets.lovelace >= totalSubscriptionQty
+    )!;
+
+    const combinedUTxOs = [subscriberUTxO, richUtxo];
+
+    console.log("richUtxo: ", richUtxo);
+    console.log("combinedUTxOs: ", combinedUTxOs);
+
     const subscriberAssets = subscriberUTxO.assets;
     console.log("paymentNFT: ", tokenName);
 
@@ -149,7 +160,7 @@ export const initSubscriptionProgram = (
         kind: "inline",
         value: paymentValDatum,
       }, {
-        lovelace: subscription_fee_qty,
+        lovelace: totalSubscriptionQty,
         [paymentNFT]: 1n,
       })
       .attach.MintingPolicy(validators.mintValidator)

@@ -21,7 +21,7 @@
   "author": "Anastasia Labs",
   "license": "ISC",
   "dependencies": {
-    "@anastasia-labs/payment-subscription-offchain": "file:../anastasia-labs-payment-subscription-offchain-1.0.4.tgz",
+    "@anastasia-labs/payment-subscription-offchain": "file:../anastasia-labs-payment-subscription-offchain-1.0.6.tgz",
     "commander": "^12.1.0",
     "dotenv": "^16.4.7",
     "tsup": "^8.3.5"

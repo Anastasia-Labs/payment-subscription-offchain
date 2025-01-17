@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@anastasia-labs/payment-subscription-offchain':
-        specifier: file:../anastasia-labs-payment-subscription-offchain-1.0.4.tgz
-        version: file:../anastasia-labs-payment-subscription-offchain-1.0.4.tgz(@harmoniclabs/bytestring@1.0.0)(@harmoniclabs/cbor@1.5.0)(@harmoniclabs/crypto@0.2.4)(@harmoniclabs/pair@1.0.0)(fast-check@3.23.2)
+        specifier: file:../anastasia-labs-payment-subscription-offchain-1.0.6.tgz
+        version: file:../anastasia-labs-payment-subscription-offchain-1.0.6.tgz(@harmoniclabs/bytestring@1.0.0)(@harmoniclabs/cbor@1.5.0)(@harmoniclabs/crypto@0.2.4)(@harmoniclabs/pair@1.0.0)(fast-check@3.23.2)
       commander:
         specifier: ^12.1.0
         version: 12.1.0
@@ -45,9 +45,9 @@ packages:
   '@anastasia-labs/cardano-multiplatform-lib-nodejs@6.0.2-3':
     resolution: {integrity: sha512-Jy7QKahRQJgX6OFeuQvPXO0ejKfT9cQ8m3PFLBhbM04jjzFnaxlJJJ5+7qNHe3xdy40fMbMMe2SgAYPJ4gZ2Xw==}
 
-  '@anastasia-labs/payment-subscription-offchain@file:../anastasia-labs-payment-subscription-offchain-1.0.4.tgz':
-    resolution: {integrity: sha512-ZdxepeidaOGn/fnntYN48AKNE9oS+9PuF4ZR0zW/7saTiFTuG5NqKU7gDYy+LWpat01DX7yuUZW5qrHAfZD1cw==, tarball: file:../anastasia-labs-payment-subscription-offchain-1.0.4.tgz}
-    version: 1.0.4
+  '@anastasia-labs/payment-subscription-offchain@file:../anastasia-labs-payment-subscription-offchain-1.0.6.tgz':
+    resolution: {integrity: sha512-gFbcCms+LxjnOb7IsBcJGDcYbf/CKw2q8Mf2WSgxDxnFVKQXPQCMmPr9WyYd6RFhALxKfX/oAtnLmmtpxbZu5Q==, tarball: file:../anastasia-labs-payment-subscription-offchain-1.0.6.tgz}
+    version: 1.0.6
 
   '@cbor-extract/cbor-extract-darwin-arm64@2.2.0':
     resolution: {integrity: sha512-P7swiOAdF7aSi0H+tHtHtr6zrpF3aAq/W9FXx5HektRvLTM2O89xCyXF3pk7pLc7QpaY7AoaE8UowVf9QBdh3w==}
@@ -892,7 +892,7 @@ snapshots:
 
   '@anastasia-labs/cardano-multiplatform-lib-nodejs@6.0.2-3': {}
 
-  '@anastasia-labs/payment-subscription-offchain@file:../anastasia-labs-payment-subscription-offchain-1.0.4.tgz(@harmoniclabs/bytestring@1.0.0)(@harmoniclabs/cbor@1.5.0)(@harmoniclabs/crypto@0.2.4)(@harmoniclabs/pair@1.0.0)(fast-check@3.23.2)':
+  '@anastasia-labs/payment-subscription-offchain@file:../anastasia-labs-payment-subscription-offchain-1.0.6.tgz(@harmoniclabs/bytestring@1.0.0)(@harmoniclabs/cbor@1.5.0)(@harmoniclabs/crypto@0.2.4)(@harmoniclabs/pair@1.0.0)(fast-check@3.23.2)':
     dependencies:
       '@lucid-evolution/lucid': 0.4.16(@harmoniclabs/bytestring@1.0.0)(@harmoniclabs/cbor@1.5.0)(@harmoniclabs/crypto@0.2.4)(@harmoniclabs/pair@1.0.0)(fast-check@3.23.2)
       '@noble/hashes': 1.6.1
