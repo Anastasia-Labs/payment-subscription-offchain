@@ -138,22 +138,24 @@ export const initSubscriptionProgram = (
       PaymentValidatorDatum,
     );
 
-    const richUtxo: UTxO = subscriberUTxOs.find((utxo) =>
-      utxo.assets.lovelace >= totalSubscriptionQty
-    )!;
+    // Find UTxO with sufficient lovelace
 
-    const combinedUTxOs = [subscriberUTxO, richUtxo];
+    console.log("subscriberUTxO: ", subscriberUTxO);
 
-    console.log("richUtxo: ", richUtxo);
-    console.log("combinedUTxOs: ", combinedUTxOs);
+    const subscriberAssets = {
+      ...subscriberUTxO.assets,
+      // Remove the totalSubscriptionQty from the lovelace amount
+      lovelace: subscriberUTxO.assets.lovelace - totalSubscriptionQty -
+        serviceData[0].minimum_ada,
+    };
 
-    const subscriberAssets = subscriberUTxO.assets;
+    console.log("subscriberAssets: ", subscriberAssets);
     console.log("paymentNFT: ", tokenName);
 
     const tx = yield* lucid
       .newTx()
       .readFrom([serviceUTxO])
-      .collectFrom(subscriberUTxOs)
+      .collectFrom([subscriberUTxO])
       .mintAssets({ [paymentNFT]: 1n }, initiateSubscriptionRedeemer)
       .pay.ToAddress(subscriberAddress, subscriberAssets)
       .pay.ToAddressWithData(validators.spendValAddress, {

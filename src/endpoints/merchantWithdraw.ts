@@ -12,7 +12,10 @@ import { MerchantWithdrawConfig } from "../core/types.js";
 import { PaymentDatum, PaymentValidatorDatum } from "../core/contract.types.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
-import { getPaymentValidatorDatum } from "./utils.js";
+import {
+  calculateClaimableIntervals,
+  getPaymentValidatorDatum,
+} from "./utils.js";
 import {
   paymentPolicyId,
   paymentScript,
@@ -31,9 +34,9 @@ export const merchantWithdrawProgram = (
 
     const validators = getMultiValidator(lucid, paymentScript);
 
-    // const paymentUTxOs = yield* Effect.promise(() =>
-    //   lucid.utxosAt(validators.spendValAddress)
-    // );
+    const paymentUTxOs = yield* Effect.promise(() =>
+      lucid.utxosAt(validators.spendValAddress)
+    );
 
     const paymentNFT = toUnit(
       paymentPolicyId,
@@ -73,67 +76,22 @@ export const merchantWithdrawProgram = (
       )
     );
 
+    // const paymentUTxO = findPaymentUTxO(
+    //   paymentUTxOs,
+    //   config.service_nft_tn,
+    //   finalCurrentTime,
+    // );
+
     const paymentData = yield* Effect.promise(
       () => (getPaymentValidatorDatum(paymentUTxO)),
     );
 
-    const calculateWithdrawal = (
-      currentTime: bigint,
-      paymentData: PaymentDatum,
-    ) => {
-      // Calculate time since last claim
-      const timeSinceLastClaim = currentTime > paymentData.last_claimed
-        ? currentTime - paymentData.last_claimed
-        : BigInt(0);
-
-      // Calculate time remaining until subscription end
-      const timeUntilEnd = paymentData.subscription_end - currentTime;
-
-      // Calculate intervals based on both time since last claim and remaining intervals
-      const intervalsPassed = Number(timeSinceLastClaim) /
-        Number(paymentData.interval_length);
-
-      // Consider both passed intervals and remaining intervals
-      let claimableIntervals = Math.min(
-        intervalsPassed,
-        Number(paymentData.num_intervals),
-      );
-
-      // If this is potentially the final interval, check remaining funds
-      if (
-        paymentData.num_intervals <= 1n &&
-        timeUntilEnd <= paymentData.interval_length
-      ) {
-        claimableIntervals = Math.max(1, claimableIntervals);
-      }
-
-      const withdrawableAmount = BigInt(Math.floor(claimableIntervals)) *
-        paymentData.interval_amount;
-
-      // Debug logging
-      console.log("Current Time:", currentTime);
-      console.log("Subscription Start:", paymentData.subscription_start);
-      console.log("Subscription End:", paymentData.subscription_end);
-      console.log("Last Claimed:", paymentData.last_claimed);
-      console.log("timeSinceLastClaim:", timeSinceLastClaim);
-      console.log("timeUntilEnd:", timeUntilEnd);
-      console.log("Interval Length:", paymentData.interval_length);
-      console.log("Number of Intervals:", paymentData.num_intervals);
-      console.log("intervalsPassed:", intervalsPassed);
-      console.log("claimableIntervals:", claimableIntervals);
-
-      return {
-        withdrawableAmount,
-        intervalsToWithdraw: Math.floor(claimableIntervals),
-      };
-    };
-
     // Debug time values
-
-    const { withdrawableAmount, intervalsToWithdraw } = calculateWithdrawal(
-      finalCurrentTime,
-      paymentData[0],
-    );
+    const { withdrawableAmount, intervalsToWithdraw } =
+      calculateClaimableIntervals(
+        finalCurrentTime,
+        paymentData[0],
+      );
 
     console.log(
       "paymentData[0].subscription_fee_qty: ",

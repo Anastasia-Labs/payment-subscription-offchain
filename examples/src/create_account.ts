@@ -22,6 +22,8 @@ export const runCreateAccount = async (
             .withWallet()
             .complete();
         const createAccountHash = await createAccountSigned.submit();
+        console.log(`Submitting ...`);
+        await lucid.awaitTx(createAccountHash);
 
         console.log(`Account created successfully: ${createAccountHash}`);
     } catch (error) {

@@ -25,6 +25,9 @@ export const runRemoveAccount = async (
             .complete();
         const removeAccountHash = await removeAccountSigned.submit();
 
+        console.log(`Submitting ...`);
+        await lucid.awaitTx(removeAccountHash);
+
         console.log(`Account removed successfully: ${removeAccountHash}`);
     } catch (error) {
         console.error("Failed to remove Account:", error);

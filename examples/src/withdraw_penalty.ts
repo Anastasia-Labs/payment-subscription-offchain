@@ -27,6 +27,9 @@ export const runWithdrawPenalty = async (
             .complete();
         const penaltyWithdrawTxHash = await penaltyWithdrawSigned.submit();
 
+        console.log(`Submitting ...`);
+        await lucid.awaitTx(penaltyWithdrawTxHash);
+
         console.log(`Service created successfully: ${penaltyWithdrawTxHash}`);
     } catch (error) {
         console.error("Failed to create service:", error);

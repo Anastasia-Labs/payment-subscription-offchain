@@ -27,9 +27,12 @@ export const runUpdateService = async (
         );
         const updateTxSigned = await updateServiceUnsigned.sign.withWallet()
             .complete();
-        const initTxHash = await updateTxSigned.submit();
+        const updateTxHash = await updateTxSigned.submit();
 
-        console.log(`Service updated successfully: ${initTxHash}`);
+        console.log(`Submitting ...`);
+        await lucid.awaitTx(updateTxHash);
+
+        console.log(`Service updated successfully: ${updateTxHash}`);
     } catch (error) {
         console.error("Failed to update service:", error);
     }

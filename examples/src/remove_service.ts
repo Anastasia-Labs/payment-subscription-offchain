@@ -25,6 +25,9 @@ export const runRemoveService = async (
             .complete();
         const removeServiceHash = await removeServiceSigned.submit();
 
+        console.log(`Submitting ...`);
+        await lucid.awaitTx(removeServiceHash);
+
         console.log(
             `Service removed successfully || change isActive to false: ${removeServiceHash}`,
         );

@@ -27,6 +27,9 @@ export const runUpdateAccount = async (
             .complete();
         const updateAccountHash = await updateAccountSigned.submit();
 
+        console.log(`Submitting ...`);
+        await lucid.awaitTx(updateAccountHash);
+
         console.log(`Account updated successfully: ${updateAccountHash}`);
     } catch (error) {
         console.error("Failed to update Account:", error);

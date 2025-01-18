@@ -26,6 +26,9 @@ export const runExtendSubscription = async (
             .complete();
         const extendTxHash = await extendSigned.submit();
 
+        console.log(`Submitting ...`);
+        await lucid.awaitTx(extendTxHash);
+
         console.log(`Service extended successfully: ${extendTxHash}`);
     } catch (error) {
         console.error("Failed to extend service:", error);

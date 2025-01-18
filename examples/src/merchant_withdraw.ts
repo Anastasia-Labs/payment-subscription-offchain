@@ -62,6 +62,8 @@ export const runMerchantWithdraw = async (
             .withWallet()
             .complete();
         const merchantWithdrawTxHash = await merchantWithdrawSigned.submit();
+
+        console.log(`Submitting ...`);
         await lucid.awaitTx(merchantWithdrawTxHash);
 
         console.log(`Merchant Withdraw Successful: ${merchantWithdrawTxHash}`);

@@ -27,6 +27,8 @@ export const runInitSubscription = async (
             .withWallet()
             .complete();
         const initSubscriptionHash = await initSubscriptionSigned.submit();
+
+        console.log(`Submitting ...`);
         await lucid.awaitTx(initSubscriptionHash);
 
         console.log(

@@ -191,3 +191,109 @@ export const getPenaltyDatum = async (
         }
     });
 };
+
+interface WithdrawalCalc {
+    withdrawableAmount: bigint;
+    intervalsToWithdraw: number;
+    timeSinceLastClaim: bigint;
+    timeUntilEnd: bigint;
+}
+
+export const calculateClaimableIntervals = (
+    currentTime: bigint,
+    paymentData: PaymentDatum,
+): WithdrawalCalc => {
+    // Calculate time since last claim
+    const timeSinceLastClaim = currentTime > paymentData.last_claimed
+        ? currentTime - paymentData.last_claimed
+        : BigInt(0);
+
+    // Calculate time remaining until subscription end
+    const timeUntilEnd = paymentData.subscription_end - currentTime;
+
+    // Calculate intervals based on time since last claim
+    const intervalsPassed = Number(timeSinceLastClaim) /
+        Number(paymentData.interval_length);
+
+    // Consider both passed intervals and remaining intervals
+    let claimableIntervals = Math.min(
+        intervalsPassed,
+        Number(paymentData.num_intervals),
+    );
+
+    // If this is potentially the final interval
+    if (
+        paymentData.num_intervals <= 1n &&
+        timeUntilEnd <= paymentData.interval_length
+    ) {
+        claimableIntervals = Math.max(1, claimableIntervals);
+    }
+
+    const withdrawableAmount = BigInt(Math.floor(claimableIntervals)) *
+        paymentData.interval_amount;
+
+    // console.log("Current Time:", currentTime);
+    // console.log("Subscription Start:", paymentData.subscription_start);
+    // console.log("Subscription End:", paymentData.subscription_end);
+    // console.log("Last Claimed:", paymentData.last_claimed);
+    // console.log("timeSinceLastClaim:", timeSinceLastClaim);
+    // console.log("timeUntilEnd:", timeUntilEnd);
+    // console.log("Interval Length:", paymentData.interval_length);
+    // console.log("Number of Intervals:", paymentData.num_intervals);
+    // console.log("intervalsPassed:", intervalsPassed);
+    // console.log("claimableIntervals:", claimableIntervals);
+
+    return {
+        withdrawableAmount,
+        intervalsToWithdraw: Math.floor(claimableIntervals),
+        timeSinceLastClaim,
+        timeUntilEnd,
+    };
+};
+
+export const findPaymentUTxOs = (
+    paymentUTxOs: UTxO[],
+    serviceNftTn: string,
+    currentTime: bigint,
+): Effect.Effect<UTxO[], Error> => {
+    return Effect.gen(function* ($) {
+        const results = yield* $(
+            Effect.promise(() =>
+                Promise.all(
+                    paymentUTxOs.map(async (utxo) => {
+                        try {
+                            const datum = await getPaymentValidatorDatum(utxo);
+                            const paymentData = datum[0];
+
+                            const { intervalsToWithdraw } =
+                                calculateClaimableIntervals(
+                                    currentTime,
+                                    paymentData,
+                                );
+
+                            return paymentData.service_nft_tn ===
+                                        serviceNftTn &&
+                                    intervalsToWithdraw > 0
+                                ? utxo
+                                : null;
+                        } catch {
+                            return null;
+                        }
+                    }),
+                )
+            ),
+        );
+
+        const validPayments = results.filter((utxo): utxo is UTxO =>
+            utxo !== null
+        );
+
+        if (validPayments.length === 0) {
+            return yield* $(
+                Effect.fail(new Error("No withdrawable payments found")),
+            );
+        }
+
+        return validPayments;
+    });
+};

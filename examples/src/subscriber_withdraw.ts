@@ -52,16 +52,22 @@ export const runSubscriberWithdraw = async (
 
     // Merchant Withdraw
     try {
-        const merchantWithdrawUnsigned = await subscriberWithdraw(
+        const subscriberWithdrawUnsigned = await subscriberWithdraw(
             lucid,
             subscriberWithdrawConfig,
         );
-        const merchantWithdrawSigned = await merchantWithdrawUnsigned.sign
+        const subscriberWithdrawSigned = await subscriberWithdrawUnsigned.sign
             .withWallet()
             .complete();
-        const merchantWithdrawTxHash = await merchantWithdrawSigned.submit();
+        const subscriberWithdrawTxHash = await subscriberWithdrawSigned
+            .submit();
 
-        console.log(`Service created successfully: ${merchantWithdrawTxHash}`);
+        console.log(`Submitting ...`);
+        await lucid.awaitTx(subscriberWithdrawTxHash);
+
+        console.log(
+            `Service created successfully: ${subscriberWithdrawTxHash}`,
+        );
     } catch (error) {
         console.error("Failed to create service:", error);
     }

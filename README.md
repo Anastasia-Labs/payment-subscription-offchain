@@ -245,7 +245,7 @@ const accountConfig: CreateAccountConfig = {
 
 ### Update an Account
 
-The endpoint allows the Subscriber to update theit account details.
+The endpoint allows the Subscriber to update their account details.
 
 ```ts
 import {
