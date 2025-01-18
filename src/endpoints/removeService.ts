@@ -78,9 +78,6 @@ export const removeServiceProgram = (
             () => (getServiceValidatorDatum(serviceUTxO)),
         );
 
-        console.log("serviceUTxO: ", serviceUTxO);
-        console.log("serviceData: ", serviceData);
-
         if (!serviceData || serviceData.length === 0) {
             throw new Error("serviceData is empty");
         }
@@ -120,9 +117,6 @@ export const removeServiceProgram = (
             // Specify the inputs relevant to the redeemer
             inputs: [merchantUTxO, serviceUTxO],
         };
-
-        console.log("merchantUTxO", merchantUTxOs);
-        console.log("serviceUTxO", serviceUTxO);
 
         const tx = yield* lucid
             .newTx()

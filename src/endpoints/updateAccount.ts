@@ -33,8 +33,6 @@ export const updateAccountProgram = (
             lucid.utxosAt(subscriberAddress)
         );
 
-        console.log("subscriberUTxO", subscriberUTxOs);
-
         const accountNFT = toUnit(
             accountPolicyId,
             config.account_nft_tn,

@@ -119,11 +119,11 @@ export const merchantWithdrawProgram = (
 
     const newNumIntervals = paymentData[0].num_intervals -
       BigInt(intervalsToWithdraw);
-    console.log("withdrawnAmount Amount: ", withdrawnAmount);
-    console.log("interval_amount: ", paymentData[0].interval_amount);
-    console.log("intervalsToWithdraw: ", intervalsToWithdraw);
+    // console.log("withdrawnAmount Amount: ", withdrawnAmount);
+    // console.log("interval_amount: ", paymentData[0].interval_amount);
+    // console.log("intervalsToWithdraw: ", intervalsToWithdraw);
 
-    console.log("Payment Datum 0: ", paymentData[0]);
+    // console.log("Payment Datum 0: ", paymentData[0]);
 
     const paymentDatum: PaymentDatum = {
       service_nft_tn: paymentData[0].service_nft_tn,
@@ -171,7 +171,7 @@ export const merchantWithdrawProgram = (
     if (withdrawableAmount < paymentData[0].minimum_ada) {
       console.error("Not enough Withdrawable Amount: ", withdrawableAmount);
     }
-    console.log("newTotalSubscriptionFee: ", newTotalSubscriptionFee);
+    // console.log("newTotalSubscriptionFee: ", newTotalSubscriptionFee);
 
     // TODO input-payment - withdrawable amoun = newTotalSubscriptionFrr
 

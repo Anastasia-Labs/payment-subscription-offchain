@@ -61,7 +61,6 @@ export const initSubscriptionProgram = (
         serviceNft,
       )
     );
-    console.log("serviceUTxO: ", subscriberUTxOs);
 
     const subscriberUTxO = yield* Effect.promise(() =>
       lucid.utxoByUnit(
@@ -140,17 +139,12 @@ export const initSubscriptionProgram = (
 
     // Find UTxO with sufficient lovelace
 
-    console.log("subscriberUTxO: ", subscriberUTxO);
-
     const subscriberAssets = {
       ...subscriberUTxO.assets,
       // Remove the totalSubscriptionQty from the lovelace amount
       lovelace: subscriberUTxO.assets.lovelace - totalSubscriptionQty -
         serviceData[0].minimum_ada,
     };
-
-    console.log("subscriberAssets: ", subscriberAssets);
-    console.log("paymentNFT: ", tokenName);
 
     const tx = yield* lucid
       .newTx()
@@ -167,7 +161,6 @@ export const initSubscriptionProgram = (
       })
       .attach.MintingPolicy(validators.mintValidator)
       .completeProgram();
-    console.log("/////////////////////////////////: ");
 
     return tx;
   });

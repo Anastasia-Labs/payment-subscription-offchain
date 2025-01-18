@@ -56,8 +56,6 @@ export const removeAccountProgram = (
             );
         }
 
-        console.log("removeAccountProgram: subscriberUTxOs", subscriberUTxOs);
-
         const subscriberUTxO = yield* Effect.promise(() =>
             lucid.utxoByUnit(
                 subscriberNFT,
