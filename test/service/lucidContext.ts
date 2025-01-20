@@ -105,6 +105,7 @@ export const makeLucidContext = (network?: Network) =>
             return yield* $(makeMaestroContext(selectedNetwork));
         } else {
             // Use Emulator context
+            console.log("selectedNetwork: Emulator");
             return yield* $(makeEmulatorContext());
         }
     });

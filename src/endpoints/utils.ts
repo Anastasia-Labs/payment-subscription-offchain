@@ -8,8 +8,18 @@ import {
     UTxO,
 } from "../index.js"; // Adjust the import path as necessary
 import { Effect } from "effect";
-import { LucidEvolution, PolicyId, toUnit, Unit } from "@lucid-evolution/lucid";
-import { findCip68TokenNames } from "../core/utils/assets.js";
+import {
+    LucidEvolution,
+    PolicyId,
+    toUnit,
+    TransactionError,
+    TxBuilderError,
+    Unit,
+} from "@lucid-evolution/lucid";
+import {
+    findCip68TokenNames,
+    tokenNameFromUTxO,
+} from "../core/utils/assets.js";
 
 // /**
 //  * Extracts token units (userNft and refNft) from UTxOs.
@@ -182,7 +192,7 @@ export const getPenaltyDatum = async (
                 return [penaltyDatum];
             } else {
                 console.error(
-                    `UTxO ${utxo.txHash} contains Penalty datum, skipping.`,
+                    `UTxO ${utxo.txHash} contains Payment datum, skipping.`,
                 );
                 return [];
             }
@@ -251,49 +261,124 @@ export const calculateClaimableIntervals = (
     };
 };
 
-export const findPaymentUTxOs = (
+export const findUnsubscribePaymentUTxO = (
     paymentUTxOs: UTxO[],
     serviceNftTn: string,
-    currentTime: bigint,
-): Effect.Effect<UTxO[], Error> => {
-    return Effect.gen(function* ($) {
-        const results = yield* $(
-            Effect.promise(() =>
-                Promise.all(
-                    paymentUTxOs.map(async (utxo) => {
-                        try {
-                            const datum = await getPaymentValidatorDatum(utxo);
-                            const paymentData = datum[0];
+    subscriberNftTn: string,
+): Effect.Effect<UTxO, TransactionError, never> => {
+    return Effect.gen(function* (_) {
+        console.log("Starting search for UTxO with:");
+        console.log("  - Service NFT:", serviceNftTn);
+        console.log("  - Subscriber NFT:", subscriberNftTn);
 
-                            const { intervalsToWithdraw } =
-                                calculateClaimableIntervals(
-                                    currentTime,
-                                    paymentData,
-                                );
+        const results = yield* Effect.promise(() =>
+            Promise.all(
+                paymentUTxOs.map(async (utxo) => {
+                    try {
+                        const datum = await getPaymentValidatorDatum(utxo);
+                        const serviceMatch =
+                            datum[0].service_nft_tn === serviceNftTn;
+                        const subscriberMatch =
+                            datum[0].subscriber_nft_tn === subscriberNftTn;
 
-                            return paymentData.service_nft_tn ===
-                                        serviceNftTn &&
-                                    intervalsToWithdraw > 0
-                                ? utxo
-                                : null;
-                        } catch {
-                            return null;
+                        console.log(
+                            `\nChecking UTxO ${utxo.txHash.slice(0, 8)}:`,
+                        );
+                        console.log("  Service NFT matches:", serviceMatch);
+                        console.log(
+                            "  Subscriber NFT matches:",
+                            subscriberMatch,
+                        );
+
+                        if (serviceMatch && subscriberMatch) {
+                            console.log("  Found matching UTxO!");
+                            return utxo;
                         }
-                    }),
-                )
-            ),
+                        return undefined;
+                    } catch (error) {
+                        console.log(
+                            `\nError processing UTxO ${
+                                utxo.txHash.slice(0, 8)
+                            }:`,
+                            error,
+                        );
+                        return undefined;
+                    }
+                }),
+            )
         );
 
-        const validPayments = results.filter((utxo): utxo is UTxO =>
-            utxo !== null
-        );
+        const paymentUTxO = results.find((result) => result !== undefined);
 
-        if (validPayments.length === 0) {
-            return yield* $(
-                Effect.fail(new Error("No withdrawable payments found")),
+        if (!paymentUTxO) {
+            console.log("\nNo matching UTxO found!");
+            return yield* Effect.fail(
+                new TxBuilderError({
+                    cause:
+                        "No active subscription found for this subscriber and service",
+                }),
             );
         }
 
-        return validPayments;
+        console.log("\nFound matching UTxO:", paymentUTxO.txHash);
+        return paymentUTxO;
     });
+};
+
+export const findSubscriptionTokenNames = async (
+    paymentUTxOs: UTxO[],
+    subscriberNftTn: string,
+    paymentPolicyId: string,
+): Promise<{
+    serviceNftTn: string;
+    paymentNftTn: string;
+}> => {
+    // Find payment UTxO that has this subscriber
+    for (const utxo of paymentUTxOs) {
+        try {
+            const datum = await getPaymentValidatorDatum(utxo);
+            if (datum[0].subscriber_nft_tn === subscriberNftTn) {
+                // Found the matching subscription
+                const paymentNftTn = tokenNameFromUTxO([utxo], paymentPolicyId);
+                return {
+                    serviceNftTn: datum[0].service_nft_tn,
+                    paymentNftTn,
+                };
+            }
+        } catch {
+            continue;
+        }
+    }
+    throw new Error("No active subscription found for subscriber");
+};
+
+export const findPenaltyDetails = async (
+    paymentUTxOs: UTxO[],
+    serviceNftTn: string,
+    paymentPolicyId: string,
+): Promise<{
+    paymentNftTn: string;
+    penaltyDatum: PenaltyDatum;
+}> => {
+    for (const utxo of paymentUTxOs) {
+        try {
+            const penaltyDatums = await getPenaltyDatum(utxo);
+
+            // Check if we found a penalty datum and it matches our service
+            if (
+                penaltyDatums.length > 0 &&
+                penaltyDatums[0].service_nft_tn === serviceNftTn &&
+                penaltyDatums[0].penalty_fee_qty > 0
+            ) {
+                const paymentNftTn = tokenNameFromUTxO([utxo], paymentPolicyId);
+                return {
+                    paymentNftTn,
+                    penaltyDatum: penaltyDatums[0],
+                };
+            }
+        } catch {
+            continue;
+        }
+    }
+    throw new Error(`No penalty found for service ${serviceNftTn}`);
 };

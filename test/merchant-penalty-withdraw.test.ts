@@ -1,4 +1,5 @@
 import {
+    findPenaltyDetails,
     getMultiValidator,
     merchantPenaltyWithdrawProgram,
     tokenNameFromUTxO,
@@ -45,15 +46,15 @@ export const withdrawPenaltyTestCase = (
             lucid.utxosAt(paymentValidator.spendValAddress)
         );
 
-        const paymentNftTn = tokenNameFromUTxO(
-            paymentUTxOs,
-            paymentPolicyId,
-        );
+        // const paymentNftTn = tokenNameFromUTxO(
+        //     paymentUTxOs,
+        //     paymentPolicyId,
+        // );
 
         const withdrawPenaltyConfig: WithdrawPenaltyConfig = {
             service_nft_tn: serviceNftTn,
             merchant_nft_tn: merchantNftTn,
-            payment_nft_tn: paymentNftTn,
+            // payment_nft_tn: paymentNftTn,
         };
 
         lucid.selectWallet.fromSeed(users.merchant.seedPhrase);

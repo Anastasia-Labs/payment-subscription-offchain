@@ -14,7 +14,11 @@ import { getMultiValidator } from "../core/utils/index.js";
 import { UnsubscribeConfig } from "../core/types.js";
 import { PaymentValidatorDatum, PenaltyDatum } from "../core/contract.types.js";
 import { Effect } from "effect";
-import { getPaymentValidatorDatum } from "./utils.js";
+import {
+    findSubscriptionTokenNames,
+    findUnsubscribePaymentUTxO,
+    getPaymentValidatorDatum,
+} from "./utils.js";
 import {
     accountPolicyId,
     paymentPolicyId,
@@ -37,9 +41,17 @@ export const unsubscribeProgram = (
         );
         const paymentAddress = paymentValidators.spendValAddress;
 
-        // const paymentUTxOs = yield* Effect.promise(() =>
-        //     lucid.utxosAt(paymentAddress)
-        // );
+        const paymentUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(paymentAddress)
+        );
+
+        const { serviceNftTn, paymentNftTn } = yield* Effect.promise(() =>
+            findSubscriptionTokenNames(
+                paymentUTxOs,
+                config.subscriber_nft_tn,
+                paymentPolicyId,
+            )
+        );
 
         // const payment_token_name = tokenNameFromUTxO(
         //     paymentUTxOs,
@@ -48,7 +60,7 @@ export const unsubscribeProgram = (
 
         const paymentNFT = toUnit(
             paymentPolicyId,
-            config.payment_nft_tn,
+            paymentNftTn,
         );
 
         const subscriberUTxOs = yield* Effect.promise(() =>
@@ -58,6 +70,12 @@ export const unsubscribeProgram = (
         const selectedUTxOs = selectUTxOs(subscriberUTxOs, {
             ["lovelace"]: 2000000n,
         });
+
+        // const paymentUTxO = yield* findUnsubscribePaymentUTxO(
+        //     paymentUTxOs,
+        //     config.service_nft_tn,
+        //     config.subscriber_nft_tn,
+        // );
 
         const paymentUTxO = yield* Effect.promise(() =>
             lucid.utxoByUnit(
@@ -76,7 +94,7 @@ export const unsubscribeProgram = (
 
         const serviceRefNft = toUnit(
             servicePolicyId,
-            config.service_nft_tn,
+            serviceNftTn,
         );
 
         const subscriberNft = toUnit(
@@ -119,11 +137,16 @@ export const unsubscribeProgram = (
             ),
         );
 
-        const refund_amount = paymentData[0].total_subscription_fee_qty *
-            (total_subscription_time - time_elapsed) / total_subscription_time;
+        // const refund_amount = paymentData[0].total_subscription_fee_qty *
+        //     (total_subscription_time - time_elapsed) / total_subscription_time;
+        const refundable_amount = paymentData[0].num_intervals *
+            paymentData[0].interval_amount;
+
+        const subscriber_refund = refundable_amount -
+            paymentData[0].penalty_fee_qty - paymentData[0].minimum_ada;
 
         const penaltyDatum: PenaltyDatum = {
-            service_nft_tn: config.service_nft_tn,
+            service_nft_tn: serviceNftTn,
             subscriber_nft_tn: config.subscriber_nft_tn,
             penalty_fee: paymentData[0].penalty_fee,
             penalty_fee_qty: paymentData[0].penalty_fee_qty,
@@ -160,19 +183,22 @@ export const unsubscribeProgram = (
             inputs: [subscriberUTxO, paymentUTxO],
         };
 
+        console.log("subscriberUTxOs: ", subscriberUTxOs);
+
         const tx = yield* lucid
             .newTx()
-            .collectFrom(selectedUTxOs)
+            .collectFrom([subscriberUTxO])
             .readFrom([serviceUTxO])
             .collectFrom([paymentUTxO], unsubscribeRedeemer)
             .pay.ToAddress(subscriberAddress, {
-                lovelace: refund_amount,
+                lovelace: subscriber_refund,
                 [subscriberNft]: 1n,
             })
             .pay.ToAddressWithData(paymentAddress, {
                 kind: "inline",
                 value: penaltyValDatum,
             }, {
+                lovelace: paymentData[0].penalty_fee_qty,
                 [paymentNFT]: 1n,
             })
             .validFrom(Number(paymentData[0].subscription_start)) // 1 minute

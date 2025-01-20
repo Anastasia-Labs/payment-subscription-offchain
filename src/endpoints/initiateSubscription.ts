@@ -45,6 +45,8 @@ export const initSubscriptionProgram = (
     if (!subscriberUTxOs || !subscriberUTxOs.length) {
       console.error("No UTxO found at user address: " + subscriberAddress);
     }
+    console.log("subscriberAddress: ", subscriberAddress);
+    console.log("subscriberUTxOs: ", subscriberUTxOs);
 
     const subscriberNft = toUnit(
       accountPolicyId,
@@ -69,6 +71,7 @@ export const initSubscriptionProgram = (
     );
 
     const tokenName = generateUniqueAssetName(subscriberUTxO, "");
+    console.log("paymentNftTn: ", tokenName);
 
     const paymentNFT = toUnit(
       paymentPolicyId,

@@ -11,7 +11,7 @@ import {
 import { WithdrawPenaltyConfig } from "../core/types.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
-import { getPenaltyDatum } from "./utils.js";
+import { findPenaltyDetails, getPenaltyDatum } from "./utils.js";
 import {
   paymentPolicyId,
   paymentScript,
@@ -29,45 +29,23 @@ export const merchantPenaltyWithdrawProgram = (
 
     const validators = getMultiValidator(lucid, paymentScript);
 
-    // const paymentAddress = validators.spendValAddress;
+    const paymentAddress = validators.spendValAddress;
 
-    // const paymentUTxOs = yield* Effect.promise(() =>
-    //   lucid.utxosAt(paymentAddress)
-    // );
+    const paymentUTxOs = yield* Effect.promise(() =>
+      lucid.utxosAt(paymentAddress)
+    );
 
     const merchantUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(merchantAddress)
     );
 
-    // const penaltyUTxOs = paymentUTxOs.filter((utxo: UTxO) => {
-    //   if (!utxo.datum) return false;
-
-    //   try {
-    //     const validatorDatum = Data.from<PaymentValidatorDatum>(
-    //       utxo.datum,
-    //       PaymentValidatorDatum,
-    //     );
-
-    //     // Check the structure of the datum
-    //     if (validatorDatum && typeof validatorDatum === "object") {
-    //       // Check if it's a Penalty variant
-    //       if (
-    //         "Penalty" in validatorDatum && Array.isArray(validatorDatum.Penalty)
-    //       ) {
-    //         const datum = validatorDatum.Penalty[0];
-    //         return datum.penalty_fee_qty > 0;
-    //       }
-    //     }
-    //     return false;
-    //   } catch (error) {
-    //     console.error("Error parsing datum:", error);
-    //     return false;
-    //   }
-    // });
+    const { paymentNftTn, penaltyDatum } = yield* Effect.promise(() =>
+      findPenaltyDetails(paymentUTxOs, config.service_nft_tn, paymentPolicyId)
+    );
 
     const paymentNFT = toUnit(
       paymentPolicyId,
-      config.payment_nft_tn,
+      paymentNftTn,
     );
 
     const penaltyUTxO = yield* Effect.promise(() =>
@@ -76,9 +54,9 @@ export const merchantPenaltyWithdrawProgram = (
       )
     );
 
-    const penaltyData = yield* Effect.promise(
-      () => (getPenaltyDatum(penaltyUTxO)),
-    );
+    // const penaltyData = yield* Effect.promise(
+    //   () => (getPenaltyDatum(penaltyUTxO)),
+    // );
 
     const serviceRefNft = toUnit(
       servicePolicyId,
@@ -144,7 +122,7 @@ export const merchantPenaltyWithdrawProgram = (
         terminateSubscriptionRedeemer,
       )
       .pay.ToAddress(merchantAddress, {
-        lovelace: penaltyData[0].penalty_fee_qty,
+        lovelace: penaltyDatum.penalty_fee_qty,
         [merchantNft]: 1n,
       })
       .attach.MintingPolicy(validators.mintValidator)

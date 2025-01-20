@@ -1,6 +1,7 @@
 import { Assets, UTxO } from "@lucid-evolution/lucid";
 import { bytesToHex, concatBytes, hexToBytes } from "@noble/hashes/utils";
 import { sha3_256 } from "@noble/hashes/sha3";
+import { getPaymentValidatorDatum } from "../../endpoints/utils.js";
 
 const assetNameLabels = {
     prefix100: "000643b0",
@@ -189,10 +190,60 @@ const tokenNameFromUTxO = (
     return "";
 };
 
+const findSubscriberPaymentTokenName = async (
+    paymentUTxOs: UTxO[],
+    subscriberNftTn: string,
+    serviceNftTn: string,
+    paymentPolicyId: string,
+): Promise<string> => {
+    console.log("Searching for subscription with:", {
+        serviceNftTn,
+        subscriberNftTn,
+    });
+
+    const results = await Promise.all(
+        paymentUTxOs.map(async (utxo) => {
+            try {
+                const datums = await getPaymentValidatorDatum(utxo);
+                console.log("UTxO", utxo.txHash.slice(0, 8), "datum result:", {
+                    found: datums.length > 0,
+                    datum: datums[0],
+                    matches: datums.length > 0 &&
+                        datums[0].subscriber_nft_tn === subscriberNftTn &&
+                        datums[0].service_nft_tn === serviceNftTn,
+                });
+
+                return datums.length > 0 &&
+                        datums[0].subscriber_nft_tn === subscriberNftTn &&
+                        datums[0].service_nft_tn === serviceNftTn
+                    ? tokenNameFromUTxO([utxo], paymentPolicyId)
+                    : null;
+            } catch (error) {
+                console.error(
+                    "Error processing UTxO",
+                    utxo.txHash.slice(0, 8),
+                    error,
+                );
+                return null;
+            }
+        }),
+    );
+
+    const paymentNftTn = results.find((result) => result !== null);
+    if (!paymentNftTn) {
+        throw new Error(
+            "No active subscription found for this subscriber and service",
+        );
+    }
+
+    return paymentNftTn;
+};
+
 export {
     assetNameLabels,
     createCip68TokenNames,
     findCip68TokenNames,
+    findSubscriberPaymentTokenName,
     generateUniqueAssetName,
     tokenNameFromUTxO,
 };
