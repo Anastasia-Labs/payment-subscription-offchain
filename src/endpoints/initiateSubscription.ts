@@ -4,11 +4,9 @@ import {
   LucidEvolution,
   mintingPolicyToId,
   RedeemerBuilder,
-  selectUTxOs,
   toUnit,
   TransactionError,
   TxSignBuilder,
-  UTxO,
 } from "@lucid-evolution/lucid";
 import { InitPaymentConfig } from "../core/types.js";
 import {

@@ -100,3 +100,6 @@ export async function setupLucid(command: "create" | "other" = "other") {
         },
     };
 }
+function initializeValidators() {
+    throw new Error("Function not implemented.");
+}

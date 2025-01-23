@@ -255,12 +255,17 @@ paymentCommand.command("withdraw_penalty").action(async () => {
         const {
             lucid,
             MERCHANT_WALLET_SEED,
+            tokenNames,
         } = await setupLucid();
 
-        lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
+        lucid.selectWallet.fromSeed(
+            MERCHANT_WALLET_SEED,
+        );
 
         await runWithdrawPenalty(
             lucid,
+            tokenNames.serviceNftTn,
+            tokenNames.merchantNftTn,
         );
         process.exit(0);
     } catch (error) {

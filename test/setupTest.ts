@@ -76,6 +76,7 @@ export const setupTest = (): Effect.Effect<SetupResult, Error, never> => {
     const serviceUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(serviceAddress)
     );
+    console.log("Setup context: ", serviceUTxOs);
 
     // Find CIP68 Token Names
     const { refTokenName: serviceNftTn, userTokenName: merchantNftTn } =
