@@ -16,19 +16,12 @@ export type Validators = {
     alwaysFails: SpendingValidator;
 };
 
-// Add a cache at module level
-let cachedValidators: Validators | null = null;
-
+// TODO: this should be refactored
 export function readMultiValidators(
     blueprint: any,
     params: boolean,
     policyIds: string[],
 ): Validators {
-    // Return cached validators if they exist
-    if (cachedValidators) {
-        return cachedValidators;
-    }
-
     const getValidator = (title: string): Script => {
         const validator = blueprint.validators.find((v: { title: string }) =>
             v.title === title
@@ -47,8 +40,7 @@ export function readMultiValidators(
         };
     };
 
-    // Create validators only once
-    cachedValidators = {
+    let cachedValidators = {
         spendService: getValidator("service_multi_validator.spend_service"),
         mintService: getValidator("service_multi_validator.mint_service"),
         spendAccount: getValidator("account_multi_validator.spend_account"),
