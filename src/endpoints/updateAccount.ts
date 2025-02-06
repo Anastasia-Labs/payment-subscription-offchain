@@ -18,6 +18,7 @@ import {
     accountPolicyId,
     accountScript,
 } from "../core/validators/constants.js";
+import { sha3_256 } from "@noble/hashes/sha3";
 
 export const updateAccountProgram = (
     lucid: LucidEvolution,
@@ -70,9 +71,8 @@ export const updateAccountProgram = (
         );
 
         const updatedDatum: AccountDatum = {
-            email: fromText(config.new_email),
-            phone: fromText(config.new_phone),
-            account_created: accountData[0].account_created,
+            email_hash: fromText(config.new_email),
+            phone_hash: fromText(config.new_phone),
         };
 
         const directDatum = Data.to<AccountDatum>(updatedDatum, AccountDatum);
@@ -87,8 +87,10 @@ export const updateAccountProgram = (
                 return Data.to(
                     new Constr(1, [
                         new Constr(0, [
+                            config.account_nft_tn,
                             BigInt(userIndex),
                             BigInt(accountIndex),
+                            BigInt(accountUTxO.outputIndex),
                         ]),
                     ]),
                 );

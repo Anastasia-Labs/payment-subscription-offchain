@@ -40,7 +40,7 @@ export function readMultiValidators(
         };
     };
 
-    let cachedValidators = {
+    return {
         spendService: getValidator("service_multi_validator.spend_service"),
         mintService: getValidator("service_multi_validator.mint_service"),
         spendAccount: getValidator("account_multi_validator.spend_account"),
@@ -49,6 +49,4 @@ export function readMultiValidators(
         mintPayment: getValidator("payment_multi_validator.mint_payment"),
         alwaysFails: getValidator("always_fails_validator.always_fails"),
     };
-
-    return cachedValidators;
 }

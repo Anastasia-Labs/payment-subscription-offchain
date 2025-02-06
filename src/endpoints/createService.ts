@@ -49,6 +49,7 @@ export const createServiceProgram = (
 
     console.log("refTokenName: ", refTokenName);
     console.log("userTokenName: ", userTokenName);
+    console.log("outputIndex: ", selectedUTxOs[0].outputIndex);
 
     const createServiceRedeemer: RedeemerBuilder = {
       kind: "selected",
@@ -64,6 +65,7 @@ export const createServiceProgram = (
             outputIndex: BigInt(selectedUTxOs[0].outputIndex),
           },
           input_index: merchantIndex,
+          output_index: 1n,
         };
         const redeemerData = Data.to(redeemer, CreateServiceRedeemer);
 
@@ -74,16 +76,17 @@ export const createServiceProgram = (
     };
 
     const currDatum: ServiceDatum = {
-      service_fee: ADA,
-      service_fee_qty: config.service_fee_qty,
-      penalty_fee: ADA,
-      penalty_fee_qty: config.penalty_fee_qty,
+      service_fee_policyid: "",
+      service_fee_assetname: "",
+      service_fee: config.service_fee,
+      penalty_fee_policyid: "",
+      penalty_fee_assetname: "",
+      penalty_fee: config.penalty_fee,
       interval_length: config.interval_length,
       num_intervals: config.num_intervals,
-      minimum_ada: config.minimum_ada,
       is_active: config.is_active,
     };
-    console.log(`Service config.interval_lengt: ${config.interval_length}`);
+    console.log(`Service ServiceDatum:`, currDatum);
 
     const directDatum = Data.to<ServiceDatum>(currDatum, ServiceDatum);
 
@@ -110,7 +113,6 @@ export const createServiceProgram = (
         createServiceRedeemer,
       )
       .pay.ToAddress(merchantAddress, {
-        lovelace: config.minimum_ada,
         [userToken]: 1n,
       })
       .pay.ToContract(validators.mintValAddress, {

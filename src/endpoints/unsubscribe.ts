@@ -149,7 +149,7 @@ export const unsubscribeProgram = (
             service_nft_tn: serviceNftTn,
             subscriber_nft_tn: config.subscriber_nft_tn,
             penalty_fee: paymentData[0].penalty_fee,
-            penalty_fee_qty: paymentData[0].penalty_fee_qty,
+            penalty_fee: paymentData[0].penalty_fee_qty,
         };
 
         const allDatums: PaymentValidatorDatum = {
@@ -198,7 +198,7 @@ export const unsubscribeProgram = (
                 kind: "inline",
                 value: penaltyValDatum,
             }, {
-                lovelace: paymentData[0].penalty_fee_qty,
+                lovelace: paymentData[0].penalty_fee_qty + 1_000_000n,
                 [paymentNFT]: 1n,
             })
             .validFrom(Number(paymentData[0].subscription_start)) // 1 minute

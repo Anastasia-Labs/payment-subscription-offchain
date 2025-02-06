@@ -1,6 +1,6 @@
 import { RemoveServiceConfig, removeServiceProgram } from "../src/index.js";
 import { Effect } from "effect";
-import { SetupResult } from "./setupTest.js";
+import { ServiceSetup, SetupResult } from "./setupTest.js";
 
 type RemoveServiceResult = {
   txHash: string;
@@ -8,12 +8,11 @@ type RemoveServiceResult = {
 };
 
 export const removeServiceTestCase = (
-  setupResult: SetupResult,
+  setupResult: ServiceSetup,
 ): Effect.Effect<RemoveServiceResult, Error, never> => {
   return Effect.gen(function* () {
     const {
       context: { lucid, users },
-      serviceUTxOs,
       serviceNftTn,
       merchantNftTn,
     } = setupResult;

@@ -8,7 +8,13 @@ import { Address, Data } from "@lucid-evolution/lucid";
 import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
 import { getServiceValidatorDatum } from "../src/endpoints/utils.js";
-import { SetupResult, setupTest } from "./setupTest.js";
+import {
+  ServiceSetup,
+  setupBase,
+  SetupResult,
+  setupService,
+  setupTest,
+} from "./setupTest.js";
 
 type UpdateServiceResult = {
   txHash: string;
@@ -16,12 +22,11 @@ type UpdateServiceResult = {
 };
 
 export const updateServiceTestCase = (
-  setupResult: SetupResult,
+  setupResult: ServiceSetup,
 ): Effect.Effect<UpdateServiceResult, Error, never> => {
   return Effect.gen(function* () {
     const {
       context: { lucid, users, emulator },
-      serviceUTxOs,
       serviceNftTn,
       merchantNftTn,
     } = setupResult;
@@ -35,11 +40,10 @@ export const updateServiceTestCase = (
     const updateServiceConfig: UpdateServiceConfig = {
       service_nft_tn: serviceNftTn,
       merchant_nft_tn: merchantNftTn,
-      new_service_fee_qty: 9_500_000n,
-      new_penalty_fee_qty: 1_000_000n,
+      new_service_fee: 9_500_000n,
+      new_penalty_fee: 1_000_000n,
       new_interval_length: 60000n,
       new_num_intervals: 12n,
-      new_minimum_ada: 2_000_000n,
     };
 
     const updateServiceFlow = Effect.gen(function* (_) {
@@ -75,7 +79,8 @@ export const updateServiceTestCase = (
 
 test<LucidContext>("Test 2 - Update Service", async () => {
   const program = Effect.gen(function* () {
-    const setupContext = yield* setupTest();
+    const base = yield* setupBase();
+    const setupContext = yield* setupService(base);
     const result = yield* updateServiceTestCase(setupContext);
     return result;
   });

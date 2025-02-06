@@ -73,8 +73,13 @@ export async function setupLucid(command: "create" | "other" = "other") {
             servicePolicyId,
         );
 
-        if (!serviceTokens) {
-            throw new Error("Failed to initialize serviceTokens");
+        if (
+            !serviceTokens || !serviceTokens.refTokenName ||
+            !serviceTokens.userTokenName
+        ) {
+            throw new Error(
+                "No valid service tokens found. Have you created a service first?",
+            );
         }
 
         accountTokens = findCip68TokenNames(
@@ -82,6 +87,25 @@ export async function setupLucid(command: "create" | "other" = "other") {
             subscriberUTxOs,
             accountPolicyId,
         );
+
+        if (
+            !accountTokens || !accountTokens.refTokenName ||
+            !accountTokens.userTokenName
+        ) {
+            throw new Error(
+                "No valid account tokens found. Have you created an account first?",
+            );
+        }
+
+        // Validate that the found tokens match the expected format
+        console.log("Found Service Tokens:", {
+            ref: serviceTokens.refTokenName,
+            user: serviceTokens.userTokenName,
+        });
+        console.log("Found Account Tokens:", {
+            ref: accountTokens.refTokenName,
+            user: accountTokens.userTokenName,
+        });
     }
 
     return {

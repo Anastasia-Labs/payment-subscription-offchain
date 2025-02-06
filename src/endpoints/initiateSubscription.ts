@@ -1,16 +1,19 @@
 import {
   Address,
   Data,
+  getInputIndices,
   LucidEvolution,
   mintingPolicyToId,
   RedeemerBuilder,
+  sortUTxOs,
   toUnit,
   TransactionError,
   TxSignBuilder,
 } from "@lucid-evolution/lucid";
 import { InitPaymentConfig } from "../core/types.js";
 import {
-  InitiatePayment,
+  InitSubscription,
+  Installment,
   PaymentDatum,
   PaymentValidatorDatum,
 } from "../core/contract.types.js";
@@ -21,6 +24,7 @@ import {
   accountPolicyId,
   paymentScript,
   servicePolicyId,
+  serviceScript,
 } from "../core/validators/constants.js";
 import { getServiceValidatorDatum } from "./utils.js";
 
@@ -37,6 +41,11 @@ export const initSubscriptionProgram = (
     const validators = getMultiValidator(lucid, paymentScript);
     const paymentPolicyId = mintingPolicyToId(validators.mintValidator);
 
+    const serviceValidators = getMultiValidator(lucid, serviceScript);
+
+    const serviceUTxOs = yield* Effect.promise(() =>
+      lucid.utxosAt(serviceValidators.spendValAddress)
+    );
     const subscriberUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(subscriberAddress)
     );
@@ -68,6 +77,10 @@ export const initSubscriptionProgram = (
       )
     );
 
+    if (!subscriberUTxO) {
+      throw new Error(" subscriberUTxO not found");
+    }
+
     const tokenName = generateUniqueAssetName(subscriberUTxO, "");
     console.log("paymentNftTn: ", tokenName);
 
@@ -80,19 +93,17 @@ export const initSubscriptionProgram = (
       kind: "selected",
       makeRedeemer: (inputIndices: bigint[]) => {
         // Construct the redeemer using the input indices
-        const subscriberIndex = inputIndices[0];
+        const serviceRefIndex = 0n;
+        const subscriberIndex = inputIndices[0] ?? 0n;
+        const paymentIndex = 2n; //BigInt(subscriberUTxO.outputIndex);
 
-        const paymentRedeemer: InitiatePayment = {
-          output_reference: {
-            txHash: {
-              hash: subscriberUTxO.txHash,
-            },
-            outputIndex: BigInt(subscriberUTxO.outputIndex),
-          },
-          input_index: subscriberIndex,
+        const paymentRedeemer: InitSubscription = {
+          service_ref_input_index: serviceRefIndex,
+          subscriber_input_index: subscriberIndex,
+          payment_output_index: paymentIndex,
         };
 
-        const redeemerData = Data.to(paymentRedeemer, InitiatePayment);
+        const redeemerData = Data.to(paymentRedeemer, InitSubscription);
 
         return redeemerData;
       },
@@ -105,7 +116,7 @@ export const initSubscriptionProgram = (
       () => (getServiceValidatorDatum(serviceUTxO)),
     );
 
-    const interval_amount = serviceData[0].service_fee_qty;
+    const interval_amount = serviceData[0].service_fee;
     const interval_length = serviceData[0].interval_length;
     const subscription_end = finalCurrentTime +
       interval_length * config.num_intervals;
@@ -113,20 +124,34 @@ export const initSubscriptionProgram = (
     const totalSubscriptionQty = interval_amount *
       config.num_intervals;
 
+    const createInstallments = (
+      startTime: bigint,
+      intervalLength: bigint,
+      intervalAmount: bigint,
+      numIntervals: number,
+    ): Installment[] => {
+      return Array.from(
+        { length: numIntervals },
+        (_, i) =>
+          ({
+            claimable_at: startTime + (intervalLength * BigInt(i + 1)),
+            claimable_amount: intervalAmount,
+          }) as Installment,
+      );
+    };
+
     const paymentDatum: PaymentDatum = {
       service_nft_tn: config.service_nft_tn,
       subscriber_nft_tn: config.subscriber_nft_tn,
-      subscription_fee: serviceData[0].service_fee,
-      total_subscription_fee_qty: totalSubscriptionQty,
       subscription_start: finalCurrentTime,
       subscription_end: subscription_end,
-      interval_length: serviceData[0].interval_length,
-      interval_amount: interval_amount,
-      num_intervals: config.num_intervals,
-      last_claimed: finalCurrentTime,
-      penalty_fee: serviceData[0].penalty_fee,
-      penalty_fee_qty: serviceData[0].penalty_fee_qty,
-      minimum_ada: serviceData[0].minimum_ada,
+      original_subscription_end: subscription_end,
+      installments: createInstallments(
+        finalCurrentTime,
+        interval_length,
+        interval_amount,
+        Number(config.num_intervals),
+      ),
     };
 
     const allDatums: PaymentValidatorDatum = {
@@ -143,10 +168,10 @@ export const initSubscriptionProgram = (
     const subscriberAssets = {
       ...subscriberUTxO.assets,
       // Remove the totalSubscriptionQty from the lovelace amount
-      lovelace: subscriberUTxO.assets.lovelace - totalSubscriptionQty -
-        serviceData[0].minimum_ada,
+      lovelace: subscriberUTxO.assets.lovelace - totalSubscriptionQty,
     };
 
+    console.log("PaymentValDatum:", paymentValDatum);
     const tx = yield* lucid
       .newTx()
       .readFrom([serviceUTxO])

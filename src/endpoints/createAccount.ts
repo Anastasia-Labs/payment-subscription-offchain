@@ -49,6 +49,7 @@ export const createAccountProgram = (
 
     console.log("refTokenName: ", refTokenName);
     console.log("userTokenName: ", userTokenName);
+    console.log("outputIndex: ", selectedUTxOs[0].outputIndex);
 
     const createAccountRedeemer: RedeemerBuilder = {
       kind: "selected",
@@ -64,6 +65,7 @@ export const createAccountProgram = (
             outputIndex: BigInt(selectedUTxOs[0].outputIndex),
           },
           input_index: subscriberIndex,
+          output_index: 1n,
         };
         const redeemerData = Data.to(redeemer, CreateAccountRedeemer);
 
@@ -74,9 +76,8 @@ export const createAccountProgram = (
     };
 
     const currDatum: AccountDatum = {
-      email: fromText(config.email),
-      phone: fromText(config.phone),
-      account_created: config.account_created,
+      email_hash: fromText(config.email_hash),
+      phone_hash: fromText(config.phone_hash),
     };
 
     const directDatum = Data.to<AccountDatum>(currDatum, AccountDatum);

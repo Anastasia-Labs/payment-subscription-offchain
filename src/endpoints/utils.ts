@@ -213,6 +213,7 @@ export const calculateClaimableIntervals = (
     currentTime: bigint,
     paymentData: PaymentDatum,
 ): WithdrawalCalc => {
+    console.log("calculateClaimableIntervals:", paymentData.last_claimed);
     // Calculate time since last claim
     const timeSinceLastClaim = currentTime > paymentData.last_claimed
         ? currentTime - paymentData.last_claimed
@@ -242,16 +243,16 @@ export const calculateClaimableIntervals = (
     const withdrawableAmount = BigInt(Math.floor(claimableIntervals)) *
         paymentData.interval_amount;
 
-    // console.log("Current Time:", currentTime);
-    // console.log("Subscription Start:", paymentData.subscription_start);
-    // console.log("Subscription End:", paymentData.subscription_end);
-    // console.log("Last Claimed:", paymentData.last_claimed);
-    // console.log("timeSinceLastClaim:", timeSinceLastClaim);
-    // console.log("timeUntilEnd:", timeUntilEnd);
-    // console.log("Interval Length:", paymentData.interval_length);
-    // console.log("Number of Intervals:", paymentData.num_intervals);
-    // console.log("intervalsPassed:", intervalsPassed);
-    // console.log("claimableIntervals:", claimableIntervals);
+    console.log("Current Time:", currentTime);
+    console.log("Subscription Start:", paymentData.subscription_start);
+    console.log("Subscription End:", paymentData.subscription_end);
+    console.log("Last Claimed:", paymentData.last_claimed);
+    console.log("timeSinceLastClaim:", timeSinceLastClaim);
+    console.log("timeUntilEnd:", timeUntilEnd);
+    console.log("Interval Length:", paymentData.interval_length);
+    console.log("Number of Intervals:", paymentData.num_intervals);
+    console.log("intervalsPassed:", intervalsPassed);
+    console.log("claimableIntervals:", claimableIntervals);
 
     return {
         withdrawableAmount,
@@ -352,6 +353,37 @@ export const findSubscriptionTokenNames = async (
     throw new Error("No active subscription found for subscriber");
 };
 
+export const findPaymentToWithdraw = async (
+    paymentUTxOs: UTxO[],
+    serviceNftTn: string,
+    paymentPolicyId: string,
+): Promise<{
+    paymentNftTn: string;
+    paymentDatum: PaymentDatum;
+}> => {
+    for (const utxo of paymentUTxOs) {
+        try {
+            const paymentDatum = await getPaymentValidatorDatum(utxo);
+
+            // Check if we found a penalty datum and it matches our service
+            if (
+                paymentDatum.length > 0 &&
+                paymentDatum[0].service_nft_tn === serviceNftTn &&
+                paymentDatum[0].last_claimed > 0
+            ) {
+                const paymentNftTn = tokenNameFromUTxO([utxo], paymentPolicyId);
+                return {
+                    paymentNftTn,
+                    paymentDatum: paymentDatum[0],
+                };
+            }
+        } catch {
+            continue;
+        }
+    }
+    throw new Error(`No payment found for service ${serviceNftTn}`);
+};
+
 export const findPenaltyDetails = async (
     paymentUTxOs: UTxO[],
     serviceNftTn: string,
@@ -363,12 +395,13 @@ export const findPenaltyDetails = async (
     for (const utxo of paymentUTxOs) {
         try {
             const penaltyDatums = await getPenaltyDatum(utxo);
+            console.log("\nFound penaltyDatums:", penaltyDatums);
 
             // Check if we found a penalty datum and it matches our service
             if (
                 penaltyDatums.length > 0 &&
                 penaltyDatums[0].service_nft_tn === serviceNftTn &&
-                penaltyDatums[0].penalty_fee_qty > 0
+                penaltyDatums[0].penalty_fee > 0n
             ) {
                 const paymentNftTn = tokenNameFromUTxO([utxo], paymentPolicyId);
                 return {

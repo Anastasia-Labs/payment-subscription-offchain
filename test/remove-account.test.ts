@@ -4,14 +4,20 @@ import { Address, validatorToAddress } from "@lucid-evolution/lucid";
 import { Effect } from "effect";
 import { LucidContext, makeLucidContext } from "./service/lucidContext.js";
 import { createAccountTestCase } from "./createAccountTestCase.js";
-import { SetupResult, setupTest } from "./setupTest.js";
+import {
+  AccountSetup,
+  setupAccount,
+  setupBase,
+  SetupResult,
+  setupTest,
+} from "./setupTest.js";
 
 type RemoveAccountResult = {
   txHash: string;
 };
 
 export const removeAccountTestCase = (
-  setupResult: SetupResult,
+  setupResult: AccountSetup,
 ): Effect.Effect<RemoveAccountResult, Error, never> => {
   return Effect.gen(function* () {
     const {
@@ -72,7 +78,8 @@ export const removeAccountTestCase = (
 
 test("Test 6 - Remove Account", async () => {
   const program = Effect.gen(function* () {
-    const setupContext = yield* setupTest();
+    const base = yield* setupBase();
+    const setupContext = yield* setupAccount(base);
     const result = yield* removeAccountTestCase(setupContext);
     return result;
   });

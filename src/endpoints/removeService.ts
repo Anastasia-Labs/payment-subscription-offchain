@@ -64,15 +64,15 @@ export const removeServiceProgram = (
             )
         );
 
+        if (!serviceUTxO) {
+            throw new Error("Service serviceUTxO not found");
+        }
+
         const merchantUTxO = yield* Effect.promise(() =>
             lucid.utxoByUnit(
                 merchantNFT,
             )
         );
-
-        if (!serviceUTxO) {
-            throw new Error("Service NFT not found");
-        }
 
         const serviceData = yield* Effect.promise(
             () => (getServiceValidatorDatum(serviceUTxO)),
@@ -81,22 +81,23 @@ export const removeServiceProgram = (
         if (!serviceData || serviceData.length === 0) {
             throw new Error("serviceData is empty");
         }
-        const serviceDatum = serviceData[0];
 
         const updatedDatum: ServiceDatum = {
-            service_fee: serviceDatum.service_fee,
-            service_fee_qty: serviceDatum.service_fee_qty,
-            penalty_fee: serviceDatum.penalty_fee,
-            penalty_fee_qty: serviceDatum.penalty_fee_qty,
-            interval_length: serviceDatum.interval_length,
-            num_intervals: serviceDatum.num_intervals,
-            minimum_ada: serviceDatum.minimum_ada,
+            service_fee_policyid: serviceData[0].service_fee_policyid,
+            service_fee_assetname: serviceData[0].service_fee_assetname,
+            service_fee: serviceData[0].service_fee,
+            penalty_fee_policyid: serviceData[0].penalty_fee_policyid,
+            penalty_fee_assetname: serviceData[0].penalty_fee_assetname,
+            penalty_fee: serviceData[0].penalty_fee,
+            interval_length: serviceData[0].interval_length,
+            num_intervals: serviceData[0].num_intervals,
             is_active: false,
         };
 
         const directDatum = Data.to<ServiceDatum>(updatedDatum, ServiceDatum);
 
         // const wrappedRedeemer = Data.to(new Constr(1, [new Constr(1, [])]));
+        console.log("outputIndex: ", serviceUTxO.outputIndex);
 
         const removeServiceRedeemer: RedeemerBuilder = {
             kind: "selected",
@@ -108,8 +109,10 @@ export const removeServiceProgram = (
                 return Data.to(
                     new Constr(1, [
                         new Constr(1, [
+                            config.service_nft_tn,
                             BigInt(merchantIndex),
                             BigInt(serviceIndex),
+                            BigInt(merchantUTxO.outputIndex),
                         ]),
                     ]),
                 );

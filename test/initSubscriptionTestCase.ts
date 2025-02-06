@@ -30,14 +30,35 @@ export const initSubscriptionTestCase = (
             throw Error("Invalid Network Selection");
         }
 
+        console.log(
+            "initSubscriptionTestCase subscriberUTxOs: ",
+            subscriberUTxOs,
+        );
+        console.log(
+            "initSubscriptionTestCase subscriberNftTn: ",
+            subscriberNftTn,
+        );
+        lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
+
+        const subscriberAddress = yield* Effect.promise(() =>
+            lucid.wallet().address()
+        );
+        // Get fresh UTxOs for this address
+        const currentSubscriberUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(subscriberAddress)
+        );
+
+        // Debug logging
+        console.log("Current wallet address:", subscriberAddress);
+        console.log("Available UTxOs:", currentSubscriberUTxOs);
+        console.log("Looking for NFT:", subscriberNftTn);
+
         const paymentConfig: InitPaymentConfig = {
             service_nft_tn: serviceNftTn,
             subscriber_nft_tn: subscriberNftTn,
             num_intervals: 12n,
             current_time: currentTime,
         };
-
-        lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
         const initSubscriptionFlow = Effect.gen(function* (_) {
             const initSubscriptionUnsigned = yield* initSubscriptionProgram(

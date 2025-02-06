@@ -14,6 +14,7 @@ import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
 import {
   calculateClaimableIntervals,
+  findPaymentToWithdraw,
   getPaymentValidatorDatum,
 } from "./utils.js";
 import {
@@ -36,18 +37,6 @@ export const merchantWithdrawProgram = (
 
     const paymentUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(validators.spendValAddress)
-    );
-
-    const paymentNFT = toUnit(
-      paymentPolicyId,
-      config.payment_nft_tn, //tokenNameWithoutFunc,
-    );
-
-    // TODO: Filter through the transaction requirements.
-    const paymentUTxO = yield* Effect.promise(() =>
-      lucid.utxoByUnit(
-        paymentNFT,
-      )
     );
 
     const merchantUTxOs = yield* Effect.promise(() =>
@@ -82,10 +71,30 @@ export const merchantWithdrawProgram = (
     //   finalCurrentTime,
     // );
 
+    const { paymentNftTn, paymentDatum } = yield* Effect.promise(() =>
+      findPaymentToWithdraw(
+        paymentUTxOs,
+        config.service_nft_tn,
+        paymentPolicyId,
+      )
+    );
+
+    const paymentNFT = toUnit(
+      paymentPolicyId,
+      paymentNftTn, //tokenNameWithoutFunc,
+    );
+
+    const paymentUTxO = yield* Effect.promise(() =>
+      lucid.utxoByUnit(
+        paymentNFT,
+      )
+    );
+
     const paymentData = yield* Effect.promise(
       () => (getPaymentValidatorDatum(paymentUTxO)),
     );
 
+    console.log("paymentData:", paymentData[0]);
     // Debug time values
     const { withdrawableAmount, intervalsToWithdraw } =
       calculateClaimableIntervals(
@@ -119,13 +128,13 @@ export const merchantWithdrawProgram = (
 
     const newNumIntervals = paymentData[0].num_intervals -
       BigInt(intervalsToWithdraw);
-    // console.log("withdrawnAmount Amount: ", withdrawnAmount);
-    // console.log("interval_amount: ", paymentData[0].interval_amount);
-    // console.log("intervalsToWithdraw: ", intervalsToWithdraw);
+    console.log("withdrawnAmount Amount: ", withdrawnAmount);
+    console.log("interval_amount: ", paymentData[0].interval_amount);
+    console.log("intervalsToWithdraw: ", intervalsToWithdraw);
 
     // console.log("Payment Datum 0: ", paymentData[0]);
 
-    const paymentDatum: PaymentDatum = {
+    const newPaymentDatum: PaymentDatum = {
       service_nft_tn: paymentData[0].service_nft_tn,
       subscriber_nft_tn: paymentData[0].subscriber_nft_tn,
       subscription_fee: paymentData[0].subscription_fee,
@@ -142,7 +151,7 @@ export const merchantWithdrawProgram = (
     };
 
     const allDatums: PaymentValidatorDatum = {
-      Payment: [paymentDatum],
+      Payment: [newPaymentDatum],
     };
 
     const paymentValDatum = Data.to<PaymentValidatorDatum>(

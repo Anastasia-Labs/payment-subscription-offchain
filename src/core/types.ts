@@ -27,24 +27,24 @@ export type ReadableUTxO<T> = {
 };
 
 export type CreateServiceConfig = {
-  service_fee: AssetClassD;
-  service_fee_qty: bigint;
-  penalty_fee: AssetClassD;
-  penalty_fee_qty: bigint;
+  service_fee_policyid: string;
+  service_fee_assetname: string;
+  service_fee: bigint;
+  penalty_fee_policyid: string;
+  penalty_fee_assetname: string;
+  penalty_fee: bigint;
   interval_length: bigint;
   num_intervals: bigint;
-  minimum_ada: bigint;
   is_active: boolean;
 };
 
 export type UpdateServiceConfig = {
   service_nft_tn: string; //AssetName,
   merchant_nft_tn: string;
-  new_service_fee_qty: bigint;
-  new_penalty_fee_qty: bigint;
+  new_service_fee: bigint;
+  new_penalty_fee: bigint;
   new_interval_length: bigint;
   new_num_intervals: bigint;
-  new_minimum_ada: bigint;
 };
 
 export type RemoveServiceConfig = {
@@ -54,9 +54,8 @@ export type RemoveServiceConfig = {
 
 //TODO: Add account_updated field
 export type CreateAccountConfig = {
-  email: string;
-  phone: string;
-  account_created: bigint;
+  email_hash: string;
+  phone_hash: string;
 };
 
 //TODO: Add account_updated field

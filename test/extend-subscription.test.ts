@@ -5,7 +5,7 @@ import {
 import { expect, test } from "vitest";
 import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
-import { initSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
+import { initSubscriptionTestCase } from "./initSubscriptionTestCase.js";
 import { SetupResult, setupTest } from "./setupTest.js";
 
 type ExtendSubscriptionResult = {

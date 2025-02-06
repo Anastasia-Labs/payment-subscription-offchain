@@ -61,72 +61,77 @@ export const ValueSchema = Data.Map(
 export type Value = Data.Static<typeof ValueSchema>;
 export const Value = ValueSchema as unknown as Value;
 
-// Redeemers
+// Mint Redeemers
 export const CreateMintSchema = Data.Object({
     output_reference: OutputReferenceSchema,
     input_index: Data.Integer(),
+    output_index: Data.Integer(),
 });
 
-export type CreateServiceRedeemer = Data.Static<typeof CreateMintSchema>;
-export const CreateServiceRedeemer =
-    CreateMintSchema as unknown as CreateServiceRedeemer;
+// export const LockRedeemerSchema = Data.Object({
+//     trie_values: Data.Map(Data.Integer(), Data.Integer()),
+//     trie_lookup_proofs: Data.Map(Data.Integer(), Data.Any()),
+//     trie_deletion_proofs: Data.Map(Data.Integer(), Data.Any()),
+//     action: ActionSchema,
+// });
+
+// export type LockRedeemer = Data.Static<typeof LockRedeemerSchema>;
+// export const LockRedeemer = LockRedeemerSchema as unknown as LockRedeemer;
+
+export const DeleteMintSchema = Data.Object({
+    reference_token_name: Data.Bytes(),
+});
+
+// Account
+export const AccountDatumSchema = Data.Object({
+    email_hash: Data.Bytes(),
+    phone_hash: Data.Bytes(),
+});
+
+export type AccountDatum = Data.Static<typeof AccountDatumSchema>;
+export const AccountDatum = AccountDatumSchema as unknown as AccountDatum;
 
 export type CreateAccountRedeemer = Data.Static<typeof CreateMintSchema>;
 export const CreateAccountRedeemer =
     CreateMintSchema as unknown as CreateAccountRedeemer;
 
-export type CreatePaymentRedeemer = Data.Static<typeof CreateMintSchema>;
-export const CreatePaymentRedeemer =
-    CreateMintSchema as unknown as CreatePaymentRedeemer;
-
+// Service
 export const ServiceDatumSchema = Data.Object({
-    service_fee: AssetClassSchema,
-    service_fee_qty: Data.Integer(),
-    penalty_fee: AssetClassSchema,
-    penalty_fee_qty: Data.Integer(),
+    service_fee_policyid: Data.Bytes(),
+    service_fee_assetname: Data.Bytes(),
+    service_fee: Data.Integer(),
+    penalty_fee_policyid: Data.Bytes(),
+    penalty_fee_assetname: Data.Bytes(),
+    penalty_fee: Data.Integer(),
     interval_length: Data.Integer(),
     num_intervals: Data.Integer(),
-    minimum_ada: Data.Integer(),
     is_active: Data.Boolean(),
 });
 
 export type ServiceDatum = Data.Static<typeof ServiceDatumSchema>;
 export const ServiceDatum = ServiceDatumSchema as unknown as ServiceDatum;
 
-export const AccountDatumSchema = Data.Object({
-    email: Data.Bytes(),
-    phone: Data.Bytes(),
-    account_created: Data.Integer(),
+export type CreateServiceRedeemer = Data.Static<typeof CreateMintSchema>;
+export const CreateServiceRedeemer =
+    CreateMintSchema as unknown as CreateServiceRedeemer;
+
+// Payment
+
+export const InstallmentSchema = Data.Object({
+    claimable_at: Data.Integer(),
+    claimable_amount: Data.Integer(),
 });
 
-export type AccountDatum = Data.Static<typeof AccountDatumSchema>;
-export const AccountDatum = AccountDatumSchema as unknown as AccountDatum;
-
-export type InitiatePayment = Data.Static<typeof CreateMintSchema>;
-export const InitiatePayment = CreateMintSchema as unknown as InitiatePayment;
-
-export const WithdrawSchema = Data.Object({
-    merchant_input_index: Data.Integer(),
-    payment_input_index: Data.Integer(),
-});
-
-export type MerchantWithdraw = Data.Static<typeof WithdrawSchema>;
-export const MerchantWithdraw = WithdrawSchema as unknown as MerchantWithdraw;
+export type Installment = Data.Static<typeof InstallmentSchema>;
+export const Installment = InstallmentSchema as unknown as PaymentDatum;
 
 export const PaymentDatumSchema = Data.Object({
-    service_nft_tn: Data.Bytes(), //AssetName,
+    service_nft_tn: Data.Bytes(),
     subscriber_nft_tn: Data.Bytes(),
-    subscription_fee: AssetClassSchema,
-    total_subscription_fee_qty: Data.Integer(),
     subscription_start: Data.Integer(),
     subscription_end: Data.Integer(),
-    interval_length: Data.Integer(),
-    interval_amount: Data.Integer(),
-    num_intervals: Data.Integer(),
-    last_claimed: Data.Integer(),
-    penalty_fee: AssetClassSchema,
-    penalty_fee_qty: Data.Integer(),
-    minimum_ada: Data.Integer(),
+    original_subscription_end: Data.Integer(),
+    installments: Data.Array(InstallmentSchema),
 });
 
 export type PaymentDatum = Data.Static<typeof PaymentDatumSchema>;
@@ -135,8 +140,6 @@ export const PaymentDatum = PaymentDatumSchema as unknown as PaymentDatum;
 export const PenaltyDatumSchema = Data.Object({
     service_nft_tn: Data.Bytes(),
     subscriber_nft_tn: Data.Bytes(),
-    penalty_fee: AssetClassSchema,
-    penalty_fee_qty: Data.Integer(),
 });
 
 export type PenaltyDatum = Data.Static<typeof PenaltyDatumSchema>;
@@ -152,3 +155,24 @@ export type PaymentValidatorDatum = Data.Static<
 >;
 export const PaymentValidatorDatum =
     PaymentValidatorDatumSchema as unknown as PaymentValidatorDatum;
+
+export const SubscribeMintSchema = Data.Object({
+    service_ref_input_index: Data.Integer(),
+    subscriber_input_index: Data.Integer(),
+    payment_output_index: Data.Integer(),
+});
+// export type CreatePaymentRedeemer = Data.Static<typeof CreateMintSchema>;
+// export const CreatePaymentRedeemer =
+//     CreateMintSchema as unknown as CreatePaymentRedeemer;
+
+export type InitSubscription = Data.Static<typeof SubscribeMintSchema>;
+export const InitSubscription =
+    SubscribeMintSchema as unknown as InitSubscription;
+
+export const WithdrawSchema = Data.Object({
+    merchant_input_index: Data.Integer(),
+    payment_input_index: Data.Integer(),
+});
+
+export type MerchantWithdraw = Data.Static<typeof WithdrawSchema>;
+export const MerchantWithdraw = WithdrawSchema as unknown as MerchantWithdraw;

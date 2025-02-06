@@ -68,7 +68,10 @@ export const removeAccountProgram = (
             )
         );
 
-        const deleteAccRedeemer = Data.to(new Constr(1, [])); // Assuming DeleteAccount is index 1 in your MintAccount enum
+        const deleteAccRedeemer = Data.to(
+            new Constr(1, [config.account_nft_tn]),
+        );
+
         const removeAccountRedeemer: RedeemerBuilder = {
             kind: "selected",
             makeRedeemer: (inputIndices: bigint[]) => {
@@ -79,6 +82,7 @@ export const removeAccountProgram = (
                 return Data.to(
                     new Constr(1, [
                         new Constr(1, [
+                            config.account_nft_tn,
                             BigInt(userIndex),
                             BigInt(accountIndex),
                         ]),

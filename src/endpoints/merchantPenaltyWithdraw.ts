@@ -122,7 +122,7 @@ export const merchantPenaltyWithdrawProgram = (
         terminateSubscriptionRedeemer,
       )
       .pay.ToAddress(merchantAddress, {
-        lovelace: penaltyDatum.penalty_fee_qty,
+        lovelace: penaltyDatum.penalty_fee,
         [merchantNft]: 1n,
       })
       .attach.MintingPolicy(validators.mintValidator)
