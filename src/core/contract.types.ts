@@ -44,16 +44,6 @@ export const AddressSchema = Data.Object({
 export type AddressD = Data.Static<typeof AddressSchema>;
 export const AddressD = AddressSchema as unknown as AddressD;
 
-//NOTE: liqwid-plutarch-extra AssetClass version, not PlutusLedgerApi.V1.Value
-export const AssetClassSchema = Data.Object(
-    {
-        policyId: Data.Bytes(),
-        assetName: Data.Bytes(),
-    },
-);
-export type AssetClassD = Data.Static<typeof AssetClassSchema>;
-export const AssetClassD = AssetClassSchema as unknown as AssetClassD;
-
 export const ValueSchema = Data.Map(
     Data.Bytes(),
     Data.Map(Data.Bytes(), Data.Integer()),
@@ -67,16 +57,6 @@ export const CreateMintSchema = Data.Object({
     input_index: Data.Integer(),
     output_index: Data.Integer(),
 });
-
-// export const LockRedeemerSchema = Data.Object({
-//     trie_values: Data.Map(Data.Integer(), Data.Integer()),
-//     trie_lookup_proofs: Data.Map(Data.Integer(), Data.Any()),
-//     trie_deletion_proofs: Data.Map(Data.Integer(), Data.Any()),
-//     action: ActionSchema,
-// });
-
-// export type LockRedeemer = Data.Static<typeof LockRedeemerSchema>;
-// export const LockRedeemer = LockRedeemerSchema as unknown as LockRedeemer;
 
 export const DeleteMintSchema = Data.Object({
     reference_token_name: Data.Bytes(),
@@ -161,9 +141,6 @@ export const SubscribeMintSchema = Data.Object({
     subscriber_input_index: Data.Integer(),
     payment_output_index: Data.Integer(),
 });
-// export type CreatePaymentRedeemer = Data.Static<typeof CreateMintSchema>;
-// export const CreatePaymentRedeemer =
-//     CreateMintSchema as unknown as CreatePaymentRedeemer;
 
 export type InitSubscription = Data.Static<typeof SubscribeMintSchema>;
 export const InitSubscription =

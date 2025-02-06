@@ -1,11 +1,9 @@
 import {
   Address,
   Data,
-  getInputIndices,
   LucidEvolution,
   mintingPolicyToId,
   RedeemerBuilder,
-  sortUTxOs,
   toUnit,
   TransactionError,
   TxSignBuilder,
@@ -24,7 +22,6 @@ import {
   accountPolicyId,
   paymentScript,
   servicePolicyId,
-  serviceScript,
 } from "../core/validators/constants.js";
 import { getServiceValidatorDatum } from "./utils.js";
 
@@ -33,7 +30,7 @@ export const initSubscriptionProgram = (
   config: InitPaymentConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
   Effect.gen(function* () {
-    const finalCurrentTime = config.current_time - BigInt(6000 * 3);
+    const finalCurrentTime = config.current_time + BigInt(6000 * 3);
     const subscriberAddress: Address = yield* Effect.promise(() =>
       lucid.wallet().address()
     );
@@ -41,19 +38,12 @@ export const initSubscriptionProgram = (
     const validators = getMultiValidator(lucid, paymentScript);
     const paymentPolicyId = mintingPolicyToId(validators.mintValidator);
 
-    const serviceValidators = getMultiValidator(lucid, serviceScript);
-
-    const serviceUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(serviceValidators.spendValAddress)
-    );
     const subscriberUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(subscriberAddress)
     );
     if (!subscriberUTxOs || !subscriberUTxOs.length) {
       console.error("No UTxO found at user address: " + subscriberAddress);
     }
-    console.log("subscriberAddress: ", subscriberAddress);
-    console.log("subscriberUTxOs: ", subscriberUTxOs);
 
     const subscriberNft = toUnit(
       accountPolicyId,
@@ -82,7 +72,6 @@ export const initSubscriptionProgram = (
     }
 
     const tokenName = generateUniqueAssetName(subscriberUTxO, "");
-    console.log("paymentNftTn: ", tokenName);
 
     const paymentNFT = toUnit(
       paymentPolicyId,
@@ -95,7 +84,7 @@ export const initSubscriptionProgram = (
         // Construct the redeemer using the input indices
         const serviceRefIndex = 0n;
         const subscriberIndex = inputIndices[0] ?? 0n;
-        const paymentIndex = 2n; //BigInt(subscriberUTxO.outputIndex);
+        const paymentIndex = 1n; //BigInt(subscriberUTxO.outputIndex);
 
         const paymentRedeemer: InitSubscription = {
           service_ref_input_index: serviceRefIndex,
@@ -171,7 +160,6 @@ export const initSubscriptionProgram = (
       lovelace: subscriberUTxO.assets.lovelace - totalSubscriptionQty,
     };
 
-    console.log("PaymentValDatum:", paymentValDatum);
     const tx = yield* lucid
       .newTx()
       .readFrom([serviceUTxO])
@@ -185,6 +173,7 @@ export const initSubscriptionProgram = (
         lovelace: totalSubscriptionQty,
         [paymentNFT]: 1n,
       })
+      .validTo(Number(finalCurrentTime))
       .attach.MintingPolicy(validators.mintValidator)
       .completeProgram();
 
