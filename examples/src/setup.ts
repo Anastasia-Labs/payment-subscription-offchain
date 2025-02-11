@@ -47,15 +47,15 @@ export async function setupLucid(command: "create" | "other" = "other") {
     // Get merchant and subscriber addresses
     lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
     const merchantAddress = await lucid.wallet().address();
+    const merchantUTxOs = await lucid.utxosAt(merchantAddress);
+    const serviceUTxOs = await lucid.utxosAt(serviceAddress);
 
     lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
     const subscriberAddress = await lucid.wallet().address();
 
     // Get UTxOs
-    const serviceUTxOs = await lucid.utxosAt(serviceAddress);
-    const merchantUTxOs = await lucid.utxosAt(merchantAddress);
-    const accountUTxOs = await lucid.utxosAt(accountAddress);
     const subscriberUTxOs = await lucid.utxosAt(subscriberAddress);
+    const accountUTxOs = await lucid.utxosAt(accountAddress);
 
     let serviceTokens: { refTokenName: string; userTokenName: string } = {
         refTokenName: "",

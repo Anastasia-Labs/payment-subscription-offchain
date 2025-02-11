@@ -1,11 +1,10 @@
 import {
   Address,
   Data,
-  getInputIndices,
+  fromText,
   LucidEvolution,
   mintingPolicyToId,
   RedeemerBuilder,
-  sortUTxOs,
   toUnit,
   TransactionError,
   TxSignBuilder,
@@ -17,7 +16,6 @@ import {
   PaymentDatum,
   PaymentValidatorDatum,
 } from "../core/contract.types.js";
-import { generateUniqueAssetName } from "../core/utils/assets.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
 import {
@@ -33,7 +31,7 @@ export const initSubscriptionProgram = (
   config: InitPaymentConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
   Effect.gen(function* () {
-    const finalCurrentTime = config.current_time - BigInt(6000 * 3);
+    const subscriptionStartTime = config.current_time + BigInt(6000);
     const subscriberAddress: Address = yield* Effect.promise(() =>
       lucid.wallet().address()
     );
@@ -52,8 +50,6 @@ export const initSubscriptionProgram = (
     if (!subscriberUTxOs || !subscriberUTxOs.length) {
       console.error("No UTxO found at user address: " + subscriberAddress);
     }
-    console.log("subscriberAddress: ", subscriberAddress);
-    console.log("subscriberUTxOs: ", subscriberUTxOs);
 
     const subscriberNft = toUnit(
       accountPolicyId,
@@ -81,7 +77,7 @@ export const initSubscriptionProgram = (
       throw new Error(" subscriberUTxO not found");
     }
 
-    const tokenName = generateUniqueAssetName(subscriberUTxO, "");
+    const tokenName = fromText("subscription"); // generateUniqueAssetName(subscriberUTxO, "");
     console.log("paymentNftTn: ", tokenName);
 
     const paymentNFT = toUnit(
@@ -94,8 +90,8 @@ export const initSubscriptionProgram = (
       makeRedeemer: (inputIndices: bigint[]) => {
         // Construct the redeemer using the input indices
         const serviceRefIndex = 0n;
-        const subscriberIndex = inputIndices[0] ?? 0n;
-        const paymentIndex = 2n; //BigInt(subscriberUTxO.outputIndex);
+        const subscriberIndex = 0n;
+        const paymentIndex = 1n; //BigInt(subscriberUTxO.outputIndex);
 
         const paymentRedeemer: InitSubscription = {
           service_ref_input_index: serviceRefIndex,
@@ -118,7 +114,7 @@ export const initSubscriptionProgram = (
 
     const interval_amount = serviceData[0].service_fee;
     const interval_length = serviceData[0].interval_length;
-    const subscription_end = finalCurrentTime +
+    const subscription_end = subscriptionStartTime +
       interval_length * config.num_intervals;
 
     const totalSubscriptionQty = interval_amount *
@@ -143,11 +139,11 @@ export const initSubscriptionProgram = (
     const paymentDatum: PaymentDatum = {
       service_nft_tn: config.service_nft_tn,
       subscriber_nft_tn: config.subscriber_nft_tn,
-      subscription_start: finalCurrentTime,
+      subscription_start: subscriptionStartTime,
       subscription_end: subscription_end,
       original_subscription_end: subscription_end,
       installments: createInstallments(
-        finalCurrentTime,
+        subscriptionStartTime,
         interval_length,
         interval_amount,
         Number(config.num_intervals),
@@ -165,26 +161,31 @@ export const initSubscriptionProgram = (
 
     // Find UTxO with sufficient lovelace
 
+    const selectedUTxO = subscriberUTxOs.find((utxo) =>
+      utxo.assets.lovelace >= totalSubscriptionQty
+    );
+
+    if (!selectedUTxO) {
+      throw new Error("No UTxO with sufficient ADA found");
+    }
     const subscriberAssets = {
-      ...subscriberUTxO.assets,
-      // Remove the totalSubscriptionQty from the lovelace amount
-      lovelace: subscriberUTxO.assets.lovelace - totalSubscriptionQty,
+      [subscriberNft]: 1n,
     };
 
-    console.log("PaymentValDatum:", paymentValDatum);
     const tx = yield* lucid
       .newTx()
       .readFrom([serviceUTxO])
       .collectFrom([subscriberUTxO])
       .mintAssets({ [paymentNFT]: 1n }, initiateSubscriptionRedeemer)
-      .pay.ToAddress(subscriberAddress, subscriberAssets)
+      // .pay.ToAddress(subscriberAddress, subscriberAssets)
       .pay.ToAddressWithData(validators.spendValAddress, {
         kind: "inline",
         value: paymentValDatum,
       }, {
-        lovelace: totalSubscriptionQty,
         [paymentNFT]: 1n,
+        lovelace: totalSubscriptionQty,
       })
+      .validFrom(Number(subscriptionStartTime) + 1000)
       .attach.MintingPolicy(validators.mintValidator)
       .completeProgram();
 

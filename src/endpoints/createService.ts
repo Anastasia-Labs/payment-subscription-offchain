@@ -47,10 +47,6 @@ export const createServiceProgram = (
       selectedUTxOs[0],
     );
 
-    console.log("refTokenName: ", refTokenName);
-    console.log("userTokenName: ", userTokenName);
-    console.log("outputIndex: ", selectedUTxOs[0].outputIndex);
-
     const createServiceRedeemer: RedeemerBuilder = {
       kind: "selected",
       makeRedeemer: (inputIndices: bigint[]) => {
@@ -86,7 +82,6 @@ export const createServiceProgram = (
       num_intervals: config.num_intervals,
       is_active: config.is_active,
     };
-    console.log(`Service ServiceDatum:`, currDatum);
 
     const directDatum = Data.to<ServiceDatum>(currDatum, ServiceDatum);
 
