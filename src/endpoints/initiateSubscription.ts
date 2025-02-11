@@ -22,7 +22,6 @@ import {
   accountPolicyId,
   paymentScript,
   servicePolicyId,
-  serviceScript,
 } from "../core/validators/constants.js";
 import { getServiceValidatorDatum } from "./utils.js";
 
@@ -39,11 +38,6 @@ export const initSubscriptionProgram = (
     const validators = getMultiValidator(lucid, paymentScript);
     const paymentPolicyId = mintingPolicyToId(validators.mintValidator);
 
-    const serviceValidators = getMultiValidator(lucid, serviceScript);
-
-    const serviceUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(serviceValidators.spendValAddress)
-    );
     const subscriberUTxOs = yield* Effect.promise(() =>
       lucid.utxosAt(subscriberAddress)
     );
