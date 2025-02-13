@@ -1,19 +1,15 @@
 import {
-  ServiceDatum,
   UpdateServiceConfig,
   updateServiceProgram,
 } from "../src/index.js";
 import { expect, test } from "vitest";
-import { Address, Data } from "@lucid-evolution/lucid";
+import { Address } from "@lucid-evolution/lucid";
 import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
-import { getServiceValidatorDatum } from "../src/endpoints/utils.js";
 import {
   ServiceSetup,
   setupBase,
-  SetupResult,
   setupService,
-  setupTest,
 } from "./setupTest.js";
 
 type UpdateServiceResult = {
@@ -33,10 +29,6 @@ export const updateServiceTestCase = (
 
     lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
 
-    const merchantAddress: Address = yield* Effect.promise(() =>
-      lucid.wallet().address()
-    );
-
     const updateServiceConfig: UpdateServiceConfig = {
       service_nft_tn: serviceNftTn,
       merchant_nft_tn: merchantNftTn,
@@ -47,24 +39,14 @@ export const updateServiceTestCase = (
     };
 
     const updateServiceFlow = Effect.gen(function* (_) {
-      const updateServiceUnsigned = yield* updateServiceProgram(
-        lucid,
-        updateServiceConfig,
-      );
-      const updateServiceSigned = yield* Effect.promise(() =>
-        updateServiceUnsigned.sign.withWallet()
-          .complete()
-      );
-      const updateServiceHash = yield* Effect.promise(() =>
-        updateServiceSigned.submit()
-      );
+      const updateServiceUnsigned = yield* updateServiceProgram(lucid, updateServiceConfig);
+      const updateServiceSigned = yield* Effect.promise(() => updateServiceUnsigned.sign.withWallet().complete());
+      const updateServiceHash = yield* Effect.promise(() => updateServiceSigned.submit());
       return updateServiceHash;
     });
 
     const updateServiceResult = yield* updateServiceFlow.pipe(
-      Effect.tapError((error) =>
-        Effect.log(`Error updating service: ${error}`)
-      ),
+      Effect.tapError((error) => Effect.log(`Error updating service: ${error}`)),
       Effect.map((hash) => {
         return hash;
       }),

@@ -1,6 +1,7 @@
 import {
   Address,
   Assets,
+  Constr,
   Data,
   fromText,
   LucidEvolution,
@@ -17,12 +18,14 @@ import { AccountDatum, CreateAccountRedeemer } from "../core/contract.types.js";
 import { createCip68TokenNames } from "../core/utils/assets.js";
 import { Effect } from "effect";
 import { accountScript } from "../core/validators/constants.js";
+import { sha256 } from "@noble/hashes/sha256";
+import { bytesToHex } from "@noble/hashes/utils";
 
 export const createAccountProgram = (
   lucid: LucidEvolution,
   config: CreateAccountConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
-  Effect.gen(function* () { // return type ,
+  Effect.gen(function* () {
     const subscriberAddress: Address = yield* Effect.promise(() =>
       lucid.wallet().address()
     );
@@ -37,47 +40,24 @@ export const createAccountProgram = (
       console.error("No UTxO found at user address: " + subscriberAddress);
     }
 
-    // Selecting a utxo containing atleast 2 ADA to cover tx fees and min ADA
-    // Note: To avoid tx balancing errors, the utxo should only contain lovelaces
     const selectedUTxOs = selectUTxOs(subscriberUTxOs, {
       ["lovelace"]: 2000000n,
     });
 
-    const { refTokenName, userTokenName } = createCip68TokenNames(
-      selectedUTxOs[0],
-    );
-
-    console.log("refTokenName: ", refTokenName);
-    console.log("userTokenName: ", userTokenName);
-    console.log("outputIndex: ", selectedUTxOs[0].outputIndex);
+    const selectedUTxO = selectedUTxOs[0]
+    const { refTokenName, userTokenName } = createCip68TokenNames(selectedUTxO);
 
     const createAccountRedeemer: RedeemerBuilder = {
       kind: "selected",
       makeRedeemer: (inputIndices: bigint[]) => {
-        // Construct the redeemer using the input indices
-        const subscriberIndex = inputIndices[0];
-
-        const redeemer: CreateAccountRedeemer = {
-          output_reference: {
-            txHash: {
-              hash: selectedUTxOs[0].txHash,
-            },
-            outputIndex: BigInt(selectedUTxOs[0].outputIndex),
-          },
-          input_index: subscriberIndex,
-          output_index: 1n,
-        };
-        const redeemerData = Data.to(redeemer, CreateAccountRedeemer);
-
-        return redeemerData;
+        return Data.to(new Constr(0, [inputIndices[0], 1n]));
       },
-      // Specify the inputs relevant to the redeemer
-      inputs: [selectedUTxOs[0]],
+      inputs: [selectedUTxO],
     };
 
     const currDatum: AccountDatum = {
-      email_hash: fromText(config.email_hash),
-      phone_hash: fromText(config.phone_hash),
+      email_hash: bytesToHex(sha256(config.email_hash)),
+      phone_hash: bytesToHex(sha256(config.phone_hash)),
     };
 
     const directDatum = Data.to<AccountDatum>(currDatum, AccountDatum);
@@ -99,22 +79,15 @@ export const createAccountProgram = (
 
     const tx = yield* lucid
       .newTx()
-      .collectFrom(selectedUTxOs)
-      .mintAssets(
-        mintingAssets,
-        createAccountRedeemer,
-      )
-      .pay.ToAddress(subscriberAddress, {
-        [userToken]: 1n,
-      })
+      .collectFrom([selectedUTxO])
+      .mintAssets(mintingAssets, createAccountRedeemer)
+      .pay.ToAddress(subscriberAddress, { [userToken]: 1n, })
       .pay.ToContract(validators.mintValAddress, {
         kind: "inline",
         value: directDatum,
-      }, {
-        [refToken]: 1n,
-      })
+      }, { [refToken]: 1n, })
       .attach.MintingPolicy(validators.mintValidator)
-      .completeProgram();
+      .completeProgram({ localUPLCEval: true });
 
     return tx;
   });

@@ -5,7 +5,6 @@ import {
     validatorToAddress,
 } from "../src/index.js";
 import { Effect } from "effect";
-// import blueprint from "./compiled/plutus.json" assert { type: "json" };
 import { LucidContext } from "./service/lucidContext.js";
 import {
     readMultiValidators,

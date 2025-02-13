@@ -9,11 +9,11 @@ import {
   TxSignBuilder,
 } from "@lucid-evolution/lucid";
 import { ExtendPaymentConfig } from "../core/types.js";
-import { PaymentDatum, PaymentValidatorDatum } from "../core/contract.types.js";
+import { Installment, PaymentDatum, PaymentValidatorDatum } from "../core/contract.types.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
 import { tokenNameFromUTxO } from "../core/utils/assets.js";
-import { getPaymentValidatorDatum } from "./utils.js";
+import { getPaymentValidatorDatum, getServiceValidatorDatum } from "./utils.js";
 import {
   accountPolicyId,
   paymentPolicyId,
@@ -25,38 +25,19 @@ export const extendSubscriptionProgram = (
   lucid: LucidEvolution,
   config: ExtendPaymentConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
-  Effect.gen(function* () { // return type ,
+  Effect.gen(function* () {
     const subscriberAddress: Address = yield* Effect.promise(() =>
       lucid.wallet().address()
     );
 
     const paymentValidator = getMultiValidator(lucid, paymentScript);
 
-    const serviceNFT = toUnit(
-      servicePolicyId,
-      config.service_nft_tn, //tokenNameWithoutFunc,
-    );
+    const serviceNFT = toUnit(servicePolicyId, config.service_nft_tn);
+    const subscriberNFT = toUnit(accountPolicyId, config.subscriber_nft_tn);
 
-    const subscriberNFT = toUnit(
-      accountPolicyId,
-      config.subscriber_nft_tn,
-    );
+    const serviceUTxO = yield* Effect.promise(() => lucid.utxoByUnit(serviceNFT));
 
-    const serviceUTxO = yield* Effect.promise(() =>
-      lucid.utxoByUnit(
-        serviceNFT,
-      )
-    );
-
-    const subscriberUTxO = yield* Effect.promise(() =>
-      lucid.utxoByUnit(
-        subscriberNFT,
-      )
-    );
-
-    const paymentUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(paymentValidator.spendValAddress)
-    );
+    const paymentUTxOs = yield* Effect.promise(() => lucid.utxosAt(paymentValidator.spendValAddress));
 
     const results = yield* Effect.forEach(
       paymentUTxOs,
@@ -77,53 +58,36 @@ export const extendSubscriptionProgram = (
       throw new Error("No active subscription found");
     }
 
-    console.log("paymentUTxO: ", paymentUTxO);
-
-    // Get payment NFT token name from the relevant UTxO
     const paymentNftTn = tokenNameFromUTxO([paymentUTxO], paymentPolicyId);
+    const paymentNFT = toUnit(paymentPolicyId, paymentNftTn);
 
-    const paymentNFT = toUnit(
-      paymentPolicyId,
-      paymentNftTn,
-    );
+    const paymentData = yield* Effect.promise(() => (getPaymentValidatorDatum(paymentUTxO)))
+    const oldPaymentDatum = paymentData[0]
 
-    const paymentData = yield* Effect.promise(
-      () => (getPaymentValidatorDatum(paymentUTxO)),
-    );
-
-    const interval_amount = paymentData[0].interval_amount *
-      config.extension_intervals;
-    const newTotalSubscriptionFee = paymentData[0].total_subscription_fee_qty +
-      (interval_amount * config.extension_intervals);
-    const newNumIntervals = paymentData[0].num_intervals +
-      config.extension_intervals;
-    const extension_period = paymentData[0].interval_length *
-      config.extension_intervals;
-
-    const newSubscriptionEnd = paymentData[0].subscription_end +
-      extension_period;
+    const serviceData = yield* Effect.promise(() => (getServiceValidatorDatum(serviceUTxO)))
+    const serviceDatum = serviceData[0]
 
     const paymentDatum: PaymentDatum = {
-      service_nft_tn: paymentData[0].service_nft_tn,
-      subscriber_nft_tn: paymentData[0].subscriber_nft_tn,
-      subscription_fee: paymentData[0].subscription_fee,
-      total_subscription_fee_qty: newTotalSubscriptionFee,
-      subscription_start: paymentData[0].subscription_start,
-      subscription_end: newSubscriptionEnd,
-      interval_length: paymentData[0].interval_length,
-      interval_amount: interval_amount,
-      num_intervals: newNumIntervals,
-      last_claimed: paymentData[0].last_claimed,
-      penalty_fee: paymentData[0].penalty_fee,
-      penalty_fee_qty: paymentData[0].penalty_fee_qty,
-      minimum_ada: paymentData[0].minimum_ada,
+      service_nft_tn: oldPaymentDatum.service_nft_tn,
+      subscriber_nft_tn: oldPaymentDatum.subscriber_nft_tn,
+      subscription_start: oldPaymentDatum.subscription_start,
+      subscription_end: oldPaymentDatum.subscription_end + (config.extension_intervals * serviceDatum.interval_length),
+      original_subscription_end: oldPaymentDatum.original_subscription_end,
+      installments: oldPaymentDatum.installments.concat(Array.from(
+        { length: Number(config.extension_intervals) },
+        (_, i) =>
+          ({
+            claimable_at: oldPaymentDatum.subscription_end + (serviceDatum.interval_length * BigInt(i + 1)),
+            claimable_amount: serviceDatum.service_fee,
+          }) as Installment,
+      ))
     };
+
+    const newTotalSubscriptionFee = paymentUTxO.assets.lovelace + config.extension_intervals * serviceDatum.service_fee
 
     const allDatums: PaymentValidatorDatum = {
       Payment: [paymentDatum],
     };
-
-    console.log("allDatums: ", allDatums);
 
     const paymentValDatum = Data.to<PaymentValidatorDatum>(
       allDatums,
@@ -133,21 +97,10 @@ export const extendSubscriptionProgram = (
     const extendRedeemer: RedeemerBuilder = {
       kind: "selected",
       makeRedeemer: (inputIndices: bigint[]) => {
-        // Construct the redeemer using the input indices
-        const subscriberIndex = inputIndices[0];
-        const paymentIndex = inputIndices[1];
-
-        return Data.to(
-          new Constr(1, [
-            new Constr(0, [
-              BigInt(subscriberIndex),
-              BigInt(paymentIndex),
-            ]),
-          ]),
-        );
+        const result = Data.to(new Constr(0, [0n, inputIndices[0], 1n, config.extension_intervals]))
+        return result
       },
-      // Specify the inputs relevant to the redeemer
-      inputs: [subscriberUTxO, paymentUTxO],
+      inputs: [paymentUTxO],
     };
 
     const subscriberUTxOs = yield* Effect.promise(() =>
@@ -156,8 +109,8 @@ export const extendSubscriptionProgram = (
 
     const tx = yield* lucid
       .newTx()
-      .collectFrom(subscriberUTxOs) // subscriber user nft utxo
-      .collectFrom([paymentUTxO], extendRedeemer) // subscriber utxos
+      .collectFrom(subscriberUTxOs)
+      .collectFrom([paymentUTxO], extendRedeemer)
       .readFrom([serviceUTxO])
       .pay.ToAddress(subscriberAddress, {
         [subscriberNFT]: 1n,
@@ -170,7 +123,7 @@ export const extendSubscriptionProgram = (
         [paymentNFT]: 1n,
       })
       .attach.SpendingValidator(paymentValidator.spendValidator)
-      .completeProgram();
+      .completeProgram({ localUPLCEval: true });
 
     return tx;
   });

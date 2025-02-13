@@ -1,6 +1,7 @@
 import {
   Address,
   Assets,
+  Constr,
   Data,
   LucidEvolution,
   mintingPolicyToId,
@@ -15,14 +16,13 @@ import { CreateServiceConfig } from "../core/types.js";
 import { CreateServiceRedeemer, ServiceDatum } from "../core/contract.types.js";
 import { createCip68TokenNames } from "../core/utils/assets.js";
 import { Effect } from "effect";
-import { ADA } from "../core/constants.js";
 import { serviceScript } from "../core/validators/constants.js";
 
 export const createServiceProgram = (
   lucid: LucidEvolution,
   config: CreateServiceConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
-  Effect.gen(function* () { // return type ,
+  Effect.gen(function* () {
     const merchantAddress: Address = yield* Effect.promise(() =>
       lucid.wallet().address()
     );
@@ -38,37 +38,16 @@ export const createServiceProgram = (
       console.error("No UTxO found at user address: " + merchantAddress);
     }
 
-    // Selecting a utxo containing atleast 2 ADA to cover tx fees and min ADA
-    // Note: To avoid tx balancing errors, the utxo should only contain lovelaces
-    const selectedUTxOs = selectUTxOs(merchantUTxOs, {
-      ["lovelace"]: 2000000n,
-    });
-    const { refTokenName, userTokenName } = createCip68TokenNames(
-      selectedUTxOs[0],
-    );
+    const selectedUTxOs = selectUTxOs(merchantUTxOs, { ["lovelace"]: 2000000n, });
+    const selectedUTxO = selectedUTxOs[0]
+    const { refTokenName, userTokenName } = createCip68TokenNames(selectedUTxO);
 
     const createServiceRedeemer: RedeemerBuilder = {
       kind: "selected",
       makeRedeemer: (inputIndices: bigint[]) => {
-        // Construct the redeemer using the input indices
-        const merchantIndex = inputIndices[0];
-
-        const redeemer: CreateServiceRedeemer = {
-          output_reference: {
-            txHash: {
-              hash: selectedUTxOs[0].txHash,
-            },
-            outputIndex: BigInt(selectedUTxOs[0].outputIndex),
-          },
-          input_index: merchantIndex,
-          output_index: 1n,
-        };
-        const redeemerData = Data.to(redeemer, CreateServiceRedeemer);
-
-        return redeemerData;
+        return Data.to(new Constr(0, [inputIndices[0], 1n]));
       },
-      // Specify the inputs relevant to the redeemer
-      inputs: [selectedUTxOs[0]],
+      inputs: [selectedUTxO],
     };
 
     const currDatum: ServiceDatum = {
@@ -102,7 +81,7 @@ export const createServiceProgram = (
 
     const tx = yield* lucid
       .newTx()
-      .collectFrom(selectedUTxOs)
+      .collectFrom([selectedUTxO])
       .mintAssets(
         mintingAssets,
         createServiceRedeemer,
@@ -117,7 +96,7 @@ export const createServiceProgram = (
         [refToken]: 1n,
       })
       .attach.MintingPolicy(validators.mintValidator)
-      .completeProgram();
+      .completeProgram({ localUPLCEval: true });
 
     return tx;
   });

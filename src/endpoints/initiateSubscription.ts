@@ -30,85 +30,51 @@ export const initSubscriptionProgram = (
   config: InitPaymentConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
   Effect.gen(function* () {
-    const subscriptionStartTime = config.current_time + BigInt(6000);
-    const subscriberAddress: Address = yield* Effect.promise(() =>
-      lucid.wallet().address()
-    );
+    const subscriberAddress: Address = yield* Effect.promise(() => lucid.wallet().address());
 
     const validators = getMultiValidator(lucid, paymentScript);
     const paymentPolicyId = mintingPolicyToId(validators.mintValidator);
 
-    const subscriberUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(subscriberAddress)
-    );
+    const subscriberUTxOs = yield* Effect.promise(() => lucid.utxosAt(subscriberAddress));
     if (!subscriberUTxOs || !subscriberUTxOs.length) {
       console.error("No UTxO found at user address: " + subscriberAddress);
     }
 
-    const subscriberNft = toUnit(
-      accountPolicyId,
-      config.subscriber_nft_tn,
-    );
+    const subscriberNft = toUnit(accountPolicyId, config.subscriber_nft_tn);
+    const serviceNft = toUnit(servicePolicyId, config.service_nft_tn);
 
-    const serviceNft = toUnit(
-      servicePolicyId,
-      config.service_nft_tn,
-    );
-
-    const serviceUTxO = yield* Effect.promise(() =>
-      lucid.utxoByUnit(
-        serviceNft,
-      )
-    );
-
-    const subscriberUTxO = yield* Effect.promise(() =>
-      lucid.utxoByUnit(
-        subscriberNft,
-      )
-    );
+    const serviceUTxO = yield* Effect.promise(() => lucid.utxoByUnit(serviceNft));
+    const subscriberUTxO = yield* Effect.promise(() => lucid.utxoByUnit(subscriberNft));
 
     if (!subscriberUTxO) {
       throw new Error(" subscriberUTxO not found");
     }
 
-    const tokenName = fromText("subscription"); // generateUniqueAssetName(subscriberUTxO, "");
-    console.log("paymentNftTn: ", tokenName);
-
-    const paymentNFT = toUnit(
-      paymentPolicyId,
-      tokenName,
-    );
+    const paymentNFT = toUnit(paymentPolicyId, fromText("subscription"));
 
     const initiateSubscriptionRedeemer: RedeemerBuilder = {
       kind: "selected",
       makeRedeemer: (inputIndices: bigint[]) => {
-        // Construct the redeemer using the input indices
-        const serviceRefIndex = 0n;
-        const subscriberIndex = 0n;
-        const paymentIndex = 1n; //BigInt(subscriberUTxO.outputIndex);
-
         const paymentRedeemer: InitSubscription = {
-          service_ref_input_index: serviceRefIndex,
-          subscriber_input_index: subscriberIndex,
-          payment_output_index: paymentIndex,
+          service_ref_input_index: 0n,
+          subscriber_input_index: inputIndices[0],
+          payment_output_index: 0n,
         };
 
         const redeemerData = Data.to(paymentRedeemer, InitSubscription);
-
         return redeemerData;
       },
-      // Specify the inputs relevant to the redeemer
       inputs: [subscriberUTxO],
     };
 
-    // const currentTime = BigInt(Date.now());
     const serviceData = yield* Effect.promise(
       () => (getServiceValidatorDatum(serviceUTxO)),
     );
+    const serviceDatum = serviceData[0]
 
-    const interval_amount = serviceData[0].service_fee;
-    const interval_length = serviceData[0].interval_length;
-    const subscription_end = subscriptionStartTime +
+    const interval_amount = serviceDatum.service_fee;
+    const interval_length = serviceDatum.interval_length;
+    const subscription_end = config.subscription_start +
       interval_length * config.num_intervals;
 
     const totalSubscriptionQty = interval_amount *
@@ -133,11 +99,11 @@ export const initSubscriptionProgram = (
     const paymentDatum: PaymentDatum = {
       service_nft_tn: config.service_nft_tn,
       subscriber_nft_tn: config.subscriber_nft_tn,
-      subscription_start: subscriptionStartTime,
+      subscription_start: config.subscription_start,
       subscription_end: subscription_end,
       original_subscription_end: subscription_end,
       installments: createInstallments(
-        subscriptionStartTime,
+        config.subscription_start,
         interval_length,
         interval_amount,
         Number(config.num_intervals),
@@ -153,25 +119,11 @@ export const initSubscriptionProgram = (
       PaymentValidatorDatum,
     );
 
-    // Find UTxO with sufficient lovelace
-
-    const selectedUTxO = subscriberUTxOs.find((utxo) =>
-      utxo.assets.lovelace >= totalSubscriptionQty
-    );
-
-    if (!selectedUTxO) {
-      throw new Error("No UTxO with sufficient ADA found");
-    }
-    const subscriberAssets = {
-      [subscriberNft]: 1n,
-    };
-
     const tx = yield* lucid
       .newTx()
       .readFrom([serviceUTxO])
       .collectFrom([subscriberUTxO])
       .mintAssets({ [paymentNFT]: 1n }, initiateSubscriptionRedeemer)
-      // .pay.ToAddress(subscriberAddress, subscriberAssets)
       .pay.ToAddressWithData(validators.spendValAddress, {
         kind: "inline",
         value: paymentValDatum,
@@ -179,9 +131,9 @@ export const initSubscriptionProgram = (
         [paymentNFT]: 1n,
         lovelace: totalSubscriptionQty,
       })
-      .validFrom(Number(subscriptionStartTime) + 1000)
+      .validTo(Number(config.subscription_start) - 500)
       .attach.MintingPolicy(validators.mintValidator)
-      .completeProgram();
+      .completeProgram({ localUPLCEval: true });
 
     return tx;
   });

@@ -6,7 +6,6 @@ import {
   TxSignBuilder,
   UTxO,
 } from "@lucid-evolution/lucid";
-import { AssetClassD } from "./contract.types.js";
 
 export type CborHex = string;
 export type RawHex = string;
@@ -75,7 +74,7 @@ export type InitPaymentConfig = {
   service_nft_tn: string;
   subscriber_nft_tn: string;
   num_intervals: bigint;
-  current_time: bigint;
+  subscription_start: bigint;
 };
 
 export type ExtendPaymentConfig = {
@@ -86,6 +85,7 @@ export type ExtendPaymentConfig = {
 
 export type MerchantWithdrawConfig = {
   service_nft_tn: string;
+  subscriber_nft_tn: string,
   merchant_nft_tn: string;
   payment_nft_tn: string;
   current_time: bigint;
@@ -99,7 +99,7 @@ export type UnsubscribeConfig = {
 export type WithdrawPenaltyConfig = {
   service_nft_tn: string;
   merchant_nft_tn: string;
-  // payment_nft_tn: string;
+  subscriber_nft_tn: string;
 };
 
 export type SubscriberWithdrawConfig = {

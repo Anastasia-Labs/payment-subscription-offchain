@@ -53,7 +53,6 @@ export const Value = ValueSchema as unknown as Value;
 
 // Mint Redeemers
 export const CreateMintSchema = Data.Object({
-    output_reference: OutputReferenceSchema,
     input_index: Data.Integer(),
     output_index: Data.Integer(),
 });
@@ -145,11 +144,3 @@ export const SubscribeMintSchema = Data.Object({
 export type InitSubscription = Data.Static<typeof SubscribeMintSchema>;
 export const InitSubscription =
     SubscribeMintSchema as unknown as InitSubscription;
-
-export const WithdrawSchema = Data.Object({
-    merchant_input_index: Data.Integer(),
-    payment_input_index: Data.Integer(),
-});
-
-export type MerchantWithdraw = Data.Static<typeof WithdrawSchema>;
-export const MerchantWithdraw = WithdrawSchema as unknown as MerchantWithdraw;

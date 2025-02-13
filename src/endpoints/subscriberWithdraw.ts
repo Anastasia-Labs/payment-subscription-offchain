@@ -1,5 +1,6 @@
 import {
   Address,
+  Assets,
   Constr,
   Data,
   LucidEvolution,
@@ -26,44 +27,21 @@ export const subscriberWithdrawProgram = (
   config: SubscriberWithdrawConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
   Effect.gen(function* () {
-    const subscriberAddress: Address = yield* Effect.promise(() =>
-      lucid.wallet().address()
-    );
-
     const validators = getMultiValidator(lucid, paymentScript);
 
+    const subscriberAddress: Address = yield* Effect.promise(() => lucid.wallet().address());
+
     const paymentAddress = validators.spendValAddress;
+    const paymentUTxOs = yield* Effect.promise(() => lucid.utxosAt(paymentAddress));
 
-    const paymentUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(paymentAddress)
-    );
+    const payment_token_name = tokenNameFromUTxO(paymentUTxOs, paymentPolicyId);
+    const paymentNft = toUnit(paymentPolicyId, payment_token_name);
 
-    const payment_token_name = tokenNameFromUTxO(
-      paymentUTxOs,
-      paymentPolicyId,
-    );
+    const subscriberNft = toUnit(accountPolicyId, config.subscriber_nft_tn);
 
-    const paymentNFT = toUnit(
-      paymentPolicyId,
-      payment_token_name,
-    );
+    const subscriberUTxO = yield* Effect.promise(() => lucid.utxoByUnit(subscriberNft));
 
-    const subscriberNft = toUnit(
-      accountPolicyId,
-      config.subscriber_nft_tn,
-    );
-
-    const subscriberUTxO = yield* Effect.promise(() =>
-      lucid.utxoByUnit(
-        subscriberNft,
-      )
-    );
-
-    const subscriberUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(
-        subscriberAddress,
-      )
-    );
+    const subscriberUTxOs = yield* Effect.promise(() => lucid.utxosAt(subscriberAddress));
 
     if (!paymentUTxOs.length) {
       throw new Error("No payment UTxOs found");
@@ -72,10 +50,7 @@ export const subscriberWithdrawProgram = (
     const inActivePaymentUTxOs = paymentUTxOs.filter((utxo: UTxO) => {
       if (!utxo.datum) return false;
 
-      const validatorDatum = Data.from<PaymentValidatorDatum>(
-        utxo.datum,
-        PaymentValidatorDatum,
-      );
+      const validatorDatum = Data.from<PaymentValidatorDatum>(utxo.datum, PaymentValidatorDatum);
 
       let datum: PaymentDatum;
       if ("Payment" in validatorDatum) {
@@ -87,70 +62,34 @@ export const subscriberWithdrawProgram = (
       return datum.service_nft_tn === config.service_nft_tn;
     });
 
-    const paymentData = yield* Effect.promise(
-      () => (getPaymentValidatorDatum(paymentUTxOs)),
-    );
-
-    const paymentValue = inActivePaymentUTxOs[0].assets.lovelace;
-
-    const paymentDatum: PaymentDatum = {
-      service_nft_tn: paymentData[0].service_nft_tn,
-      subscriber_nft_tn: paymentData[0].subscriber_nft_tn,
-      subscription_fee: paymentData[0].subscription_fee,
-      total_subscription_fee_qty: paymentData[0].total_subscription_fee_qty,
-      subscription_start: paymentData[0].subscription_start,
-      subscription_end: paymentData[0].subscription_end,
-      interval_length: paymentData[0].interval_length,
-      interval_amount: paymentData[0].interval_amount,
-      num_intervals: paymentData[0].num_intervals,
-      last_claimed: paymentData[0].last_claimed,
-      penalty_fee: paymentData[0].penalty_fee,
-      penalty_fee_qty: paymentData[0].penalty_fee_qty,
-      minimum_ada: paymentData[0].minimum_ada,
-    };
-
-    const allDatums: PaymentValidatorDatum = {
-      Payment: [paymentDatum],
-    };
-
-    const paymentValDatum = Data.to<PaymentValidatorDatum>(
-      allDatums,
-      PaymentValidatorDatum,
-    );
+    const paymentUTxO = inActivePaymentUTxOs[0]
+    const paymentValue = paymentUTxO.assets.lovelace;
 
     const subscriberWithdrawRedeemer: RedeemerBuilder = {
       kind: "selected",
       makeRedeemer: (inputIndices: bigint[]) => {
-        // Construct the redeemer using the input indices
-        const subscriberIndex = inputIndices[0];
-        const paymentIndex = inputIndices[1];
-
-        return Data.to(
-          new Constr(1, [
-            new Constr(3, [BigInt(subscriberIndex), BigInt(paymentIndex)]),
-          ]),
-        );
+        return Data.to(new Constr(3, [0n, inputIndices[0], inputIndices[1]]));
       },
-      // Specify the inputs relevant to the redeemer
-      inputs: [subscriberUTxO, inActivePaymentUTxOs[0]],
+      inputs: [subscriberUTxO, paymentUTxO],
     };
+
+    const mintingAssets: Assets = {
+      [paymentNft]: -1n
+    };
+    const mintingRedeemer = Data.to(new Constr(1, []))
 
     const tx = yield* lucid
       .newTx()
-      .collectFrom(subscriberUTxOs) // subscriber user nft utxo
+      .collectFrom(subscriberUTxOs)
+      .collectFrom([paymentUTxO], subscriberWithdrawRedeemer)
       .readFrom(config.service_utxos)
-      .collectFrom(paymentUTxOs, subscriberWithdrawRedeemer)
       .pay.ToAddress(subscriberAddress, {
         lovelace: paymentValue,
         [subscriberNft]: 1n,
       })
-      .pay.ToAddressWithData(validators.spendValAddress, {
-        kind: "inline",
-        value: paymentValDatum,
-      }, {
-        [paymentNFT]: 1n,
-      })
+      .mintAssets(mintingAssets, mintingRedeemer)
       .attach.SpendingValidator(validators.spendValidator)
+      .attach.MintingPolicy(validators.mintValidator)
       .completeProgram();
 
     return tx;

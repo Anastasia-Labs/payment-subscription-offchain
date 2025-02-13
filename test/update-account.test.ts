@@ -28,26 +28,18 @@ export const updateAccountTestCase = (
 
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
         const updateAccountFlow = Effect.gen(function* (_) {
-            const updateAccountResult = yield* Effect.promise(() =>
-                Effect.runPromise(
-                    updateAccountProgram(lucid, updateAccountConfig),
-                )
-            );
+            const updateAccountResult = yield* updateAccountProgram(lucid, updateAccountConfig)
             const updateAccountSigned = yield* Effect.promise(() =>
                 updateAccountResult.sign
                     .withWallet()
                     .complete()
             );
-            const updateAccountHash = yield* Effect.promise(() =>
-                updateAccountSigned.submit()
-            );
+            const updateAccountHash = yield* Effect.promise(() => updateAccountSigned.submit());
             return updateAccountHash;
         });
 
         const updateAccountResult = yield* updateAccountFlow.pipe(
-            Effect.tapError((error) =>
-                Effect.log(`Error updating Account: ${error}`)
-            ),
+            Effect.tapError((error) => Effect.log(`Error updating Account: ${error}`)),
             Effect.map((hash) => {
                 return hash;
             }),

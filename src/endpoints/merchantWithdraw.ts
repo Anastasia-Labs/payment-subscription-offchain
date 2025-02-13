@@ -15,7 +15,6 @@ import { Effect } from "effect";
 import {
   calculateClaimableIntervals,
   findPaymentToWithdraw,
-  getPaymentValidatorDatum,
 } from "./utils.js";
 import {
   paymentPolicyId,
@@ -28,126 +27,40 @@ export const merchantWithdrawProgram = (
   config: MerchantWithdrawConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
   Effect.gen(function* () {
-    const finalCurrentTime = config.current_time - BigInt(6000 * 3);
-    const merchantAddress: Address = yield* Effect.promise(() =>
-      lucid.wallet().address()
-    );
+    const merchantAddress: Address = yield* Effect.promise(() => lucid.wallet().address());
 
     const validators = getMultiValidator(lucid, paymentScript);
 
-    const paymentUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(validators.spendValAddress)
-    );
+    const paymentUTxOs = yield* Effect.promise(() => lucid.utxosAt(validators.spendValAddress));
+    const merchantUTxOs = yield* Effect.promise(() => lucid.utxosAt(merchantAddress));
 
-    const merchantUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(merchantAddress)
-    );
+    const serviceRefNft = toUnit(servicePolicyId, config.service_nft_tn);
+    const merchantNft = toUnit(servicePolicyId, config.merchant_nft_tn);
 
-    const serviceRefNft = toUnit(
-      servicePolicyId,
-      config.service_nft_tn,
-    );
+    const merchantUTxO = yield* Effect.promise(() => lucid.utxoByUnit(merchantNft));
+    const serviceUTxO = yield* Effect.promise(() => lucid.utxoByUnit(serviceRefNft));
 
-    const merchantNft = toUnit(
-      servicePolicyId,
-      config.merchant_nft_tn,
-    );
-
-    const merchantUTxO = yield* Effect.promise(() =>
-      lucid.utxoByUnit(
-        merchantNft,
-      )
-    );
-
-    const serviceUTxO = yield* Effect.promise(() =>
-      lucid.utxoByUnit(
-        serviceRefNft,
-      )
-    );
-
-    // const paymentUTxO = findPaymentUTxO(
-    //   paymentUTxOs,
-    //   config.service_nft_tn,
-    //   finalCurrentTime,
-    // );
-
-    const { paymentNftTn, paymentDatum } = yield* Effect.promise(() =>
+    const { paymentNftTn, paymentUTxO, paymentDatum } = yield* Effect.promise(() =>
       findPaymentToWithdraw(
         paymentUTxOs,
         config.service_nft_tn,
+        config.subscriber_nft_tn,
         paymentPolicyId,
       )
     );
 
-    const paymentNFT = toUnit(
-      paymentPolicyId,
-      paymentNftTn, //tokenNameWithoutFunc,
-    );
+    const paymentNFT = toUnit(paymentPolicyId, paymentNftTn);
 
-    const paymentUTxO = yield* Effect.promise(() =>
-      lucid.utxoByUnit(
-        paymentNFT,
-      )
-    );
-
-    const paymentData = yield* Effect.promise(
-      () => (getPaymentValidatorDatum(paymentUTxO)),
-    );
-
-    console.log("paymentData:", paymentData[0]);
-    // Debug time values
-    const { withdrawableAmount, intervalsToWithdraw } =
-      calculateClaimableIntervals(
-        finalCurrentTime,
-        paymentData[0],
-      );
-
-    console.log(
-      "paymentData[0].subscription_fee_qty: ",
-      paymentData[0].total_subscription_fee_qty,
-    );
-
-    console.log(
-      "paymentUTxO.assets : ",
-      paymentUTxO.assets["lovelace"],
-    );
-
-    // Calculate remaining subscription fee after withdrawal
-    const payment_value = paymentUTxO.assets["lovelace"];
-    const minimum_ada = paymentData[0].minimum_ada;
-
-    let withdrawnAmount = 0n;
-    if ((payment_value - withdrawableAmount) > minimum_ada) {
-      withdrawnAmount = withdrawableAmount;
-    } else {
-      withdrawnAmount = withdrawableAmount - minimum_ada;
-    }
-
-    const newTotalSubscriptionFee = paymentUTxO.assets["lovelace"] -
-      withdrawnAmount;
-
-    const newNumIntervals = paymentData[0].num_intervals -
-      BigInt(intervalsToWithdraw);
-    console.log("withdrawnAmount Amount: ", withdrawnAmount);
-    console.log("interval_amount: ", paymentData[0].interval_amount);
-    console.log("intervalsToWithdraw: ", intervalsToWithdraw);
-
-    // console.log("Payment Datum 0: ", paymentData[0]);
+    const { withdrawableAmount, withdrawableCount, newInstallments } =
+      calculateClaimableIntervals(config.current_time, paymentDatum);
 
     const newPaymentDatum: PaymentDatum = {
-      service_nft_tn: paymentData[0].service_nft_tn,
-      subscriber_nft_tn: paymentData[0].subscriber_nft_tn,
-      subscription_fee: paymentData[0].subscription_fee,
-      total_subscription_fee_qty: newTotalSubscriptionFee,
-      subscription_start: paymentData[0].subscription_start,
-      subscription_end: paymentData[0].subscription_end,
-      interval_length: paymentData[0].interval_length,
-      interval_amount: paymentData[0].interval_amount,
-      num_intervals: newNumIntervals,
-      last_claimed: finalCurrentTime,
-      penalty_fee: paymentData[0].penalty_fee,
-      penalty_fee_qty: paymentData[0].penalty_fee_qty,
-      minimum_ada: paymentData[0].minimum_ada,
+      service_nft_tn: paymentDatum.service_nft_tn,
+      subscriber_nft_tn: paymentDatum.subscriber_nft_tn,
+      subscription_start: paymentDatum.subscription_start,
+      subscription_end: paymentDatum.subscription_end,
+      original_subscription_end: paymentDatum.original_subscription_end,
+      installments: newInstallments,
     };
 
     const allDatums: PaymentValidatorDatum = {
@@ -159,50 +72,33 @@ export const merchantWithdrawProgram = (
       PaymentValidatorDatum,
     );
 
-    console.log("new Datum: ", allDatums);
-
     const merchantWithdrawRedeemer: RedeemerBuilder = {
       kind: "selected",
       makeRedeemer: (inputIndices: bigint[]) => {
-        // Construct the redeemer using the input indices
-        const merchantIndex = inputIndices[0];
-        const paymentIndex = inputIndices[1];
-
-        return Data.to(
-          new Constr(1, [
-            new Constr(1, [BigInt(merchantIndex), BigInt(paymentIndex)]),
-          ]),
-        );
+        return Data.to(new Constr(1, [0n, inputIndices[0], inputIndices[1], 1n, BigInt(withdrawableCount)]));
       },
-      // Specify the inputs relevant to the redeemer
       inputs: [merchantUTxO, paymentUTxO],
     };
-    if (withdrawableAmount < paymentData[0].minimum_ada) {
-      console.error("Not enough Withdrawable Amount: ", withdrawableAmount);
-    }
-    // console.log("newTotalSubscriptionFee: ", newTotalSubscriptionFee);
 
-    // TODO input-payment - withdrawable amoun = newTotalSubscriptionFrr
-
+    const remainingSubscriptionFee = newInstallments.reduce((acc, i) => acc + i.claimable_amount, 0n)
+    const remainingSubscriptionAssets = (remainingSubscriptionFee > 0n ? { lovelace: remainingSubscriptionFee, [paymentNFT]: 1n } : { [paymentNFT]: 1n })
+    
     const tx = yield* lucid
       .newTx()
       .collectFrom(merchantUTxOs)
       .collectFrom([paymentUTxO], merchantWithdrawRedeemer)
       .readFrom([serviceUTxO])
       .pay.ToAddress(merchantAddress, {
-        lovelace: withdrawnAmount, // Payment output
+        lovelace: withdrawableAmount,
         [merchantNft]: 1n,
       })
       .pay.ToContract(validators.spendValAddress, {
         kind: "inline",
         value: paymentValDatum,
-      }, {
-        lovelace: newTotalSubscriptionFee,
-        [paymentNFT]: 1n,
-      })
-      .validFrom(Number(finalCurrentTime))
+      }, remainingSubscriptionAssets)
+      .validFrom(Number(config.current_time + BigInt(600)))
       .attach.SpendingValidator(validators.spendValidator)
-      .completeProgram();
+      .completeProgram({ localUPLCEval: true });
 
     return tx;
   });

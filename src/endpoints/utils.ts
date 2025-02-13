@@ -1,5 +1,6 @@
 import {
     AccountDatum,
+    Installment,
     parseSafeDatum,
     PaymentDatum,
     PaymentValidatorDatum,
@@ -85,24 +86,6 @@ export const logWalletUTxOs = (
         }));
         // Return the UTxOs
         return utxos;
-    });
-};
-
-export const getAccountValidatorDatum = async (
-    utxos: UTxO[],
-): Promise<AccountDatum[]> => {
-    return utxos.flatMap((utxo) => {
-        const result = parseSafeDatum<AccountDatum>(utxo.datum, AccountDatum);
-
-        if (result.type == "right") {
-            return {
-                email: result.value.email,
-                phone: result.value.phone,
-                account_created: result.value.account_created,
-            };
-        } else {
-            return [];
-        }
     });
 };
 
@@ -204,61 +187,28 @@ export const getPenaltyDatum = async (
 
 interface WithdrawalCalc {
     withdrawableAmount: bigint;
-    intervalsToWithdraw: number;
-    timeSinceLastClaim: bigint;
-    timeUntilEnd: bigint;
+    withdrawableCount: number,
+    newInstallments: Installment[]
 }
 
 export const calculateClaimableIntervals = (
     currentTime: bigint,
     paymentData: PaymentDatum,
 ): WithdrawalCalc => {
-    console.log("calculateClaimableIntervals:", paymentData.last_claimed);
-    // Calculate time since last claim
-    const timeSinceLastClaim = currentTime > paymentData.last_claimed
-        ? currentTime - paymentData.last_claimed
-        : BigInt(0);
-
-    // Calculate time remaining until subscription end
-    const timeUntilEnd = paymentData.subscription_end - currentTime;
-
-    // Calculate intervals based on time since last claim
-    const intervalsPassed = Number(timeSinceLastClaim) /
-        Number(paymentData.interval_length);
-
-    // Consider both passed intervals and remaining intervals
-    let claimableIntervals = Math.min(
-        intervalsPassed,
-        Number(paymentData.num_intervals),
-    );
-
-    // If this is potentially the final interval
-    if (
-        paymentData.num_intervals <= 1n &&
-        timeUntilEnd <= paymentData.interval_length
-    ) {
-        claimableIntervals = Math.max(1, claimableIntervals);
+    const index = paymentData.installments.findIndex((i) => i.claimable_at > currentTime)
+    if (index == 0) {
+        throw new Error("No installment withdrawable")
     }
+    const withdrawableCount = (index > 0 ? index : paymentData.installments.length)
 
-    const withdrawableAmount = BigInt(Math.floor(claimableIntervals)) *
-        paymentData.interval_amount;
-
-    console.log("Current Time:", currentTime);
-    console.log("Subscription Start:", paymentData.subscription_start);
-    console.log("Subscription End:", paymentData.subscription_end);
-    console.log("Last Claimed:", paymentData.last_claimed);
-    console.log("timeSinceLastClaim:", timeSinceLastClaim);
-    console.log("timeUntilEnd:", timeUntilEnd);
-    console.log("Interval Length:", paymentData.interval_length);
-    console.log("Number of Intervals:", paymentData.num_intervals);
-    console.log("intervalsPassed:", intervalsPassed);
-    console.log("claimableIntervals:", claimableIntervals);
+    const newInstallments = Array.from(paymentData.installments)
+    const withdrawn = newInstallments.splice(0, withdrawableCount)
+    const withdrawableAmount = withdrawn.reduce((acc, i) => acc + i.claimable_amount, 0n)
 
     return {
         withdrawableAmount,
-        intervalsToWithdraw: Math.floor(claimableIntervals),
-        timeSinceLastClaim,
-        timeUntilEnd,
+        withdrawableCount,
+        newInstallments
     };
 };
 
@@ -334,12 +284,10 @@ export const findSubscriptionTokenNames = async (
     serviceNftTn: string;
     paymentNftTn: string;
 }> => {
-    // Find payment UTxO that has this subscriber
     for (const utxo of paymentUTxOs) {
         try {
             const datum = await getPaymentValidatorDatum(utxo);
             if (datum[0].subscriber_nft_tn === subscriberNftTn) {
-                // Found the matching subscription
                 const paymentNftTn = tokenNameFromUTxO([utxo], paymentPolicyId);
                 return {
                     serviceNftTn: datum[0].service_nft_tn,
@@ -356,24 +304,26 @@ export const findSubscriptionTokenNames = async (
 export const findPaymentToWithdraw = async (
     paymentUTxOs: UTxO[],
     serviceNftTn: string,
+    subscriber_nft_tn: string,
     paymentPolicyId: string,
 ): Promise<{
     paymentNftTn: string;
+    paymentUTxO: UTxO,
     paymentDatum: PaymentDatum;
 }> => {
     for (const utxo of paymentUTxOs) {
         try {
             const paymentDatum = await getPaymentValidatorDatum(utxo);
 
-            // Check if we found a penalty datum and it matches our service
             if (
                 paymentDatum.length > 0 &&
                 paymentDatum[0].service_nft_tn === serviceNftTn &&
-                paymentDatum[0].last_claimed > 0
+                paymentDatum[0].subscriber_nft_tn === subscriber_nft_tn
             ) {
                 const paymentNftTn = tokenNameFromUTxO([utxo], paymentPolicyId);
                 return {
                     paymentNftTn,
+                    paymentUTxO: utxo,
                     paymentDatum: paymentDatum[0],
                 };
             }
@@ -387,6 +337,7 @@ export const findPaymentToWithdraw = async (
 export const findPenaltyDetails = async (
     paymentUTxOs: UTxO[],
     serviceNftTn: string,
+    subscriberNftTn: string,
     paymentPolicyId: string,
 ): Promise<{
     paymentNftTn: string;
@@ -397,11 +348,10 @@ export const findPenaltyDetails = async (
             const penaltyDatums = await getPenaltyDatum(utxo);
             console.log("\nFound penaltyDatums:", penaltyDatums);
 
-            // Check if we found a penalty datum and it matches our service
             if (
                 penaltyDatums.length > 0 &&
                 penaltyDatums[0].service_nft_tn === serviceNftTn &&
-                penaltyDatums[0].penalty_fee > 0n
+                penaltyDatums[0].subscriber_nft_tn === subscriberNftTn
             ) {
                 const paymentNftTn = tokenNameFromUTxO([utxo], paymentPolicyId);
                 return {

@@ -8,8 +8,6 @@ import {
   AccountSetup,
   setupAccount,
   setupBase,
-  SetupResult,
-  setupTest,
 } from "./setupTest.js";
 
 type RemoveAccountResult = {
@@ -36,7 +34,7 @@ export const removeAccountTestCase = (
       });
 
       expect(createAccountResult).toBeDefined();
-      expect(typeof createAccountResult.txHash).toBe("string"); // Assuming the createAccountResult is a transaction hash
+      expect(typeof createAccountResult.txHash).toBe("string");
       yield* Effect.sync(() => emulator.awaitBlock(10));
     }
 
@@ -46,25 +44,15 @@ export const removeAccountTestCase = (
     };
 
     const removeAccountFlow = Effect.gen(function* (_) {
-      const removeAccountUnsigned = yield* removeAccountProgram(
-        lucid,
-        removeAccountConfig,
-      );
-      const removeAccountSigned = yield* Effect.promise(() =>
-        removeAccountUnsigned.sign.withWallet().complete()
-      );
+      const removeAccountUnsigned = yield* removeAccountProgram(lucid, removeAccountConfig);
+      const removeAccountSigned = yield* Effect.promise(() => removeAccountUnsigned.sign.withWallet().complete());
 
-      const removeAccountHash = yield* Effect.promise(() =>
-        removeAccountSigned.submit()
-      );
-
+      const removeAccountHash = yield* Effect.promise(() => removeAccountSigned.submit());
       return removeAccountHash;
     });
 
     const removeAccountResult = yield* removeAccountFlow.pipe(
-      Effect.tapError((error) =>
-        Effect.log(`Error creating Account: ${error}`)
-      ),
+      Effect.tapError((error) => Effect.log(`Error creating Account: ${error}`)),
       Effect.map((hash) => {
         return hash;
       }),

@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
 import { removeServiceTestCase } from "./removeServiceTestCase.js";
-import { setupBase, setupService, setupTest } from "./setupTest.js";
+import { setupBase, setupService } from "./setupTest.js";
 
 test<LucidContext>("Test 3 - Remove Service", async () => {
   const program = Effect.gen(function* () {
@@ -17,5 +17,4 @@ test<LucidContext>("Test 3 - Remove Service", async () => {
 
   expect(result.txHash).toBeDefined();
   expect(typeof result.txHash).toBe("string");
-  // expect(result.removeServiceConfig).toBeDefined();
 });

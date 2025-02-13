@@ -20,6 +20,7 @@ export type BaseSetup = {
   network: Network;
   context: LucidContext;
   currentTime: bigint;
+  intervalLength: bigint;
 };
 
 export type SetupResult = {
@@ -38,11 +39,11 @@ export type SetupResult = {
 export type SetupType = "all" | "account" | "service";
 
 export const setupTest = (
-  setupType: SetupType = "all",
+  intervalLength?: bigint
 ): Effect.Effect<SetupResult, Error, never> => {
   return Effect.gen(function* (_) {
     // Start with base setup
-    const base = yield* setupBase();
+    const base = yield* setupBase(intervalLength);
     const { lucid, users, emulator } = base.context;
 
     // Initialize empty return values
@@ -222,8 +223,9 @@ export type AccountSetup = BaseSetup & {
 };
 
 // Setup functions for different contexts
-export const setupBase = (): Effect.Effect<BaseSetup, Error, never> =>
-  Effect.gen(function* (_) {
+export const setupBase = (intervalLength?: bigint): Effect.Effect<BaseSetup, Error, never> => {
+  const interval_length = intervalLength || 60n * 1000n * 2n
+  return Effect.gen(function* (_) {
     const { lucid, users, emulator } = yield* makeLucidContext();
     const network = lucid.config().network;
     if (!network) throw Error("Invalid Network selection");
@@ -236,8 +238,10 @@ export const setupBase = (): Effect.Effect<BaseSetup, Error, never> =>
       network,
       context: { lucid, users, emulator },
       currentTime,
+      intervalLength: interval_length
     };
   });
+}
 
 export const setupAccount = (
   base: BaseSetup,
@@ -285,6 +289,7 @@ export type ServiceSetup = BaseSetup & {
   merchantNftTn: string;
   serviceUTxOs: UTxO[];
   merchantUTxOs: UTxO[];
+  intervalLength: bigint;
 };
 
 export const setupService = (
@@ -295,7 +300,7 @@ export const setupService = (
     // const network = lucid.config().network;
 
     if (emulator && base.network === "Custom") {
-      yield* createServiceTestCase({ lucid, users, emulator });
+      yield* createServiceTestCase({ lucid, users, emulator }, base.intervalLength);
       yield* Effect.sync(() => emulator.awaitBlock(10));
     }
 
