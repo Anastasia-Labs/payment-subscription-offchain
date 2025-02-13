@@ -1,6 +1,6 @@
 import { mintingPolicyToId } from "@lucid-evolution/lucid";
 import { readMultiValidators } from "../compiled/validators.js";
-import blueprint from "../compiled/plutus.json";
+import blueprint from "../compiled/plutus.json" with { type: "json" };
 
 const serviceValidator = readMultiValidators(blueprint, false, []);
 const servicePolicyId = mintingPolicyToId(serviceValidator.mintService);
