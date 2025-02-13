@@ -14,7 +14,6 @@ import { SubscriberWithdrawConfig } from "../core/types.js";
 import { PaymentDatum, PaymentValidatorDatum } from "../core/contract.types.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
-import { getPaymentValidatorDatum } from "./utils.js";
 import { tokenNameFromUTxO } from "../core/utils/assets.js";
 import {
   accountPolicyId,

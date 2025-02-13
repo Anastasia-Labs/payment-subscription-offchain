@@ -3,7 +3,6 @@ import {
   Assets,
   Constr,
   Data,
-  fromText,
   LucidEvolution,
   mintingPolicyToId,
   RedeemerBuilder,
@@ -14,7 +13,7 @@ import {
 } from "@lucid-evolution/lucid";
 import { getMultiValidator } from "../core/utils/index.js";
 import { CreateAccountConfig } from "../core/types.js";
-import { AccountDatum, CreateAccountRedeemer } from "../core/contract.types.js";
+import { AccountDatum } from "../core/contract.types.js";
 import { createCip68TokenNames } from "../core/utils/assets.js";
 import { Effect } from "effect";
 import { accountScript } from "../core/validators/constants.js";

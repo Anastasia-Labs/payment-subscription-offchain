@@ -1,5 +1,4 @@
 import {
-    AccountDatum,
     Installment,
     parseSafeDatum,
     PaymentDatum,
@@ -217,7 +216,7 @@ export const findUnsubscribePaymentUTxO = (
     serviceNftTn: string,
     subscriberNftTn: string,
 ): Effect.Effect<UTxO, TransactionError, never> => {
-    return Effect.gen(function* (_) {
+    return Effect.gen(function* () {
         console.log("Starting search for UTxO with:");
         console.log("  - Service NFT:", serviceNftTn);
         console.log("  - Subscriber NFT:", subscriberNftTn);

@@ -13,7 +13,7 @@ import {
 } from "@lucid-evolution/lucid";
 import { getMultiValidator } from "../core/utils/index.js";
 import { CreateServiceConfig } from "../core/types.js";
-import { CreateServiceRedeemer, ServiceDatum } from "../core/contract.types.js";
+import { ServiceDatum } from "../core/contract.types.js";
 import { createCip68TokenNames } from "../core/utils/assets.js";
 import { Effect } from "effect";
 import { serviceScript } from "../core/validators/constants.js";

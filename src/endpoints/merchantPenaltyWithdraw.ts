@@ -11,7 +11,7 @@ import {
 import { WithdrawPenaltyConfig } from "../core/types.js";
 import { getMultiValidator } from "../core/index.js";
 import { Effect } from "effect";
-import { findPenaltyDetails, getPenaltyDatum, getServiceValidatorDatum } from "./utils.js";
+import { findPenaltyDetails, getServiceValidatorDatum } from "./utils.js";
 import {
   paymentPolicyId,
   paymentScript,
@@ -32,7 +32,7 @@ export const merchantPenaltyWithdrawProgram = (
     const paymentUTxOs = yield* Effect.promise(() => lucid.utxosAt(paymentAddress));
     const merchantUTxOs = yield* Effect.promise(() => lucid.utxosAt(merchantAddress));
 
-    const { paymentNftTn, penaltyDatum } = yield* Effect.promise(() =>
+    const { paymentNftTn } = yield* Effect.promise(() =>
       findPenaltyDetails(paymentUTxOs, config.service_nft_tn, config.subscriber_nft_tn, paymentPolicyId)
     );
 
