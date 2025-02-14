@@ -1,6 +1,4 @@
 import {
-    accountPolicyId,
-    findCip68TokenNames,
     LucidEvolution,
     updateAccount,
     UpdateAccountConfig,
@@ -8,18 +6,9 @@ import {
 
 export const runUpdateAccount = async (
     lucid: LucidEvolution,
-    accountAddress: string,
-    subscriberAddress: string,
+    accountNftTn: string,
+    subscriberNftTn: string,
 ): Promise<Error | void> => {
-    const accountUTxOs = await lucid.utxosAt(accountAddress);
-    const subscriberUTxOs = await lucid.utxosAt(subscriberAddress);
-
-    const { refTokenName: accountNftTn, userTokenName: subscriberNftTn } =
-        findCip68TokenNames(
-            [accountUTxOs[0], subscriberUTxOs[0]],
-            accountPolicyId,
-        );
-
     const updateAccountConfig: UpdateAccountConfig = {
         new_email: "new_business@web3.ada",
         new_phone: "(288) 481-2686-999",
@@ -27,7 +16,7 @@ export const runUpdateAccount = async (
         subscriber_nft_tn: subscriberNftTn,
     };
 
-    // Update Service
+    // Update Account
     try {
         const updateServiceUnsigned = await updateAccount(
             lucid,
@@ -37,6 +26,9 @@ export const runUpdateAccount = async (
             .withWallet()
             .complete();
         const updateAccountHash = await updateAccountSigned.submit();
+
+        console.log(`Submitting ...`);
+        await lucid.awaitTx(updateAccountHash);
 
         console.log(`Account updated successfully: ${updateAccountHash}`);
     } catch (error) {

@@ -4,53 +4,33 @@ import {
     Constr,
     Data,
     LucidEvolution,
-    mintingPolicyToId,
     RedeemerBuilder,
     toUnit,
     TransactionError,
     TxSignBuilder,
 } from "@lucid-evolution/lucid";
-import { findCip68TokenNames, getMultiValidator } from "../core/utils/index.js";
+import { getMultiValidator } from "../core/utils/index.js";
 import { Effect } from "effect";
-import { extractTokens } from "./utils.js";
 import {
     accountPolicyId,
     accountScript,
 } from "../core/validators/constants.js";
+import { RemoveAccountConfig } from "../core/types.js";
 
 export const removeAccountProgram = (
     lucid: LucidEvolution,
-    // config: RemoveAccountConfig,
+    config: RemoveAccountConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
-    Effect.gen(function* () { // return type ,
-        const subscriberAddress: Address = yield* Effect.promise(() =>
-            lucid.wallet().address()
-        );
+    Effect.gen(function* () {
+        const subscriberAddress: Address = yield* Effect.promise(() => lucid.wallet().address());
 
         const validators = getMultiValidator(lucid, accountScript);
-        const accountUTxOs = yield* Effect.promise(() =>
-            lucid.utxosAt(validators.mintValAddress)
-        );
+        const accountUTxOs = yield* Effect.promise(() => lucid.utxosAt(validators.mintValAddress));
 
-        const subscriberUTxOs = yield* Effect.promise(() =>
-            lucid.utxosAt(subscriberAddress)
-        );
+        const subscriberUTxOs = yield* Effect.promise(() => lucid.utxosAt(subscriberAddress));
 
-        const { refTokenName: accountNftTn, userTokenName: subscriberNftTn } =
-            findCip68TokenNames(
-                [accountUTxOs[0], subscriberUTxOs[0]],
-                accountPolicyId,
-            );
-
-        const accountNFT = toUnit(
-            accountPolicyId,
-            accountNftTn,
-        );
-
-        const subscriberNFT = toUnit(
-            accountPolicyId,
-            subscriberNftTn,
-        );
+        const accountNFT = toUnit(accountPolicyId, config.account_nft_tn);
+        const subscriberNFT = toUnit(accountPolicyId, config.subscriber_nft_tn);
 
         const mintingAssets: Assets = {
             [accountNFT]: -1n,
@@ -58,43 +38,20 @@ export const removeAccountProgram = (
         };
 
         if (!accountUTxOs || !accountUTxOs.length) {
-            console.error(
-                "No UTxO found at user address: " + validators.spendValAddress,
-            );
+            console.error("No UTxO found at user address: " + validators.spendValAddress);
         }
 
-        console.log("removeAccountProgram: subscriberUTxOs", subscriberUTxOs);
+        const subscriberUTxO = yield* Effect.promise(() => lucid.utxoByUnit(subscriberNFT));
+        const accountUTxO = yield* Effect.promise(() => lucid.utxoByUnit(accountNFT));
 
-        const subscriberUTxO = yield* Effect.promise(() =>
-            lucid.utxoByUnit(
-                subscriberNFT,
-            )
-        );
+        const deleteAccRedeemer = Data.to(new Constr(1, [config.account_nft_tn]));
 
-        const accountUTxO = yield* Effect.promise(() =>
-            lucid.utxoByUnit(
-                accountNFT,
-            )
-        );
-
-        const deleteAccRedeemer = Data.to(new Constr(1, [])); // Assuming DeleteAccount is index 1 in your MintAccount enum
         const removeAccountRedeemer: RedeemerBuilder = {
             kind: "selected",
             makeRedeemer: (inputIndices: bigint[]) => {
-                // Construct the redeemer using the input indices
-                const userIndex = inputIndices[0];
-                const accountIndex = inputIndices[1];
-
-                return Data.to(
-                    new Constr(1, [
-                        new Constr(1, [
-                            BigInt(userIndex),
-                            BigInt(accountIndex),
-                        ]),
-                    ]),
+                return Data.to(new Constr(1, [config.account_nft_tn, inputIndices[0], inputIndices[1]]),
                 );
             },
-            // Specify the inputs relevant to the redeemer
             inputs: [subscriberUTxO, accountUTxO],
         };
 
@@ -108,7 +65,7 @@ export const removeAccountProgram = (
             )
             .attach.MintingPolicy(validators.mintValidator)
             .attach.SpendingValidator(validators.spendValidator)
-            .completeProgram();
+            .completeProgram({ localUPLCEval: true });
 
         return tx;
     });

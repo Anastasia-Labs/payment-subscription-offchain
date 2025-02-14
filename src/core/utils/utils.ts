@@ -39,7 +39,7 @@ export const utxosAtScript = async (
   }
 
   const scriptValidator: SpendingValidator = {
-    type: "PlutusV2",
+    type: "PlutusV3",
     script: script,
   };
 

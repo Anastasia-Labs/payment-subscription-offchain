@@ -5,7 +5,7 @@ import {
 import { expect, test } from "vitest";
 import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
-import { initSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
+import { initSubscriptionTestCase } from "./initSubscriptionTestCase.js";
 import { SetupResult, setupTest } from "./setupTest.js";
 
 type ExtendSubscriptionResult = {
@@ -20,6 +20,7 @@ export const extendSubscriptionTestCase = (
         const {
             context: { lucid, users, emulator },
             subscriberNftTn,
+            serviceNftTn,
         } = setupResult;
 
         if (emulator && lucid.config().network === "Custom") {
@@ -34,30 +35,21 @@ export const extendSubscriptionTestCase = (
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
         const extendPaymentConfig: ExtendPaymentConfig = {
+            service_nft_tn: serviceNftTn,
             subscriber_nft_tn: subscriberNftTn,
+            extension_intervals: BigInt(1), // Number of intervals to extend
         };
 
         const extendPaymentFlow = Effect.gen(function* (_) {
-            const extendUnsigned = yield* extendSubscriptionProgram(
-                lucid,
-                extendPaymentConfig,
-            );
-            const extendSigned = yield* Effect.promise(() =>
-                extendUnsigned.sign.withWallet().complete()
-            );
-
-            const extendTxHash = yield* Effect.promise(() =>
-                extendSigned.submit()
-            );
-
+            const extendUnsigned = yield* extendSubscriptionProgram(lucid, extendPaymentConfig);
+            const extendSigned = yield* Effect.promise(() => extendUnsigned.sign.withWallet().complete());
+            const extendTxHash = yield* Effect.promise(() => extendSigned.submit());
             return extendTxHash;
         });
         if (emulator) yield* Effect.sync(() => emulator.awaitBlock(10));
 
         const extendPaymentResult = yield* extendPaymentFlow.pipe(
-            Effect.tapError((error) =>
-                Effect.log(`Error creating Account: ${error}`)
-            ),
+            Effect.tapError((error) => Effect.log(`Error creating Account: ${error}`)),
             Effect.map((hash) => {
                 return hash;
             }),

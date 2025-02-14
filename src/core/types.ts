@@ -6,7 +6,6 @@ import {
   TxSignBuilder,
   UTxO,
 } from "@lucid-evolution/lucid";
-import { AssetClassD } from "./contract.types.js";
 
 export type CborHex = string;
 export type RawHex = string;
@@ -27,32 +26,35 @@ export type ReadableUTxO<T> = {
 };
 
 export type CreateServiceConfig = {
-  service_fee: AssetClassD;
-  service_fee_qty: bigint;
-  penalty_fee: AssetClassD;
-  penalty_fee_qty: bigint;
+  service_fee_policyid: string;
+  service_fee_assetname: string;
+  service_fee: bigint;
+  penalty_fee_policyid: string;
+  penalty_fee_assetname: string;
+  penalty_fee: bigint;
   interval_length: bigint;
   num_intervals: bigint;
-  minimum_ada: bigint;
   is_active: boolean;
 };
 
 export type UpdateServiceConfig = {
-  new_service_fee: AssetClassD;
-  new_service_fee_qty: bigint;
-  new_penalty_fee: AssetClassD;
-  new_penalty_fee_qty: bigint;
+  service_nft_tn: string; //AssetName,
+  merchant_nft_tn: string;
+  new_service_fee: bigint;
+  new_penalty_fee: bigint;
   new_interval_length: bigint;
   new_num_intervals: bigint;
-  new_minimum_ada: bigint;
-  is_active: boolean;
+};
+
+export type RemoveServiceConfig = {
+  service_nft_tn: string; //AssetName,
+  merchant_nft_tn: string;
 };
 
 //TODO: Add account_updated field
 export type CreateAccountConfig = {
-  email: string;
-  phone: string;
-  account_created: bigint;
+  email_hash: string;
+  phone_hash: string;
 };
 
 //TODO: Add account_updated field
@@ -63,35 +65,33 @@ export type UpdateAccountConfig = {
   subscriber_nft_tn: string;
 };
 
-// TODO: Remove all datum fields and query from the UTxO
-export type InitPaymentConfig = {
-  service_nft_tn: string; //AssetName,
+export type RemoveAccountConfig = {
   account_nft_tn: string;
-  subscription_fee: AssetClassD;
-  total_subscription_fee: bigint;
-  subscription_start: bigint;
-  subscription_end: bigint;
-  interval_length: bigint;
-  interval_amount: bigint;
+  subscriber_nft_tn: string;
+};
+
+export type InitPaymentConfig = {
+  service_nft_tn: string;
+  subscriber_nft_tn: string;
   num_intervals: bigint;
-  last_claimed: bigint;
-  penalty_fee: AssetClassD;
-  penalty_fee_qty: bigint;
-  minimum_ada: bigint;
+  subscription_start: bigint;
 };
 
 export type ExtendPaymentConfig = {
+  service_nft_tn: string;
   subscriber_nft_tn: string;
+  extension_intervals: bigint;
 };
 
 export type MerchantWithdrawConfig = {
   service_nft_tn: string;
+  subscriber_nft_tn: string,
   merchant_nft_tn: string;
-  last_claimed: bigint;
+  payment_nft_tn: string;
+  current_time: bigint;
 };
 
 export type UnsubscribeConfig = {
-  service_nft_tn: string; //AssetName,
   subscriber_nft_tn: string;
   current_time: bigint;
 };
@@ -99,8 +99,7 @@ export type UnsubscribeConfig = {
 export type WithdrawPenaltyConfig = {
   service_nft_tn: string;
   merchant_nft_tn: string;
-  merchant_utxos: UTxO[];
-  service_utxos: UTxO[];
+  subscriber_nft_tn: string;
 };
 
 export type SubscriberWithdrawConfig = {

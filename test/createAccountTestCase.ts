@@ -20,10 +20,12 @@ export const createAccountTestCase = (
         } else {
             currentTime = BigInt(Date.now());
         }
+
+        //TODO: Do not put plain text as Datum
         const accountConfig: CreateAccountConfig = {
-            email: "business@web3.ada",
-            phone: "288-481-2686",
-            account_created: currentTime,
+            email_hash: "business@web3.ada",
+            phone_hash: "288-481-2686",
+            // account_created: currentTime,
         };
 
         const createAccountFlow = Effect.gen(function* (_) {

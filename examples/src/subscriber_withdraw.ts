@@ -21,15 +21,17 @@ export const runSubscriberWithdraw = async (
     const accountUTxOs = await lucid.utxosAt(accountAddress);
     const subscriberUTxOs = await lucid.utxosAt(subscriberAddress);
 
-    const { refTokenName: serviceNftTn, userTokenName: merchantNftTn } =
+    const { refTokenName: serviceNftTn, userTokenName: _merchantNftTn } =
         findCip68TokenNames(
-            [serviceUTxOs[0], merchantUTxOs[0]],
+            serviceUTxOs,
+            merchantUTxOs,
             servicePolicyId,
         );
 
-    const { refTokenName: accountNftTn, userTokenName: subscriberNftTn } =
+    const { refTokenName: _accountNftTn, userTokenName: subscriberNftTn } =
         findCip68TokenNames(
-            [accountUTxOs[0], subscriberUTxOs[0]],
+            accountUTxOs,
+            subscriberUTxOs,
             accountPolicyId,
         );
 
@@ -50,16 +52,22 @@ export const runSubscriberWithdraw = async (
 
     // Merchant Withdraw
     try {
-        const merchantWithdrawUnsigned = await subscriberWithdraw(
+        const subscriberWithdrawUnsigned = await subscriberWithdraw(
             lucid,
             subscriberWithdrawConfig,
         );
-        const merchantWithdrawSigned = await merchantWithdrawUnsigned.sign
+        const subscriberWithdrawSigned = await subscriberWithdrawUnsigned.sign
             .withWallet()
             .complete();
-        const merchantWithdrawTxHash = await merchantWithdrawSigned.submit();
+        const subscriberWithdrawTxHash = await subscriberWithdrawSigned
+            .submit();
 
-        console.log(`Service created successfully: ${merchantWithdrawTxHash}`);
+        console.log(`Submitting ...`);
+        await lucid.awaitTx(subscriberWithdrawTxHash);
+
+        console.log(
+            `Service created successfully: ${subscriberWithdrawTxHash}`,
+        );
     } catch (error) {
         console.error("Failed to create service:", error);
     }

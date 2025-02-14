@@ -2,12 +2,11 @@
 import { Command } from "commander";
 import dotenv from "dotenv";
 import {
-    accountValidator,
     Address,
-    Lucid,
-    Maestro,
-    serviceValidator,
-    validatorToAddress,
+    getMultiValidator,
+    paymentPolicyId,
+    paymentScript,
+    tokenNameFromUTxO,
 } from "@anastasia-labs/payment-subscription-offchain";
 
 import { runCreateService } from "./create_service.js";
@@ -20,7 +19,6 @@ import { runInitSubscription } from "./init_subscription.js";
 import { runExtendSubscription } from "./extend_subscription.js"; // if you have one
 import { setupLucid } from "./setup.js";
 import { runMerchantWithdraw } from "./merchant_withdraw.js";
-import { runUnsubscribe } from "./unsubscribe.js";
 import { runWithdrawPenalty } from "./withdraw_penalty.js";
 import { runSubscriberWithdraw } from "./subscriber_withdraw.js";
 
@@ -43,9 +41,14 @@ const serviceCommand = program.command("service").description(
 
 serviceCommand.command("create").action(async () => {
     try {
-        const { lucid, MERCHANT_WALLET_SEED } = await setupLucid();
-        console.log("create service called");
-        await runCreateService(lucid, MERCHANT_WALLET_SEED);
+        const { lucid, MERCHANT_WALLET_SEED } = await setupLucid("create");
+        lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
+        const merchantAddress: Address = await lucid.wallet().address();
+
+        const merchantUTxOs = await lucid.utxosAt(merchantAddress);
+        console.log("merchantUTxOs: ", merchantUTxOs);
+
+        await runCreateService(lucid);
         process.exit(0);
     } catch (error) {
         console.error("Error creating service:", error);
@@ -55,10 +58,16 @@ serviceCommand.command("create").action(async () => {
 
 serviceCommand.command("update").action(async () => {
     try {
-        const { lucid, MERCHANT_WALLET_SEED, serviceAddress } =
-            await setupLucid();
-        console.log("update service called");
-        await runUpdateService(lucid, serviceAddress, MERCHANT_WALLET_SEED);
+        const { lucid, MERCHANT_WALLET_SEED, tokenNames } = await setupLucid();
+
+        lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
+
+        await runUpdateService(
+            lucid,
+            tokenNames.serviceNftTn,
+            tokenNames.merchantNftTn,
+        );
+
         process.exit(0);
     } catch (error) {
         console.error("Error updating service:", error);
@@ -68,17 +77,15 @@ serviceCommand.command("update").action(async () => {
 
 serviceCommand.command("remove").action(async () => {
     try {
-        const { lucid, MERCHANT_WALLET_SEED } = await setupLucid();
+        const { lucid, MERCHANT_WALLET_SEED, tokenNames } = await setupLucid();
 
         lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
-        // const merchantAddress: Address = await lucid.wallet().address();
 
-        // console.log("remove service called");
-        // console.log("merchantAddress: ", merchantAddress);
-        // const merchantUTxos = await lucid.utxosAt(merchantAddress);
-        // console.log("merchantAddress utxos: ", merchantUTxos);
-
-        await runRemoveService(lucid);
+        await runRemoveService(
+            lucid,
+            tokenNames.serviceNftTn,
+            tokenNames.merchantNftTn,
+        );
         process.exit(0);
     } catch (error) {
         console.error("Error removing service:", error);
@@ -96,8 +103,7 @@ const accountCommand = program.command("account").description(
 
 accountCommand.command("create").action(async () => {
     try {
-        const { lucid, SUBSCRIBER_WALLET_SEED } = await setupLucid();
-        console.log("create account called");
+        const { lucid, SUBSCRIBER_WALLET_SEED } = await setupLucid("create");
         // Usually select the wallet first if needed
         lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
 
@@ -111,15 +117,16 @@ accountCommand.command("create").action(async () => {
 
 accountCommand.command("update").action(async () => {
     try {
-        const { lucid, SUBSCRIBER_WALLET_SEED, accountAddress } =
+        const { lucid, SUBSCRIBER_WALLET_SEED, tokenNames } =
             await setupLucid();
-        console.log("update account called");
+
         lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
 
-        const subscriberAddress: Address = await lucid.wallet().address();
-        // const subscriberUTxOs = await lucid.utxosAt(subscriberAddress);
-        // console.log("subscriberUTxO", subscriberUTxOs);
-        await runUpdateAccount(lucid, accountAddress, subscriberAddress);
+        await runUpdateAccount(
+            lucid,
+            tokenNames.accountNftTn,
+            tokenNames.subscriberNftTn,
+        );
         process.exit(0);
     } catch (error) {
         console.error("Error updating account:", error);
@@ -129,11 +136,16 @@ accountCommand.command("update").action(async () => {
 
 accountCommand.command("remove").action(async () => {
     try {
-        const { lucid, SUBSCRIBER_WALLET_SEED } = await setupLucid();
-        console.log("remove account called");
+        const { lucid, SUBSCRIBER_WALLET_SEED, tokenNames } =
+            await setupLucid();
+
         lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
 
-        await runRemoveAccount(lucid);
+        await runRemoveAccount(
+            lucid,
+            tokenNames.accountNftTn,
+            tokenNames.subscriberNftTn,
+        );
         process.exit(0);
     } catch (error) {
         console.error("Error removing account:", error);
@@ -153,33 +165,20 @@ paymentCommand.command("init").action(async () => {
     try {
         const {
             lucid,
-            MERCHANT_WALLET_SEED,
+            tokenNames,
             SUBSCRIBER_WALLET_SEED,
-            serviceAddress,
-            accountAddress,
         } = await setupLucid();
 
-        console.log("init subscription called");
-
-        // 1. Merchant selects wallet, get merchant address
-        lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
-        const merchantAddress: Address = await lucid.wallet().address();
-
-        // 2. Subscriber selects wallet, get subscriber address
         lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
         const subscriberAddress: Address = await lucid.wallet().address();
-        console.log("subscriberAddress: ", subscriberAddress);
 
         const subscriberUTxOs = await lucid.utxosAt(subscriberAddress);
-        console.log("subscriberUTxO", subscriberUTxOs);
+        console.log("subscriberUTxOs: ", subscriberUTxOs);
 
-        // 3. Call your init_subscription logic
         await runInitSubscription(
             lucid,
-            serviceAddress,
-            merchantAddress,
-            accountAddress,
-            subscriberAddress,
+            tokenNames.serviceNftTn,
+            tokenNames.subscriberNftTn,
         );
         process.exit(0);
     } catch (error) {
@@ -193,18 +192,15 @@ paymentCommand.command("extend").action(async () => {
         const {
             lucid,
             SUBSCRIBER_WALLET_SEED,
-            accountAddress,
+            tokenNames,
         } = await setupLucid();
 
-        console.log("extend subscription called");
-
         lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
-        const subscriberAddress: Address = await lucid.wallet().address();
 
         await runExtendSubscription(
             lucid,
-            accountAddress,
-            subscriberAddress,
+            tokenNames.serviceNftTn,
+            tokenNames.subscriberNftTn,
         );
         process.exit(0);
     } catch (error) {
@@ -218,18 +214,15 @@ paymentCommand.command("merchant_withdraw").action(async () => {
         const {
             lucid,
             MERCHANT_WALLET_SEED,
-            serviceAddress,
+            tokenNames,
         } = await setupLucid();
 
-        console.log("merchant_withdraw called");
-
         lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
-        const merchantAddress: Address = await lucid.wallet().address();
-
         await runMerchantWithdraw(
             lucid,
-            serviceAddress,
-            merchantAddress,
+            tokenNames.serviceNftTn,
+            tokenNames.merchantNftTn,
+            tokenNames.subscriberNftTn,
         );
         process.exit(0);
     } catch (error) {
@@ -243,25 +236,13 @@ paymentCommand.command("unsubscribe").action(async () => {
         const {
             lucid,
             SUBSCRIBER_WALLET_SEED,
-            MERCHANT_WALLET_SEED,
-            serviceAddress,
-            accountAddress,
         } = await setupLucid();
 
-        console.log("unsubscribe called");
-        lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
-        const merchantAddress: Address = await lucid.wallet().address();
-
         lucid.selectWallet.fromSeed(SUBSCRIBER_WALLET_SEED);
-        const subscriberAddress: Address = await lucid.wallet().address();
 
-        await runUnsubscribe(
-            lucid,
-            serviceAddress,
-            merchantAddress,
-            accountAddress,
-            subscriberAddress,
-        );
+        // await runUnsubscribe(
+        //     lucid,
+        // );
         process.exit(0);
     } catch (error) {
         console.error("Error extending subscription:", error);
@@ -274,17 +255,17 @@ paymentCommand.command("withdraw_penalty").action(async () => {
         const {
             lucid,
             MERCHANT_WALLET_SEED,
-            serviceAddress,
+            tokenNames,
         } = await setupLucid();
 
-        console.log("withdraw_penalty called");
-        lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
-        const merchantAddress: Address = await lucid.wallet().address();
+        lucid.selectWallet.fromSeed(
+            MERCHANT_WALLET_SEED,
+        );
 
         await runWithdrawPenalty(
             lucid,
-            serviceAddress,
-            merchantAddress,
+            tokenNames.serviceNftTn,
+            tokenNames.merchantNftTn,
         );
         process.exit(0);
     } catch (error) {

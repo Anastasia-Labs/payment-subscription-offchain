@@ -1,57 +1,58 @@
 import {
-    accountPolicyId,
-    findCip68TokenNames,
+    getMultiValidator,
+    getPaymentValidatorDatum,
     LucidEvolution,
-    servicePolicyId,
+    paymentScript,
     unsubscribe,
     UnsubscribeConfig,
 } from "@anastasia-labs/payment-subscription-offchain";
 
 export const runUnsubscribe = async (
     lucid: LucidEvolution,
-    serviceAddress: string,
-    merchantAddress: string,
-    accountAddress: string,
-    subscriberAddress: string,
+    serviceNftTn: string,
+    subscriberNftTn: string,
 ): Promise<Error | void> => {
-    const serviceUTxOs = await lucid.utxosAt(serviceAddress);
-    const merchantUTxOs = await lucid.utxosAt(merchantAddress);
-    const accountUTxOs = await lucid.utxosAt(accountAddress);
-    const subscriberUTxOs = await lucid.utxosAt(subscriberAddress);
-
-    const currentTime = BigInt(Date.now());
-
-    const { refTokenName: serviceNftTn, userTokenName: merchantNftTn } =
-        findCip68TokenNames(
-            [serviceUTxOs[0], merchantUTxOs[0]],
-            servicePolicyId,
-        );
-
-    const { refTokenName: accountNftTn, userTokenName: subscriberNftTn } =
-        findCip68TokenNames(
-            [accountUTxOs[0], subscriberUTxOs[0]],
-            accountPolicyId,
-        );
-
     const unsubscribeConfig: UnsubscribeConfig = {
-        service_nft_tn: serviceNftTn,
         subscriber_nft_tn: subscriberNftTn,
-        current_time: currentTime,
+        current_time: BigInt(Date.now()),
     };
 
     // Unsubscribe
     try {
-        const initSubscriptionUnsigned = await unsubscribe(
+        const paymentValidator = getMultiValidator(lucid, paymentScript);
+        const paymentUTxOs = await lucid.utxosAt(
+            paymentValidator.spendValAddress,
+        );
+
+        // Find the Payment UTxO by checking the datum
+        const results = await Promise.all(
+            paymentUTxOs.map(async (utxo) => {
+                try {
+                    const datum = await getPaymentValidatorDatum(utxo);
+                    return datum[0].service_nft_tn === serviceNftTn &&
+                            datum[0].subscriber_nft_tn === subscriberNftTn
+                        ? utxo
+                        : null;
+                } catch {
+                    return null;
+                }
+            }),
+        );
+
+        const unsubscribeUnsigned = await unsubscribe(
             lucid,
             unsubscribeConfig,
         );
-        const initSubscriptionSigned = await initSubscriptionUnsigned.sign
+        const unsubscribeSigned = await unsubscribeUnsigned.sign
             .withWallet()
             .complete();
-        const initSubscriptionHash = await initSubscriptionSigned.submit();
+        const unsubscribeTxHash = await unsubscribeSigned.submit();
+
+        console.log(`Submitting ...`);
+        await lucid.awaitTx(unsubscribeTxHash);
 
         console.log(
-            `Unsubscribed successfully: ${initSubscriptionHash}`,
+            `Unsubscribed successfully: ${unsubscribeTxHash}`,
         );
     } catch (error) {
         console.error("Failed to unsubscribe:", error);

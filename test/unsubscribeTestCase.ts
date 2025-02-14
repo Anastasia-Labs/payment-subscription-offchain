@@ -1,6 +1,9 @@
-import { UnsubscribeConfig, unsubscribeProgram } from "../src/index.js";
+import {
+    UnsubscribeConfig,
+    unsubscribeProgram,
+} from "../src/index.js";
 import { Effect } from "effect";
-import { initSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
+import { initSubscriptionTestCase } from "./initSubscriptionTestCase.js";
 import { expect } from "vitest";
 import { SetupResult } from "./setupTest.js";
 
@@ -14,7 +17,6 @@ export const unsubscribeTestCase = (
     return Effect.gen(function* () {
         const {
             context: { lucid, users, emulator },
-            serviceNftTn,
             currentTime,
             subscriberNftTn,
         } = setupResult;
@@ -30,7 +32,6 @@ export const unsubscribeTestCase = (
 
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
         const unsubscribeConfig: UnsubscribeConfig = {
-            service_nft_tn: serviceNftTn,
             subscriber_nft_tn: subscriberNftTn,
             current_time: currentTime,
         };

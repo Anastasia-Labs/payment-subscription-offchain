@@ -7,6 +7,7 @@ import {
     PROTOCOL_PARAMETERS_DEFAULT,
 } from "@lucid-evolution/lucid";
 import { Effect } from "effect";
+import { generateAccountSeedPhrase } from "../../src";
 
 export type LucidContext = {
     lucid: LucidEvolution;
@@ -36,7 +37,7 @@ export const makeEmulatorContext = () =>
             [users.dappProvider, users.subscriber, users.merchant],
             {
                 ...PROTOCOL_PARAMETERS_DEFAULT,
-                maxTxSize: 21000,
+                maxTxSize: 23000,
             },
         );
 
@@ -83,7 +84,11 @@ export const makeMaestroContext = (network: Network) =>
         });
 
         const lucid = yield* Effect.promise(() => Lucid(maestro, network));
+        // const seed = yield* Effect.promise(() =>
+        //     generateAccountSeedPhrase({ lovelace: BigInt(1_000_000_000) })
+        // );
 
+        // console.log("Seed Phrase: ", seed);
         return { lucid, users, emulator: undefined } as LucidContext;
     });
 
@@ -93,11 +98,13 @@ export const makeLucidContext = (network?: Network) =>
 
         const selectedNetwork = network ?? NETWORK; // Default to Preprod if not specified
         // console.log("selectedNetwork", selectedNetwork);
-        if (API_KEY && selectedNetwork !== selectedNetwork) {
+        if (API_KEY && selectedNetwork && selectedNetwork !== "Custom") {
             // Use Maestro context
+            console.log("selectedNetwork", selectedNetwork);
             return yield* $(makeMaestroContext(selectedNetwork));
         } else {
             // Use Emulator context
+            console.log("selectedNetwork: Emulator");
             return yield* $(makeEmulatorContext());
         }
     });
