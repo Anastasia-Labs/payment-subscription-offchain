@@ -1,0 +1,26 @@
+name: Maestro test
+
+on: workflow_dispatch
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      API_KEY: ${{ secrets.API_KEY }}
+      NETWORK: ${{ secrets.NETWORK }}
+      DAPP_PROVIDER_SEED: ${{ secrets.DAPP_PROVIDER_SEED }}
+      SUBSCRIBER_WALLET_SEED: ${{ secrets.SUBSCRIBER_WALLET_SEED }}
+      MERCHANT_WALLET_SEED: ${{ secrets.MERCHANT_WALLET_SEED }}
+      ACCOUNT_PREPROD_ADDRESS: ${{secrets.ACCOUNT_PREPROD_ADDRESS}}
+      ACCOUNT_CS: ${{secrets.ACCOUNT_CS}}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: "pnpm"
+      - run: pnpm i
+      - run: pnpm run lint && pnpm run build
+      - run: pnpm run test
