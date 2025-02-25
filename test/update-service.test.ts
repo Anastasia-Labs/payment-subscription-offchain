@@ -3,7 +3,6 @@ import {
   updateServiceProgram,
 } from "../src/index.js";
 import { expect, test } from "vitest";
-import { Address } from "@lucid-evolution/lucid";
 import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
 import {
@@ -22,7 +21,7 @@ export const updateServiceTestCase = (
 ): Effect.Effect<UpdateServiceResult, Error, never> => {
   return Effect.gen(function* () {
     const {
-      context: { lucid, users, emulator },
+      context: { lucid, users },
       serviceNftTn,
       merchantNftTn,
     } = setupResult;

@@ -2,57 +2,50 @@ import {
   Address,
   Constr,
   Data,
+  fromText,
   LucidEvolution,
   RedeemerBuilder,
   toUnit,
   TransactionError,
   TxSignBuilder,
-} from "@lucid-evolution/lucid";
-import { MerchantWithdrawConfig } from "../core/types.js";
-import { PaymentDatum, PaymentValidatorDatum } from "../core/contract.types.js";
-import { getMultiValidator } from "../core/index.js";
-import { Effect } from "effect";
+} from "@lucid-evolution/lucid"
+import { MerchantWithdrawConfig } from "../core/types.js"
+import { PaymentDatum, PaymentValidatorDatum } from "../core/contract.types.js"
+import { getMultiValidator, PAYMENT_TOKEN_NAME } from "../core/index.js"
+import { Effect } from "effect"
 import {
   calculateClaimableIntervals,
   findPaymentToWithdraw,
-} from "./utils.js";
+} from "./utils.js"
 import {
   paymentPolicyId,
   paymentScript,
   servicePolicyId,
-} from "../core/validators/constants.js";
+} from "../core/validators/constants.js"
 
 export const merchantWithdrawProgram = (
   lucid: LucidEvolution,
   config: MerchantWithdrawConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
   Effect.gen(function* () {
-    const merchantAddress: Address = yield* Effect.promise(() => lucid.wallet().address());
+    const merchantAddress: Address = yield* Effect.promise(() => lucid.wallet().address())
 
-    const validators = getMultiValidator(lucid, paymentScript);
+    const validators = getMultiValidator(lucid, paymentScript)
 
-    const paymentUTxOs = yield* Effect.promise(() => lucid.utxosAt(validators.spendValAddress));
-    const merchantUTxOs = yield* Effect.promise(() => lucid.utxosAt(merchantAddress));
+    const paymentUTxOs = yield* Effect.promise(() => lucid.utxosAt(validators.spendValAddress))
+    const merchantUTxOs = yield* Effect.promise(() => lucid.utxosAt(merchantAddress))
 
-    const serviceRefNft = toUnit(servicePolicyId, config.service_nft_tn);
-    const merchantNft = toUnit(servicePolicyId, config.merchant_nft_tn);
+    const serviceRefNft = toUnit(servicePolicyId, config.service_nft_tn)
+    const merchantNft = toUnit(servicePolicyId, config.merchant_nft_tn)
 
-    const merchantUTxO = yield* Effect.promise(() => lucid.utxoByUnit(merchantNft));
-    const serviceUTxO = yield* Effect.promise(() => lucid.utxoByUnit(serviceRefNft));
+    const merchantUTxO = yield* Effect.promise(() => lucid.utxoByUnit(merchantNft))
+    const serviceUTxO = yield* Effect.promise(() => lucid.utxoByUnit(serviceRefNft))
 
-    const { paymentNftTn, paymentUTxO, paymentDatum } = yield* Effect.promise(() =>
-      findPaymentToWithdraw(
-        paymentUTxOs,
-        config.service_nft_tn,
-        config.subscriber_nft_tn,
-        paymentPolicyId,
-      )
-    );
-
-    const paymentNFT = toUnit(paymentPolicyId, paymentNftTn);
+    const { paymentUTxO, paymentDatum } = findPaymentToWithdraw(paymentUTxOs, config.service_nft_tn, config.subscriber_nft_tn)
+    const paymentNFT = toUnit(paymentPolicyId, fromText(PAYMENT_TOKEN_NAME))
 
     const { withdrawableAmount, withdrawableCount, newInstallments } =
-      calculateClaimableIntervals(config.current_time, paymentDatum);
+      calculateClaimableIntervals(config.current_time, paymentDatum)
 
     const newPaymentDatum: PaymentDatum = {
       service_nft_tn: paymentDatum.service_nft_tn,
@@ -61,24 +54,18 @@ export const merchantWithdrawProgram = (
       subscription_end: paymentDatum.subscription_end,
       original_subscription_end: paymentDatum.original_subscription_end,
       installments: newInstallments,
-    };
+    }
 
-    const allDatums: PaymentValidatorDatum = {
-      Payment: [newPaymentDatum],
-    };
-
-    const paymentValDatum = Data.to<PaymentValidatorDatum>(
-      allDatums,
-      PaymentValidatorDatum,
-    );
+    const allDatums: PaymentValidatorDatum = { Payment: [newPaymentDatum] }
+    const paymentValDatum = Data.to<PaymentValidatorDatum>(allDatums, PaymentValidatorDatum)
 
     const merchantWithdrawRedeemer: RedeemerBuilder = {
       kind: "selected",
       makeRedeemer: (inputIndices: bigint[]) => {
-        return Data.to(new Constr(1, [0n, inputIndices[0], inputIndices[1], 1n, BigInt(withdrawableCount)]));
+        return Data.to(new Constr(1, [0n, inputIndices[0], inputIndices[1], 1n, BigInt(withdrawableCount)]))
       },
       inputs: [merchantUTxO, paymentUTxO],
-    };
+    }
 
     const remainingSubscriptionFee = newInstallments.reduce((acc, i) => acc + i.claimable_amount, 0n)
     const remainingSubscriptionAssets = (remainingSubscriptionFee > 0n ? { lovelace: remainingSubscriptionFee, [paymentNFT]: 1n } : { [paymentNFT]: 1n })
@@ -98,7 +85,7 @@ export const merchantWithdrawProgram = (
       }, remainingSubscriptionAssets)
       .validFrom(Number(config.current_time + BigInt(600)))
       .attach.SpendingValidator(validators.spendValidator)
-      .completeProgram({ localUPLCEval: true });
+      .completeProgram()
 
-    return tx;
-  });
+    return tx
+  })

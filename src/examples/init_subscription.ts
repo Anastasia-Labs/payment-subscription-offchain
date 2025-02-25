@@ -2,9 +2,8 @@ import {
     initiateSubscription,
     InitPaymentConfig,
     LucidEvolution,
-} from "@anastasia-labs/payment-subscription-offchain";
+} from "../index.js";
 
-//TODO: Store token names in a local storage (JSON File) while initiating
 export const runInitSubscription = async (
     lucid: LucidEvolution,
     serviceNftTn: string,
@@ -14,15 +13,11 @@ export const runInitSubscription = async (
         service_nft_tn: serviceNftTn,
         subscriber_nft_tn: subscriberNftTn,
         num_intervals: 3n,
-        current_time: BigInt(Date.now()),
+        subscription_start: BigInt(lucid.currentSlot()) + 60n * 1000n,
     };
 
-    // Create Service
     try {
-        const initSubscriptionUnsigned = await initiateSubscription(
-            lucid,
-            paymentConfig,
-        );
+        const initSubscriptionUnsigned = await initiateSubscription(lucid, paymentConfig);
         const initSubscriptionSigned = await initSubscriptionUnsigned.sign
             .withWallet()
             .complete();

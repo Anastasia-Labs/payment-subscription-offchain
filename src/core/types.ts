@@ -4,7 +4,6 @@ import {
   OutRef,
   Script,
   TxSignBuilder,
-  UTxO,
 } from "@lucid-evolution/lucid";
 
 export type CborHex = string;
@@ -26,6 +25,7 @@ export type ReadableUTxO<T> = {
 };
 
 export type CreateServiceConfig = {
+  selected_out_ref: OutRef;
   service_fee_policyid: string;
   service_fee_assetname: string;
   service_fee: bigint;
@@ -38,7 +38,7 @@ export type CreateServiceConfig = {
 };
 
 export type UpdateServiceConfig = {
-  service_nft_tn: string; //AssetName,
+  service_nft_tn: string;
   merchant_nft_tn: string;
   new_service_fee: bigint;
   new_penalty_fee: bigint;
@@ -47,20 +47,19 @@ export type UpdateServiceConfig = {
 };
 
 export type RemoveServiceConfig = {
-  service_nft_tn: string; //AssetName,
+  service_nft_tn: string;
   merchant_nft_tn: string;
 };
 
-//TODO: Add account_updated field
 export type CreateAccountConfig = {
+  selected_out_ref: OutRef;
   email_hash: string;
   phone_hash: string;
 };
 
-//TODO: Add account_updated field
 export type UpdateAccountConfig = {
-  new_email: string;
-  new_phone: string;
+  new_email_hash: string;
+  new_phone_hash: string;
   account_nft_tn: string;
   subscriber_nft_tn: string;
 };
@@ -92,6 +91,7 @@ export type MerchantWithdrawConfig = {
 };
 
 export type UnsubscribeConfig = {
+  service_nft_tn: string;
   subscriber_nft_tn: string;
   current_time: bigint;
 };
@@ -105,7 +105,6 @@ export type WithdrawPenaltyConfig = {
 export type SubscriberWithdrawConfig = {
   service_nft_tn: string;
   subscriber_nft_tn: string;
-  service_utxos: UTxO[];
 };
 
 export type MultiValidator = {
@@ -121,6 +120,5 @@ export type Deploy = {
 };
 
 export type DeployRefScriptsConfig = {
-  token_name: string;
-  current_time: BigInt;
+  script: Script;
 };

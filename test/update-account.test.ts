@@ -3,6 +3,8 @@ import { expect, test } from "vitest";
 import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
 import { AccountSetup, setupAccount, setupBase } from "./setupTest.js";
+import { sha256 } from "@noble/hashes/sha256";
+import { bytesToHex } from "@noble/hashes/utils";
 
 type RemoveServiceResult = {
     txHash: string;
@@ -20,8 +22,8 @@ export const updateAccountTestCase = (
         } = setupResult;
 
         const updateAccountConfig: UpdateAccountConfig = {
-            new_email: "new_business@web3.ada",
-            new_phone: "(288) 481-2686-999",
+            new_email_hash: bytesToHex(sha256("new_business@web3.ada")),
+            new_phone_hash: bytesToHex(sha256("(288) 481-2686-999")),
             account_nft_tn: accountNftTn,
             subscriber_nft_tn: subscriberNftTn,
         };

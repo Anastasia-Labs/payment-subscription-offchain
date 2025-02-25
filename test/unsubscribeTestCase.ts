@@ -18,6 +18,7 @@ export const unsubscribeTestCase = (
         const {
             context: { lucid, users, emulator },
             currentTime,
+            serviceNftTn,
             subscriberNftTn,
         } = setupResult;
 
@@ -32,6 +33,7 @@ export const unsubscribeTestCase = (
 
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
         const unsubscribeConfig: UnsubscribeConfig = {
+            service_nft_tn: serviceNftTn,
             subscriber_nft_tn: subscriberNftTn,
             current_time: currentTime,
         };

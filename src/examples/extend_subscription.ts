@@ -2,7 +2,7 @@ import {
     ExtendPaymentConfig,
     extendSubscription,
     LucidEvolution,
-} from "@anastasia-labs/payment-subscription-offchain";
+} from "../index.js";
 
 export const runExtendSubscription = async (
     lucid: LucidEvolution,
@@ -14,8 +14,6 @@ export const runExtendSubscription = async (
         subscriber_nft_tn: subscriberNftTn,
         extension_intervals: 1n,
     };
-
-    // Extend Subscription
     try {
         const extendUnsigned = await extendSubscription(
             lucid,

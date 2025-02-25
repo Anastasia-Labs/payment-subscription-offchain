@@ -1,6 +1,8 @@
-import { CreateAccountConfig, createAccountProgram } from "../src/index.js";
+import { CreateAccountConfig, createAccountProgram, selectUTxOs } from "../src/index.js";
 import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
+import { bytesToHex } from "@noble/hashes/utils";
+import { sha256 } from "@noble/hashes/sha256";
 
 export type CreateAccountResult = {
     txHash: string;
@@ -8,45 +10,35 @@ export type CreateAccountResult = {
 };
 
 export const createAccountTestCase = (
-    { lucid, users, emulator }: LucidContext,
+    { lucid, users }: LucidContext,
 ): Effect.Effect<CreateAccountResult, Error, never> => {
     return Effect.gen(function* () {
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
-
-        let currentTime: bigint;
-
-        if (emulator) {
-            currentTime = BigInt(emulator.now());
-        } else {
-            currentTime = BigInt(Date.now());
+        const address = yield* Effect.promise(() => lucid.wallet().address())
+        const utxos = yield* Effect.promise(() => lucid.utxosAt(address))
+        const selectedUTxOs = selectUTxOs(utxos, { ["lovelace"]: 2000000n })
+        
+        if (!selectedUTxOs || !selectedUTxOs.length) {
+            console.error("No selectable UTxO found at address: " + address);
         }
 
-        //TODO: Do not put plain text as Datum
+        const selectedUTxO = selectedUTxOs[0]
         const accountConfig: CreateAccountConfig = {
-            email_hash: "business@web3.ada",
-            phone_hash: "288-481-2686",
-            // account_created: currentTime,
+            selected_out_ref: selectedUTxO,
+            email_hash: bytesToHex(sha256("business@web3.ada")),
+            phone_hash: bytesToHex(sha256("288-481-2686")),
         };
 
         const createAccountFlow = Effect.gen(function* (_) {
-            const createAccountUnsigned = yield* createAccountProgram(
-                lucid,
-                accountConfig,
-            );
-            const createAccountSigned = yield* Effect.promise(() =>
-                createAccountUnsigned.sign.withWallet().complete()
-            );
-            const createAccountHash = yield* Effect.promise(() =>
-                createAccountSigned.submit()
-            );
+            const createAccountUnsigned = yield* createAccountProgram(lucid, accountConfig);
+            const createAccountSigned = yield* Effect.promise(() => createAccountUnsigned.sign.withWallet().complete());
+            const createAccountHash = yield* Effect.promise(() => createAccountSigned.submit());
 
             return createAccountHash;
         });
 
         const createAccountResult = yield* createAccountFlow.pipe(
-            Effect.tapError((error) =>
-                Effect.log(`Error creating Account: ${error}`)
-            ),
+            Effect.tapError((error) => Effect.log(`Error creating Account: ${error}`)),
             Effect.map((hash) => {
                 return hash;
             }),

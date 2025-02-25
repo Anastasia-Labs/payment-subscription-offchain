@@ -1,11 +1,8 @@
 import {
-    getMultiValidator,
-    getPaymentValidatorDatum,
     LucidEvolution,
-    paymentScript,
     unsubscribe,
     UnsubscribeConfig,
-} from "@anastasia-labs/payment-subscription-offchain";
+} from "../index.js";
 
 export const runUnsubscribe = async (
     lucid: LucidEvolution,
@@ -13,32 +10,12 @@ export const runUnsubscribe = async (
     subscriberNftTn: string,
 ): Promise<Error | void> => {
     const unsubscribeConfig: UnsubscribeConfig = {
+        service_nft_tn: serviceNftTn,
         subscriber_nft_tn: subscriberNftTn,
         current_time: BigInt(Date.now()),
     };
 
-    // Unsubscribe
     try {
-        const paymentValidator = getMultiValidator(lucid, paymentScript);
-        const paymentUTxOs = await lucid.utxosAt(
-            paymentValidator.spendValAddress,
-        );
-
-        // Find the Payment UTxO by checking the datum
-        const results = await Promise.all(
-            paymentUTxOs.map(async (utxo) => {
-                try {
-                    const datum = await getPaymentValidatorDatum(utxo);
-                    return datum[0].service_nft_tn === serviceNftTn &&
-                            datum[0].subscriber_nft_tn === subscriberNftTn
-                        ? utxo
-                        : null;
-                } catch {
-                    return null;
-                }
-            }),
-        );
-
         const unsubscribeUnsigned = await unsubscribe(
             lucid,
             unsubscribeConfig,

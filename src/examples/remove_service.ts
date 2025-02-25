@@ -2,7 +2,7 @@ import {
     LucidEvolution,
     removeService,
     RemoveServiceConfig,
-} from "@anastasia-labs/payment-subscription-offchain";
+} from "../index.js";
 
 export const runRemoveService = async (
     lucid: LucidEvolution,
@@ -14,7 +14,6 @@ export const runRemoveService = async (
         merchant_nft_tn: merchantNftTn,
     };
 
-    // Remove Service
     try {
         const removeServiceUnsigned = await removeService(
             lucid,

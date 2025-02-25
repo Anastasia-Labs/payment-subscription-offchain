@@ -1,22 +1,22 @@
+import { bytesToHex } from "@noble/hashes/utils";
+import { sha256 } from "@noble/hashes/sha256";
 import {
     createAccount,
     CreateAccountConfig,
     LucidEvolution,
-} from "@anastasia-labs/payment-subscription-offchain";
+} from "../index.js";
 
 export const runCreateAccount = async (
     lucid: LucidEvolution,
 ): Promise<Error | void> => {
-    const currentTime = BigInt(Date.now());
-
-    const accountConfig: CreateAccountConfig = {
-        email: "business@web3.ada",
-        phone: "288-481-2686",
-        account_created: currentTime,
-    };
-
-    // Create Account
     try {
+        const utxos = await lucid.wallet().getUtxos()
+        const accountConfig: CreateAccountConfig = {
+            selected_out_ref: utxos[0],
+            email_hash: bytesToHex(sha256("business@web3.ada")),
+            phone_hash: bytesToHex(sha256("288-481-2686")),
+        };
+
         const createAccountUnsigned = await createAccount(lucid, accountConfig);
         const createAccountSigned = await createAccountUnsigned.sign
             .withWallet()

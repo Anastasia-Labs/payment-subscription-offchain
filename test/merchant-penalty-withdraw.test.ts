@@ -1,5 +1,4 @@
 import {
-    getMultiValidator,
     merchantPenaltyWithdrawProgram,
     WithdrawPenaltyConfig,
 } from "../src/index.js";
@@ -9,9 +8,6 @@ import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
 import { SetupResult, setupTest } from "./setupTest.js";
 import { unsubscribeTestCase } from "./unsubscribeTestCase.js";
-import {
-    paymentScript,
-} from "../src/core/validators/constants.js";
 
 type MerchantPenaltyResult = {
     txHash: string;
@@ -80,7 +76,7 @@ export const withdrawPenaltyTestCase = (
 };
 
 test<LucidContext>("Test 11 - Merchant Penalty Withdraw", async () => {
-    const program = Effect.gen(function* ($) {
+    const program = Effect.gen(function* (_) {
         const setupContext = yield* setupTest();
         const result = yield* withdrawPenaltyTestCase(setupContext);
         return result;

@@ -1,94 +1,80 @@
 import {
-    Address,
     Constr,
     Data,
+    fromText,
     LucidEvolution,
     RedeemerBuilder,
     toUnit,
     TransactionError,
-    TxBuilderError,
     TxSignBuilder,
-} from "@lucid-evolution/lucid";
-import { getMultiValidator } from "../core/utils/index.js";
-import { UnsubscribeConfig } from "../core/types.js";
-import { PaymentValidatorDatum, PenaltyDatum } from "../core/contract.types.js";
-import { Effect } from "effect";
+    UTxO,
+} from "@lucid-evolution/lucid"
+import { getMultiValidator } from "../core/utils/index.js"
+import { UnsubscribeConfig } from "../core/types.js"
+import { PaymentDatum, PaymentValidatorDatum, PenaltyDatum } from "../core/contract.types.js"
+import { Effect } from "effect"
 import {
-    findSubscriptionTokenNames,
     getPaymentValidatorDatum,
     getServiceValidatorDatum,
-} from "./utils.js";
+} from "./utils.js"
 import {
     accountPolicyId,
     paymentPolicyId,
     paymentScript,
     servicePolicyId,
-} from "../core/validators/constants.js";
+} from "../core/validators/constants.js"
+import { PAYMENT_TOKEN_NAME } from "../core/constants.js"
 
 export const unsubscribeProgram = (
     lucid: LucidEvolution,
     config: UnsubscribeConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
     Effect.gen(function* () {
-        const subscriberAddress: Address = yield* Effect.promise(() => lucid.wallet().address());
-        const paymentValidators = getMultiValidator(lucid, paymentScript);
-        const paymentAddress = paymentValidators.spendValAddress;
+        const subscriberAddress = yield* Effect.promise(() => lucid.wallet().address())
+        const paymentValidators = getMultiValidator(lucid, paymentScript)
+        const paymentAddress = paymentValidators.spendValAddress
 
-        const paymentUTxOs = yield* Effect.promise(() => lucid.utxosAt(paymentAddress));
+        const paymentNFT = toUnit(paymentPolicyId, fromText(PAYMENT_TOKEN_NAME))
+        const paymentUTxOs = yield* Effect.promise(() => lucid.utxosAt(paymentValidators.spendValAddress))
 
-        const { serviceNftTn, paymentNftTn } = yield* Effect.promise(() =>
-            findSubscriptionTokenNames(paymentUTxOs, config.subscriber_nft_tn, paymentPolicyId)
-        );
+        const result = paymentUTxOs
+          .flatMap((utxo) => getPaymentValidatorDatum(utxo).map<[UTxO, PaymentDatum]>((datum) => [utxo, datum]))
+          .find(([_utxo, datum]) => datum.service_nft_tn === config.service_nft_tn && datum.subscriber_nft_tn === config.subscriber_nft_tn)
 
-        const paymentNFT = toUnit(paymentPolicyId, paymentNftTn);
-
-        const subscriberUTxOs = yield* Effect.promise(() => lucid.utxosAt(subscriberAddress));
-
-        const paymentUTxO = yield* Effect.promise(() => lucid.utxoByUnit(paymentNFT));
-
-        if (!subscriberUTxOs || !subscriberUTxOs.length) {
-            yield* Effect.fail(new TxBuilderError({ cause: "No UTxO found at user address: " + subscriberAddress }));
+        if (!result) {
+          throw new Error("No active subscription found")
         }
 
-        const serviceRefNft = toUnit(servicePolicyId, serviceNftTn);
-        const subscriberNft = toUnit(accountPolicyId, config.subscriber_nft_tn);
+        const [paymentUTxO, paymentDatum] = result
 
-        const serviceUTxO = yield* Effect.promise(() => lucid.utxoByUnit(serviceRefNft));
-        const subscriberUTxO = yield* Effect.promise(() => lucid.utxoByUnit(subscriberNft));
+        const serviceRefNft = toUnit(servicePolicyId, config.service_nft_tn)
+        const subscriberNft = toUnit(accountPolicyId, config.subscriber_nft_tn)
 
-        if (!serviceUTxO) {
-            yield* Effect.fail(new TxBuilderError({ cause: "Service NFT not found " }));
+        const serviceUTxO = yield* Effect.promise(() => lucid.utxoByUnit(serviceRefNft))
+        const subscriberUTxO = yield* Effect.promise(() => lucid.utxoByUnit(subscriberNft))
+
+        const serviceData = getServiceValidatorDatum(serviceUTxO)
+        if (!serviceData || !serviceData.length) {
+            throw new Error("Service not found")
         }
-
-        const serviceData = yield* Effect.promise(() => (getServiceValidatorDatum(serviceUTxO)))
         const serviceDatum = serviceData[0]
-
-        const paymentData = yield* Effect.promise(() => (getPaymentValidatorDatum(paymentUTxO)));
-        const paymentDatum = paymentData[0]
-
         const subscriber_refund = paymentUTxO.assets.lovelace - serviceDatum.penalty_fee
 
         const penaltyDatum: PenaltyDatum = {
-            service_nft_tn: serviceNftTn,
+            service_nft_tn: config.service_nft_tn,
             subscriber_nft_tn: config.subscriber_nft_tn
-        };
+        }
 
-        const allDatums: PaymentValidatorDatum = {
-            Penalty: [penaltyDatum],
-        };
-
-        const penaltyValDatum = Data.to<PaymentValidatorDatum>(
-            allDatums,
-            PaymentValidatorDatum,
-        );
+        const allDatums: PaymentValidatorDatum = { Penalty: [penaltyDatum] }
+        const penaltyValDatum = Data.to<PaymentValidatorDatum>(allDatums, PaymentValidatorDatum)
 
         const unsubscribeRedeemer: RedeemerBuilder = {
             kind: "selected",
             makeRedeemer: (inputIndices: bigint[]) => {
-                return Data.to(new Constr(2, [0n, inputIndices[0], inputIndices[1], 1n]));
+                return Data.to(new Constr(2, [0n, inputIndices[0], inputIndices[1], 1n]))
             },
             inputs: [subscriberUTxO, paymentUTxO],
-        };
+        }
 
         const tx = yield* lucid
             .newTx()
@@ -108,7 +94,7 @@ export const unsubscribeProgram = (
             })
             .validFrom(Number(paymentDatum.subscription_start))
             .attach.SpendingValidator(paymentValidators.spendValidator)
-            .completeProgram({ localUPLCEval: true });
+            .completeProgram()
 
-        return tx;
-    });
+        return tx
+    })

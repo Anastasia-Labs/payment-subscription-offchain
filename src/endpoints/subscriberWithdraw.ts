@@ -1,87 +1,64 @@
 import {
-  Address,
   Assets,
   Constr,
   Data,
+  fromText,
   LucidEvolution,
   RedeemerBuilder,
   toUnit,
   TransactionError,
   TxSignBuilder,
-  UTxO,
-} from "@lucid-evolution/lucid";
-import { SubscriberWithdrawConfig } from "../core/types.js";
-import { PaymentDatum, PaymentValidatorDatum } from "../core/contract.types.js";
-import { getMultiValidator } from "../core/index.js";
-import { Effect } from "effect";
-import { tokenNameFromUTxO } from "../core/utils/assets.js";
+} from "@lucid-evolution/lucid"
+import { SubscriberWithdrawConfig } from "../core/types.js"
+import { getMultiValidator, PAYMENT_TOKEN_NAME } from "../core/index.js"
+import { Effect } from "effect"
 import {
   accountPolicyId,
   paymentPolicyId,
   paymentScript,
-} from "../core/validators/constants.js";
+  servicePolicyId,
+} from "../core/validators/constants.js"
+import { findPaymentToWithdraw } from "./utils.js"
 
 export const subscriberWithdrawProgram = (
   lucid: LucidEvolution,
   config: SubscriberWithdrawConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
   Effect.gen(function* () {
-    const validators = getMultiValidator(lucid, paymentScript);
+    const subscriberAddress = yield* Effect.promise(() => lucid.wallet().address())
+    const validators = getMultiValidator(lucid, paymentScript)
 
-    const subscriberAddress: Address = yield* Effect.promise(() => lucid.wallet().address());
+    const paymentAddress = validators.spendValAddress
+    const paymentUTxOs = yield* Effect.promise(() => lucid.utxosAt(paymentAddress))
+    const { paymentUTxO } = findPaymentToWithdraw(paymentUTxOs, config.service_nft_tn, config.subscriber_nft_tn)
+    const paymentNft = toUnit(paymentPolicyId, fromText(PAYMENT_TOKEN_NAME))
 
-    const paymentAddress = validators.spendValAddress;
-    const paymentUTxOs = yield* Effect.promise(() => lucid.utxosAt(paymentAddress));
+    const subscriberNft = toUnit(accountPolicyId, config.subscriber_nft_tn)
+    const subscriberUTxO = yield* Effect.promise(() => lucid.utxoByUnit(subscriberNft))
 
-    const payment_token_name = tokenNameFromUTxO(paymentUTxOs, paymentPolicyId);
-    const paymentNft = toUnit(paymentPolicyId, payment_token_name);
+    const paymentValue = paymentUTxO.assets.lovelace
 
-    const subscriberNft = toUnit(accountPolicyId, config.subscriber_nft_tn);
-
-    const subscriberUTxO = yield* Effect.promise(() => lucid.utxoByUnit(subscriberNft));
-
-    const subscriberUTxOs = yield* Effect.promise(() => lucid.utxosAt(subscriberAddress));
-
-    if (!paymentUTxOs.length) {
-      throw new Error("No payment UTxOs found");
-    }
-
-    const inActivePaymentUTxOs = paymentUTxOs.filter((utxo: UTxO) => {
-      if (!utxo.datum) return false;
-
-      const validatorDatum = Data.from<PaymentValidatorDatum>(utxo.datum, PaymentValidatorDatum);
-
-      let datum: PaymentDatum;
-      if ("Payment" in validatorDatum) {
-        datum = validatorDatum.Payment[0];
-      } else {
-        throw new Error("Expected Payment variant");
-      }
-
-      return datum.service_nft_tn === config.service_nft_tn;
-    });
-
-    const paymentUTxO = inActivePaymentUTxOs[0]
-    const paymentValue = paymentUTxO.assets.lovelace;
+    const serviceRefNft = toUnit(servicePolicyId, config.service_nft_tn)
+    const serviceUTxO = yield* Effect.promise(() => lucid.utxoByUnit(serviceRefNft))
 
     const subscriberWithdrawRedeemer: RedeemerBuilder = {
       kind: "selected",
       makeRedeemer: (inputIndices: bigint[]) => {
-        return Data.to(new Constr(3, [0n, inputIndices[0], inputIndices[1]]));
+        return Data.to(new Constr(3, [0n, inputIndices[0], inputIndices[1]]))
       },
       inputs: [subscriberUTxO, paymentUTxO],
-    };
+    }
 
     const mintingAssets: Assets = {
       [paymentNft]: -1n
-    };
+    }
     const mintingRedeemer = Data.to(new Constr(1, []))
 
     const tx = yield* lucid
       .newTx()
-      .collectFrom(subscriberUTxOs)
+      .collectFrom([subscriberUTxO])
       .collectFrom([paymentUTxO], subscriberWithdrawRedeemer)
-      .readFrom(config.service_utxos)
+      .readFrom([serviceUTxO])
       .pay.ToAddress(subscriberAddress, {
         lovelace: paymentValue,
         [subscriberNft]: 1n,
@@ -89,7 +66,7 @@ export const subscriberWithdrawProgram = (
       .mintAssets(mintingAssets, mintingRedeemer)
       .attach.SpendingValidator(validators.spendValidator)
       .attach.MintingPolicy(validators.mintValidator)
-      .completeProgram();
+      .completeProgram()
 
-    return tx;
-  });
+    return tx
+  })

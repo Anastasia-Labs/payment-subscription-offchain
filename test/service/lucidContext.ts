@@ -7,7 +7,6 @@ import {
     PROTOCOL_PARAMETERS_DEFAULT,
 } from "@lucid-evolution/lucid";
 import { Effect } from "effect";
-import { generateAccountSeedPhrase } from "../../src";
 
 export type LucidContext = {
     lucid: LucidEvolution;
@@ -20,7 +19,7 @@ export type Network = "Mainnet" | "Preprod" | "Preview" | "Custom";
 export const NETWORK = (process.env.NETWORK as Network) || "Preprod";
 
 export const makeEmulatorContext = () =>
-    Effect.gen(function* ($) {
+    Effect.gen(function* (_) {
         const users = {
             dappProvider: yield* Effect.sync(() =>
                 generateEmulatorAccount({ lovelace: BigInt(1_000_000_000) })
@@ -47,7 +46,7 @@ export const makeEmulatorContext = () =>
     });
 
 export const makeMaestroContext = (network: Network) =>
-    Effect.gen(function* ($) {
+    Effect.gen(function* (_) {
         const API_KEY = process.env.API_KEY!;
         const DAPP_PROVIDER_SEED = process.env.DAPP_PROVIDER_SEED!;
         const SUBSCRIBER_WALLET_SEED = process.env.SUBSCRIBER_WALLET_SEED!;

@@ -190,21 +190,21 @@ const tokenNameFromUTxO = (
     return "";
 };
 
-const findSubscriberPaymentTokenName = async (
+const findSubscriberPaymentTokenName = (
     paymentUTxOs: UTxO[],
     subscriberNftTn: string,
     serviceNftTn: string,
     paymentPolicyId: string,
-): Promise<string> => {
+): string => {
     console.log("Searching for subscription with:", {
         serviceNftTn,
         subscriberNftTn,
     });
 
-    const results = await Promise.all(
-        paymentUTxOs.map(async (utxo) => {
+    const results =
+        paymentUTxOs.map((utxo) => {
             try {
-                const datums = await getPaymentValidatorDatum(utxo);
+                const datums = getPaymentValidatorDatum(utxo);
                 console.log("UTxO", utxo.txHash.slice(0, 8), "datum result:", {
                     found: datums.length > 0,
                     datum: datums[0],
@@ -226,8 +226,7 @@ const findSubscriberPaymentTokenName = async (
                 );
                 return null;
             }
-        }),
-    );
+        })
 
     const paymentNftTn = results.find((result) => result !== null);
     if (!paymentNftTn) {

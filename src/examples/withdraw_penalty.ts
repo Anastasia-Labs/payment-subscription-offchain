@@ -2,19 +2,20 @@ import {
     LucidEvolution,
     merchantPenaltyWithdraw,
     WithdrawPenaltyConfig,
-} from "@anastasia-labs/payment-subscription-offchain";
+} from "../index.js";
 
 export const runWithdrawPenalty = async (
     lucid: LucidEvolution,
     serviceNftTn: string,
     merchant_nft_tn: string,
+    subscriber_nft_tn: string
 ): Promise<Error | void> => {
     const withdrawPenaltyConfig: WithdrawPenaltyConfig = {
         service_nft_tn: serviceNftTn,
         merchant_nft_tn: merchant_nft_tn,
+        subscriber_nft_tn: subscriber_nft_tn,
     };
 
-    // Merchant Withdraw
     try {
         const penaltyWithdrawUnsigned = await merchantPenaltyWithdraw(
             lucid,

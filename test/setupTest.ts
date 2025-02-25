@@ -1,5 +1,4 @@
 import {
-  Address,
   Network,
   UTxO,
   validatorToAddress,
@@ -44,7 +43,7 @@ export const setupTest = (
   return Effect.gen(function* (_) {
     // Start with base setup
     const base = yield* setupBase(intervalLength);
-    const { lucid, users, emulator } = base.context;
+    const { emulator } = base.context;
 
     // Initialize empty return values
     let result: SetupResult = {

@@ -7,64 +7,52 @@ import {
   toUnit,
   TransactionError,
   TxSignBuilder,
-} from "@lucid-evolution/lucid";
-import { ExtendPaymentConfig } from "../core/types.js";
-import { Installment, PaymentDatum, PaymentValidatorDatum } from "../core/contract.types.js";
-import { getMultiValidator } from "../core/index.js";
-import { Effect } from "effect";
-import { tokenNameFromUTxO } from "../core/utils/assets.js";
-import { getPaymentValidatorDatum, getServiceValidatorDatum } from "./utils.js";
+  UTxO,
+} from "@lucid-evolution/lucid"
+import { ExtendPaymentConfig } from "../core/types.js"
+import { Installment, PaymentDatum, PaymentValidatorDatum } from "../core/contract.types.js"
+import { getMultiValidator } from "../core/index.js"
+import { Effect } from "effect"
+import { tokenNameFromUTxO } from "../core/utils/assets.js"
+import { getPaymentValidatorDatum, getServiceValidatorDatum } from "./utils.js"
 import {
   accountPolicyId,
   paymentPolicyId,
   paymentScript,
   servicePolicyId,
-} from "../core/validators/constants.js";
+} from "../core/validators/constants.js"
 
 export const extendSubscriptionProgram = (
   lucid: LucidEvolution,
   config: ExtendPaymentConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
   Effect.gen(function* () {
-    const subscriberAddress: Address = yield* Effect.promise(() =>
-      lucid.wallet().address()
-    );
+    const subscriberAddress: Address = yield* Effect.promise(() => lucid.wallet().address())
 
-    const paymentValidator = getMultiValidator(lucid, paymentScript);
+    const paymentValidator = getMultiValidator(lucid, paymentScript)
 
-    const serviceNFT = toUnit(servicePolicyId, config.service_nft_tn);
-    const subscriberNFT = toUnit(accountPolicyId, config.subscriber_nft_tn);
+    const serviceNFT = toUnit(servicePolicyId, config.service_nft_tn)
+    const subscriberNFT = toUnit(accountPolicyId, config.subscriber_nft_tn)
 
-    const serviceUTxO = yield* Effect.promise(() => lucid.utxoByUnit(serviceNFT));
+    const serviceUTxO = yield* Effect.promise(() => lucid.utxoByUnit(serviceNFT))
+    const paymentUTxOs = yield* Effect.promise(() => lucid.utxosAt(paymentValidator.spendValAddress))
 
-    const paymentUTxOs = yield* Effect.promise(() => lucid.utxosAt(paymentValidator.spendValAddress));
+    const result = paymentUTxOs
+      .flatMap((utxo) => getPaymentValidatorDatum(utxo).map<[UTxO, PaymentDatum]>((datum) => [utxo, datum]))
+      .find(([_, datum]) => datum.service_nft_tn === config.service_nft_tn && datum.subscriber_nft_tn === config.subscriber_nft_tn)
 
-    const results = yield* Effect.forEach(
-      paymentUTxOs,
-      (utxo) =>
-        Effect.tryPromise(() => getPaymentValidatorDatum(utxo)).pipe(
-          Effect.map((datum) =>
-            datum[0].service_nft_tn === config.service_nft_tn &&
-              datum[0].subscriber_nft_tn === config.subscriber_nft_tn
-              ? utxo
-              : null
-          ),
-          Effect.catchAll(() => Effect.succeed(null)),
-        ),
-    );
-
-    const paymentUTxO = results.find((utxo) => utxo !== null);
-    if (!paymentUTxO) {
-      throw new Error("No active subscription found");
+    if (!result) {
+      throw new Error("No active subscription found")
     }
+    const [paymentUTxO, oldPaymentDatum] = result
 
-    const paymentNftTn = tokenNameFromUTxO([paymentUTxO], paymentPolicyId);
-    const paymentNFT = toUnit(paymentPolicyId, paymentNftTn);
+    const paymentNftTn = tokenNameFromUTxO([paymentUTxO], paymentPolicyId)
+    const paymentNFT = toUnit(paymentPolicyId, paymentNftTn)
 
-    const paymentData = yield* Effect.promise(() => (getPaymentValidatorDatum(paymentUTxO)))
-    const oldPaymentDatum = paymentData[0]
-
-    const serviceData = yield* Effect.promise(() => (getServiceValidatorDatum(serviceUTxO)))
+    const serviceData = getServiceValidatorDatum(serviceUTxO)
+    if (!serviceData || !serviceData.length) {
+      throw new Error("Service not found")
+    }
     const serviceDatum = serviceData[0]
 
     const paymentDatum: PaymentDatum = {
@@ -81,18 +69,12 @@ export const extendSubscriptionProgram = (
             claimable_amount: serviceDatum.service_fee,
           }) as Installment,
       ))
-    };
+    }
 
     const newTotalSubscriptionFee = paymentUTxO.assets.lovelace + config.extension_intervals * serviceDatum.service_fee
 
-    const allDatums: PaymentValidatorDatum = {
-      Payment: [paymentDatum],
-    };
-
-    const paymentValDatum = Data.to<PaymentValidatorDatum>(
-      allDatums,
-      PaymentValidatorDatum,
-    );
+    const allDatums: PaymentValidatorDatum = { Payment: [paymentDatum] }
+    const paymentValDatum = Data.to<PaymentValidatorDatum>(allDatums, PaymentValidatorDatum)
 
     const extendRedeemer: RedeemerBuilder = {
       kind: "selected",
@@ -101,20 +83,13 @@ export const extendSubscriptionProgram = (
         return result
       },
       inputs: [paymentUTxO],
-    };
-
-    const subscriberUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(subscriberAddress)
-    );
+    }
 
     const tx = yield* lucid
       .newTx()
-      .collectFrom(subscriberUTxOs)
       .collectFrom([paymentUTxO], extendRedeemer)
       .readFrom([serviceUTxO])
-      .pay.ToAddress(subscriberAddress, {
-        [subscriberNFT]: 1n,
-      })
+      .pay.ToAddress(subscriberAddress, { [subscriberNFT]: 1n })
       .pay.ToAddressWithData(paymentValidator.spendValAddress, {
         kind: "inline",
         value: paymentValDatum,
@@ -123,7 +98,7 @@ export const extendSubscriptionProgram = (
         [paymentNFT]: 1n,
       })
       .attach.SpendingValidator(paymentValidator.spendValidator)
-      .completeProgram({ localUPLCEval: true });
+      .completeProgram()
 
-    return tx;
-  });
+    return tx
+  })

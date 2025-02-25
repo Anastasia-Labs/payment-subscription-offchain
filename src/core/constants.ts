@@ -24,3 +24,5 @@ export const REF_SCRIPT_TOKEN_NAMES = {
     spendPayment: "SpendPayment",
     mintPayment: "MintPayment",
 };
+
+export const PAYMENT_TOKEN_NAME = "subscription"

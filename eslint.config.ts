@@ -17,8 +17,12 @@ export default [
             },
         },
         rules: {
-            "no-unused-vars": "off",
             "no-console": "off",
+            "no-unused-vars": ["warn", {
+                "varsIgnorePattern": "^_",
+                "argsIgnorePattern": "^_",
+                "caughtErrors": "none",
+            }],
         },
     },
 
@@ -26,7 +30,7 @@ export default [
     {
         files: ["src/core/**/*.{js,ts}"],
         rules: {
-            "no-unused-vars": ["error", {
+            "no-unused-vars": ["warn", {
                 "varsIgnorePattern": "^_",
                 "argsIgnorePattern": "^_",
                 "caughtErrors": "none",
@@ -38,7 +42,11 @@ export default [
     {
         files: ["src/endpoints/**/*.{js,ts}"],
         rules: {
-            "no-unused-vars": "warn",
+            "no-unused-vars": ["warn", {
+                "varsIgnorePattern": "^_",
+                "argsIgnorePattern": "^_",
+                "caughtErrors": "none",
+            }],
         },
     },
 ];

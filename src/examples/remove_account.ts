@@ -2,7 +2,7 @@ import {
     LucidEvolution,
     removeAccount,
     RemoveAccountConfig,
-} from "@anastasia-labs/payment-subscription-offchain";
+} from "../index.js";
 
 export const runRemoveAccount = async (
     lucid: LucidEvolution,
@@ -14,7 +14,6 @@ export const runRemoveAccount = async (
         subscriber_nft_tn: subscriberNftTn,
     };
 
-    // Remove Account
     try {
         const removeAccountUnsigned = await removeAccount(
             lucid,

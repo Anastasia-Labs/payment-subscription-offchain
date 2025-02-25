@@ -2,7 +2,7 @@ import {
     LucidEvolution,
     updateService,
     UpdateServiceConfig,
-} from "@anastasia-labs/payment-subscription-offchain";
+} from "../index.js";
 
 export const runUpdateService = async (
     lucid: LucidEvolution,
@@ -12,14 +12,12 @@ export const runUpdateService = async (
     const updateServiceConfig: UpdateServiceConfig = {
         service_nft_tn: serviceNftTn,
         merchant_nft_tn: merchantNftTn,
-        new_service_fee_qty: 9_500_000n,
-        new_penalty_fee_qty: 1_000_000n,
-        new_interval_length: 1n,
-        new_num_intervals: 12n,
-        new_minimum_ada: 2_000_000n,
+        new_service_fee: 9_500_000n,
+        new_penalty_fee: 1_000_000n,
+        new_interval_length: 10n * 24n * 60n * 60n * 1000n,
+        new_num_intervals: 10n,
     };
 
-    // Update Service
     try {
         const updateServiceUnsigned = await updateService(
             lucid,

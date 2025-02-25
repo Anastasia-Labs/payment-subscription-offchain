@@ -1,8 +1,6 @@
 import { RemoveAccountConfig, removeAccountProgram } from "../src/index.js";
 import { expect, test } from "vitest";
-import { Address, validatorToAddress } from "@lucid-evolution/lucid";
 import { Effect } from "effect";
-import { LucidContext, makeLucidContext } from "./service/lucidContext.js";
 import { createAccountTestCase } from "./createAccountTestCase.js";
 import {
   AccountSetup,
