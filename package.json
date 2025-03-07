@@ -10,8 +10,8 @@
   ],
   "scripts": {
     "test": "export NODE_ENV='emulator' && vitest run",
-    "build": "tsup src/index.ts --minify --format esm,cjs --dts --clean",
-    "build-examples": "tsup src/examples/*.ts --minify --format esm,cjs --dts --clean",
+    "build": "tsup src/index.ts --minify --format esm --dts --clean",
+    "build-examples": "tsup src/examples/*.ts --minify --format esm --dts --clean",
     "lint": "eslint",
     "repack": "pnpm run build && pnpm pack",
     "ts-node": "ts-node"
@@ -31,7 +31,7 @@
     "eslint-config-prettier": "^8.10.0",
     "jiti": "^2.4.2",
     "ts-node": "^10.9.2",
-    "tsup": "^6.7.0",
+    "tsup": "^8.4.0",
     "typescript": "^5.6.3",
     "vitest": "0.34.6"
   },
