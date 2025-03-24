@@ -1,13 +1,5 @@
 import { Data } from "@lucid-evolution/lucid";
 
-export const OutputReferenceSchema = Data.Object({
-    txHash: Data.Object({ hash: Data.Bytes({ minLength: 32, maxLength: 32 }) }),
-    outputIndex: Data.Integer(),
-});
-export type OutputReference = Data.Static<typeof OutputReferenceSchema>;
-export const OutputReference =
-    OutputReferenceSchema as unknown as OutputReference;
-
 export const CredentialSchema = Data.Enum([
     Data.Object({
         PublicKeyCredential: Data.Tuple([
