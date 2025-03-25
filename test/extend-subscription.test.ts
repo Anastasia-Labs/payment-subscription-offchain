@@ -37,19 +37,28 @@ export const extendSubscriptionTestCase = (
         const extendPaymentConfig: ExtendPaymentConfig = {
             service_nft_tn: serviceNftTn,
             subscriber_nft_tn: subscriberNftTn,
-            extension_intervals: BigInt(1), // Number of intervals to extend
+            extension_intervals: BigInt(6), // Number of intervals to extend
         };
 
         const extendPaymentFlow = Effect.gen(function* (_) {
-            const extendUnsigned = yield* extendSubscriptionProgram(lucid, extendPaymentConfig);
-            const extendSigned = yield* Effect.promise(() => extendUnsigned.sign.withWallet().complete());
-            const extendTxHash = yield* Effect.promise(() => extendSigned.submit());
+            const extendUnsigned = yield* extendSubscriptionProgram(
+                lucid,
+                extendPaymentConfig,
+            );
+            const extendSigned = yield* Effect.promise(() =>
+                extendUnsigned.sign.withWallet().complete()
+            );
+            const extendTxHash = yield* Effect.promise(() =>
+                extendSigned.submit()
+            );
             return extendTxHash;
         });
         if (emulator) yield* Effect.sync(() => emulator.awaitBlock(10));
 
         const extendPaymentResult = yield* extendPaymentFlow.pipe(
-            Effect.tapError((error) => Effect.log(`Error creating Account: ${error}`)),
+            Effect.tapError((error) =>
+                Effect.log(`Error creating Account: ${error}`)
+            ),
             Effect.map((hash) => {
                 return hash;
             }),

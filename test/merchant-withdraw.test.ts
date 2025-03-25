@@ -23,14 +23,13 @@ export const merchantWithdrawTestCase = (
 ): Effect.Effect<MerchantWithdrawResult, Error, never> => {
     const {
         context: { lucid, users, emulator },
-        currentTime: tick,
+        currentTime,
         serviceNftTn,
         subscriberNftTn,
         merchantNftTn,
     } = setupResult;
 
     return Effect.gen(function* () {
-        let currentTime = tick
         if (emulator && lucid.config().network === "Custom") {
             const initResult = yield* initSubscriptionTestCase(setupResult);
 
@@ -40,13 +39,11 @@ export const merchantWithdrawTestCase = (
             yield* Effect.sync(() => emulator.awaitBlock(1000));
         }
 
-        if (emulator && lucid.config().network === "Custom") {
-            currentTime = BigInt(emulator.now())
-        }
-
         const paymentValidator = getMultiValidator(lucid, paymentScript);
 
-        const paymentUTxOs = yield* Effect.promise(() => lucid.utxosAt(paymentValidator.spendValAddress));
+        const paymentUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(paymentValidator.spendValAddress)
+        );
         const paymentNftTn = tokenNameFromUTxO(paymentUTxOs, paymentPolicyId);
 
         lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
@@ -55,19 +52,28 @@ export const merchantWithdrawTestCase = (
             subscriber_nft_tn: subscriberNftTn,
             merchant_nft_tn: merchantNftTn,
             payment_nft_tn: paymentNftTn,
-            current_time: currentTime,
+            current_time: currentTime + BigInt(600),
         };
 
         const merchantWithdrawFlow = Effect.gen(function* (_) {
-            const merchantWithdrawUnsigned = yield* merchantWithdrawProgram(lucid, merchantWithdrawConfig);
-            const merchantWithdrawSigned = yield* Effect.promise(() => merchantWithdrawUnsigned.sign.withWallet().complete());
+            const merchantWithdrawUnsigned = yield* merchantWithdrawProgram(
+                lucid,
+                merchantWithdrawConfig,
+            );
+            const merchantWithdrawSigned = yield* Effect.promise(() =>
+                merchantWithdrawUnsigned.sign.withWallet().complete()
+            );
 
-            const merchantWithdrawTxHash = yield* Effect.promise(() => merchantWithdrawSigned.submit());
+            const merchantWithdrawTxHash = yield* Effect.promise(() =>
+                merchantWithdrawSigned.submit()
+            );
             return merchantWithdrawTxHash;
         });
 
         const merchantWithdrawResult = yield* merchantWithdrawFlow.pipe(
-            Effect.tapError((error) => Effect.log(`Error withdrawing from merchant: ${error}`)),
+            Effect.tapError((error) =>
+                Effect.log(`Error withdrawing from merchant: ${error}`)
+            ),
             Effect.map((hash) => {
                 return hash;
             }),

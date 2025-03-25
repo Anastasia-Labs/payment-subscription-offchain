@@ -36,26 +36,41 @@ export const initSubscriptionTestCase = (
             service_nft_tn: serviceNftTn,
             subscriber_nft_tn: subscriberNftTn,
             num_intervals: 12n,
-            subscription_start: currentTime + BigInt(600),
+            subscription_start: BigInt(currentTime) + BigInt(60000 * 3),
         };
 
         const initSubscriptionFlow = Effect.gen(function* (_) {
-            const initSubscriptionUnsigned = yield* initSubscriptionProgram(lucid, paymentConfig);
-            const initSubscriptionSigned = yield* Effect.tryPromise(() => initSubscriptionUnsigned.sign.withWallet().complete());
-            const initSubscriptionHash = yield* Effect.promise(() => initSubscriptionSigned.submit());
+            const initSubscriptionUnsigned = yield* initSubscriptionProgram(
+                lucid,
+                paymentConfig,
+            );
+            const initSubscriptionSigned = yield* Effect.tryPromise(() =>
+                initSubscriptionUnsigned.sign.withWallet().complete()
+            );
+            const initSubscriptionHash = yield* Effect.promise(() =>
+                initSubscriptionSigned.submit()
+            );
+            console.log("initSubscriptionHash: ", initSubscriptionHash);
             return initSubscriptionHash;
         });
 
         const subscriptionResult = yield* initSubscriptionFlow.pipe(
-            Effect.tapError((error) => Effect.log(`Error initiating subscription: ${error}`)),
+            Effect.tapError((error) =>
+                Effect.log(`Error initiating subscription: ${error}`)
+            ),
             Effect.map((hash) => {
                 return hash;
             }),
         );
 
-        const paymentValidatorAddress = validatorToAddress(network, paymentValidator.mintPayment);
+        const paymentValidatorAddress = validatorToAddress(
+            network,
+            paymentValidator.mintPayment,
+        );
 
-        const paymentUTxOs = yield* Effect.promise(() => lucid.utxosAt(paymentValidatorAddress));
+        const paymentUTxOs = yield* Effect.promise(() =>
+            lucid.utxosAt(paymentValidatorAddress)
+        );
 
         return {
             txHash: subscriptionResult,

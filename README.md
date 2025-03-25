@@ -319,7 +319,8 @@ import {
 
 This endpoint allows a Subscriber to Subscribe to a Service. 
 
-They can choose the number of intervals they want to subscribe to.
+They can choose the number of intervals they want to subscribe to. 
+Ensure the Subscriber has enough ADA to cover the requested fees by the Merchant.
 
 ```ts
 import { initiateSubscription, InitPaymentConfig, LucidEvolution} from "@anastasia-labs/payment-subscription-offchain";
