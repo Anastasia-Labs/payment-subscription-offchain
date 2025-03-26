@@ -106,12 +106,6 @@ export const merchantWithdrawProgram = (
       ? { lovelace: remainingSubscriptionFee, [paymentNFT]: 1n }
       : { [paymentNFT]: 1n };
 
-    //Note: Throws Trace expect claimable_at < current_time" even when there's a withdrawable count, have to wait a few seconds for it to pass!
-    //TODO: Review validity range
-    //Note: Has a problem selecting the correct servive NFT when the Subscriber has more than one Subscription to the same service even if it has been set to false by the Merchant.
-    //No payment found for service 000643b001989b574236d98c4d31e6d24b7ef099697bbee9d949dd110c939f47
-    //TODO: Improve Service NFT selection
-    //     -Handle isActive false datum values
     const tx = yield* lucid
       .newTx()
       .collectFrom(merchantUTxOs)
@@ -125,7 +119,7 @@ export const merchantWithdrawProgram = (
         kind: "inline",
         value: paymentValDatum,
       }, remainingSubscriptionAssets)
-      .validFrom(Number(config.current_time + BigInt(60000 * 3)))
+      .validFrom(Number(config.current_time + BigInt(600)))
       .attach.SpendingValidator(validators.spendValidator)
       .completeProgram();
 

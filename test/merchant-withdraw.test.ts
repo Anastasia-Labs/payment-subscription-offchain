@@ -23,13 +23,14 @@ export const merchantWithdrawTestCase = (
 ): Effect.Effect<MerchantWithdrawResult, Error, never> => {
     const {
         context: { lucid, users, emulator },
-        currentTime,
+        currentTime: tick,
         serviceNftTn,
         subscriberNftTn,
         merchantNftTn,
     } = setupResult;
 
     return Effect.gen(function* () {
+        let currentTime = tick
         if (emulator && lucid.config().network === "Custom") {
             const initResult = yield* initSubscriptionTestCase(setupResult);
 
@@ -40,6 +41,10 @@ export const merchantWithdrawTestCase = (
         }
 
         const paymentValidator = getMultiValidator(lucid, paymentScript);
+
+        if (emulator && lucid.config().network === "Custom") {
+            currentTime = BigInt(emulator.now())
+        }
 
         const paymentUTxOs = yield* Effect.promise(() =>
             lucid.utxosAt(paymentValidator.spendValAddress)
@@ -52,7 +57,7 @@ export const merchantWithdrawTestCase = (
             subscriber_nft_tn: subscriberNftTn,
             merchant_nft_tn: merchantNftTn,
             payment_nft_tn: paymentNftTn,
-            current_time: currentTime + BigInt(600),
+            current_time: currentTime,
         };
 
         const merchantWithdrawFlow = Effect.gen(function* (_) {

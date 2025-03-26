@@ -6,7 +6,7 @@ import {
     PenaltyDatum,
     ServiceDatum,
     UTxO,
-} from "../index.js"; // Adjust the import path as necessary
+} from "../index.js";
 import { Effect } from "effect";
 import {
     LucidEvolution,

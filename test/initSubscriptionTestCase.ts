@@ -36,7 +36,7 @@ export const initSubscriptionTestCase = (
             service_nft_tn: serviceNftTn,
             subscriber_nft_tn: subscriberNftTn,
             num_intervals: 12n,
-            subscription_start: BigInt(currentTime) + BigInt(60000 * 3),
+            subscription_start: BigInt(currentTime) + BigInt(600),
         };
 
         const initSubscriptionFlow = Effect.gen(function* (_) {

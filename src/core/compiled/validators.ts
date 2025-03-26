@@ -16,7 +16,6 @@ export type Validators = {
     alwaysFails: SpendingValidator;
 };
 
-// TODO: this should be refactored
 export function readMultiValidators(
     blueprint: any,
     params: boolean,
