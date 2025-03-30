@@ -35,12 +35,8 @@ export const initSubscriptionProgram = (
     const subscriberNft = toUnit(accountPolicyId, config.subscriber_nft_tn);
     const serviceNft = toUnit(servicePolicyId, config.service_nft_tn);
 
-    const serviceUTxO = yield* Effect.promise(() =>
-      lucid.utxoByUnit(serviceNft)
-    );
-    const subscriberUTxO = yield* Effect.promise(() =>
-      lucid.utxoByUnit(subscriberNft)
-    );
+    const serviceUTxO = yield* Effect.promise(() => lucid.utxoByUnit(serviceNft));
+    const subscriberUTxO = yield* Effect.promise(() => lucid.utxoByUnit(subscriberNft));
     if (!subscriberUTxO) {
       throw new Error(" subscriberUTxO not found");
     }
@@ -70,9 +66,8 @@ export const initSubscriptionProgram = (
 
     const interval_amount = serviceDatum.service_fee;
     const interval_length = serviceDatum.interval_length;
-    const subscription_end = config.subscription_start +
-      interval_length * config.num_intervals;
-    const totalSubscriptionQty = interval_amount * config.num_intervals;
+    const subscription_end = config.subscription_start + interval_length * serviceDatum.num_intervals;
+    const totalSubscriptionQty = interval_amount * serviceDatum.num_intervals;
 
     const createInstallments = (
       startTime: bigint,
@@ -100,7 +95,7 @@ export const initSubscriptionProgram = (
         config.subscription_start,
         interval_length,
         interval_amount,
-        Number(config.num_intervals),
+        Number(serviceDatum.num_intervals),
       ),
     };
 
@@ -127,7 +122,7 @@ export const initSubscriptionProgram = (
         [paymentNFT]: 1n,
         lovelace: totalSubscriptionQty,
       })
-      .validTo(Number(config.subscription_start) - 1)
+      .validTo(Number(config.subscription_start) - 1_000)
       .attach.MintingPolicy(validators.mintValidator)
       .completeProgram();
 

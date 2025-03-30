@@ -25,28 +25,18 @@ export const merchantWithdrawProgram = (
   config: MerchantWithdrawConfig,
 ): Effect.Effect<TxSignBuilder, TransactionError, never> =>
   Effect.gen(function* () {
-    const merchantAddress: Address = yield* Effect.promise(() =>
-      lucid.wallet().address()
-    );
+    const merchantAddress: Address = yield* Effect.promise(() => lucid.wallet().address());
 
     const validators = getMultiValidator(lucid, paymentScript);
 
-    const paymentUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(validators.spendValAddress)
-    );
-    const merchantUTxOs = yield* Effect.promise(() =>
-      lucid.utxosAt(merchantAddress)
-    );
+    const paymentUTxOs = yield* Effect.promise(() => lucid.utxosAt(validators.spendValAddress));
+    const merchantUTxOs = yield* Effect.promise(() => lucid.utxosAt(merchantAddress));
 
     const serviceRefNft = toUnit(servicePolicyId, config.service_nft_tn);
     const merchantNft = toUnit(servicePolicyId, config.merchant_nft_tn);
 
-    const merchantUTxO = yield* Effect.promise(() =>
-      lucid.utxoByUnit(merchantNft)
-    );
-    const serviceUTxO = yield* Effect.promise(() =>
-      lucid.utxoByUnit(serviceRefNft)
-    );
+    const merchantUTxO = yield* Effect.promise(() => lucid.utxoByUnit(merchantNft));
+    const serviceUTxO = yield* Effect.promise(() => lucid.utxoByUnit(serviceRefNft));
 
     const { paymentUTxO, paymentDatum } = findPaymentToWithdraw(
       paymentUTxOs,
@@ -55,8 +45,8 @@ export const merchantWithdrawProgram = (
     );
     const paymentNFT = toUnit(paymentPolicyId, fromText(PAYMENT_TOKEN_NAME));
 
-    const { withdrawableAmount, withdrawableCount, newInstallments } =
-      calculateClaimableIntervals(config.current_time, paymentDatum);
+    const previousSlot = config.current_time - 1_000n;
+    const { withdrawableAmount, withdrawableCount, newInstallments } = calculateClaimableIntervals(previousSlot, paymentDatum);
     console.log("paymentDatum: ", paymentDatum);
     console.log("currentTime: ", config.current_time);
     console.log(
@@ -119,7 +109,7 @@ export const merchantWithdrawProgram = (
         kind: "inline",
         value: paymentValDatum,
       }, remainingSubscriptionAssets)
-      .validFrom(Number(config.current_time + BigInt(600)))
+      .validFrom(Number(config.current_time))
       .attach.SpendingValidator(validators.spendValidator)
       .completeProgram();
 

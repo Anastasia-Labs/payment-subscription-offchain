@@ -3,8 +3,12 @@ import {
     InitPaymentConfig,
     LucidEvolution,
 } from "../index.js";
+import { makeLucidContext } from "./lucid.js";
 
-export const runInitSubscription = async (
+const SECONDS = 1000;
+const MINUTES = 60 * SECONDS;
+
+const runInitSubscription = async (
     lucid: LucidEvolution,
     serviceNftTn: string,
     subscriberNftTn: string,
@@ -12,8 +16,7 @@ export const runInitSubscription = async (
     const paymentConfig: InitPaymentConfig = {
         service_nft_tn: serviceNftTn,
         subscriber_nft_tn: subscriberNftTn,
-        num_intervals: 3n,
-        subscription_start: BigInt(lucid.currentSlot()) + 60n * 1000n,
+        subscription_start: BigInt(Date.now() + 3 * MINUTES),
     };
 
     try {
@@ -33,3 +36,8 @@ export const runInitSubscription = async (
         console.error("Failed to initiate subscription:", error);
     }
 };
+
+const lucidContext = await makeLucidContext()
+const lucid = lucidContext.lucid
+lucid.selectWallet.fromSeed(lucidContext.users.subscriber.seedPhrase)
+await runInitSubscription(lucid, "000643b00088fe789530721d31464ead0813b7c75651cc019c68912064bbbb82", "000de14001beb6d49450bbbad6dc2ad59bffc8601da5cce7e0115f373bfe4101")

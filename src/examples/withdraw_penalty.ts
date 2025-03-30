@@ -3,8 +3,9 @@ import {
     merchantPenaltyWithdraw,
     WithdrawPenaltyConfig,
 } from "../index.js";
+import { makeLucidContext } from "./lucid.js";
 
-export const runWithdrawPenalty = async (
+const runWithdrawPenalty = async (
     lucid: LucidEvolution,
     serviceNftTn: string,
     merchant_nft_tn: string,
@@ -34,3 +35,8 @@ export const runWithdrawPenalty = async (
         console.error("Failed to create service:", error);
     }
 };
+
+const lucidContext = await makeLucidContext()
+const lucid = lucidContext.lucid
+lucid.selectWallet.fromSeed(lucidContext.users.merchant.seedPhrase)
+await runWithdrawPenalty(lucid, "000643b0002304f2370d0212543199071d5f783f0bbe716d28292e1b0c02f91e", "000de140002304f2370d0212543199071d5f783f0bbe716d28292e1b0c02f91e", "000de14000394b21456beff60a682287bfad204e9952cf7104d278470c5cf9da")

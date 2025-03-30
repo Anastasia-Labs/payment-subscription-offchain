@@ -4,8 +4,9 @@ import {
     CreateServiceConfig,
     LucidEvolution,
 } from "../index.js";
+import { makeLucidContext } from "./lucid.js";
 
-export const runCreateService = async (
+const runCreateService = async (
     lucid: LucidEvolution,
 ): Promise<Error | void> => {
     try {
@@ -39,3 +40,8 @@ export const runCreateService = async (
         console.error("Failed to create service:", error);
     }
 };
+
+const lucidContext = await makeLucidContext()
+const lucid = lucidContext.lucid
+lucid.selectWallet.fromSeed(lucidContext.users.merchant.seedPhrase)
+await runCreateService(lucid)

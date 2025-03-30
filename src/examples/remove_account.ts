@@ -3,8 +3,9 @@ import {
     removeAccount,
     RemoveAccountConfig,
 } from "../index.js";
+import { makeLucidContext } from "./lucid.js";
 
-export const runRemoveAccount = async (
+const runRemoveAccount = async (
     lucid: LucidEvolution,
     accountNftTn: string,
     subscriberNftTn: string,
@@ -32,3 +33,8 @@ export const runRemoveAccount = async (
         console.error("Failed to remove Account:", error);
     }
 };
+
+const lucidContext = await makeLucidContext()
+const lucid = lucidContext.lucid
+lucid.selectWallet.fromSeed(lucidContext.users.subscriber.seedPhrase)
+await runRemoveAccount(lucid, "000643b000394b21456beff60a682287bfad204e9952cf7104d278470c5cf9da", "000de14000394b21456beff60a682287bfad204e9952cf7104d278470c5cf9da")

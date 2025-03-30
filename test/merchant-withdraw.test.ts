@@ -23,28 +23,24 @@ export const merchantWithdrawTestCase = (
 ): Effect.Effect<MerchantWithdrawResult, Error, never> => {
     const {
         context: { lucid, users, emulator },
-        currentTime: tick,
         serviceNftTn,
         subscriberNftTn,
         merchantNftTn,
     } = setupResult;
 
     return Effect.gen(function* () {
-        let currentTime = tick
         if (emulator && lucid.config().network === "Custom") {
             const initResult = yield* initSubscriptionTestCase(setupResult);
 
             expect(initResult).toBeDefined();
             expect(typeof initResult.txHash).toBe("string");
 
-            yield* Effect.sync(() => emulator.awaitBlock(1000));
+            yield* Effect.sync(() => emulator.awaitBlock(2));
         }
+
+        const currentTime = BigInt((emulator && lucid.config().network === "Custom") ? emulator.now() : Date.now());
 
         const paymentValidator = getMultiValidator(lucid, paymentScript);
-
-        if (emulator && lucid.config().network === "Custom") {
-            currentTime = BigInt(emulator.now())
-        }
 
         const paymentUTxOs = yield* Effect.promise(() =>
             lucid.utxosAt(paymentValidator.spendValAddress)
@@ -61,17 +57,9 @@ export const merchantWithdrawTestCase = (
         };
 
         const merchantWithdrawFlow = Effect.gen(function* (_) {
-            const merchantWithdrawUnsigned = yield* merchantWithdrawProgram(
-                lucid,
-                merchantWithdrawConfig,
-            );
-            const merchantWithdrawSigned = yield* Effect.promise(() =>
-                merchantWithdrawUnsigned.sign.withWallet().complete()
-            );
-
-            const merchantWithdrawTxHash = yield* Effect.promise(() =>
-                merchantWithdrawSigned.submit()
-            );
+            const merchantWithdrawUnsigned = yield* merchantWithdrawProgram(lucid, merchantWithdrawConfig);
+            const merchantWithdrawSigned = yield* Effect.promise(() => merchantWithdrawUnsigned.sign.withWallet().complete());
+            const merchantWithdrawTxHash = yield* Effect.promise(() => merchantWithdrawSigned.submit());
             return merchantWithdrawTxHash;
         });
 
@@ -93,7 +81,7 @@ export const merchantWithdrawTestCase = (
 
 test<LucidContext>("Test 9 - Merchant Withdraw", async () => {
     const program = Effect.gen(function* () {
-        const setupContext = yield* setupTest(150n);
+        const setupContext = yield* setupTest(5n * 1000n);
         const result = yield* merchantWithdrawTestCase(setupContext);
         return result;
     });

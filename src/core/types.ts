@@ -72,7 +72,6 @@ export type RemoveAccountConfig = {
 export type InitPaymentConfig = {
   service_nft_tn: string;
   subscriber_nft_tn: string;
-  num_intervals: bigint;
   subscription_start: bigint;
 };
 

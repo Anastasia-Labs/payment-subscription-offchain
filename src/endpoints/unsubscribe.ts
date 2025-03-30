@@ -58,15 +58,6 @@ export const unsubscribeProgram = (
             throw new Error("Service not found")
         }
         const serviceDatum = serviceData[0]
-        const subscriber_refund = paymentUTxO.assets.lovelace - serviceDatum.penalty_fee
-
-        const penaltyDatum: PenaltyDatum = {
-            service_nft_tn: config.service_nft_tn,
-            subscriber_nft_tn: config.subscriber_nft_tn
-        }
-
-        const allDatums: PaymentValidatorDatum = { Penalty: [penaltyDatum] }
-        const penaltyValDatum = Data.to<PaymentValidatorDatum>(allDatums, PaymentValidatorDatum)
 
         const unsubscribeRedeemer: RedeemerBuilder = {
             kind: "selected",
@@ -76,25 +67,50 @@ export const unsubscribeProgram = (
             inputs: [subscriberUTxO, paymentUTxO],
         }
 
-        const tx = yield* lucid
-            .newTx()
-            .collectFrom([subscriberUTxO])
-            .collectFrom([paymentUTxO], unsubscribeRedeemer)
-            .readFrom([serviceUTxO])
-            .pay.ToAddress(subscriberAddress, {
-                lovelace: subscriber_refund,
-                [subscriberNft]: 1n,
-            })
-            .pay.ToAddressWithData(paymentAddress, {
-                kind: "inline",
-                value: penaltyValDatum,
-            }, {
-                lovelace: serviceDatum.penalty_fee,
-                [paymentNFT]: 1n,
-            })
-            .validFrom(Number(paymentDatum.subscription_start))
-            .attach.SpendingValidator(paymentValidators.spendValidator)
-            .completeProgram()
+        if (paymentDatum.original_subscription_end <= config.current_time) {
+            const tx = yield* lucid
+                .newTx()
+                .collectFrom([subscriberUTxO])
+                .collectFrom([paymentUTxO], unsubscribeRedeemer)
+                .readFrom([serviceUTxO])
+                .validFrom(Number(config.current_time))
+                .mintAssets({ [paymentNFT]: -1n }, Data.to(new Constr(1, [])))
+                .attach.SpendingValidator(paymentValidators.spendValidator)
+                .attach.MintingPolicy(paymentValidators.mintValidator)
+                .completeProgram()
+            
+            return tx
+        } else {
+            const subscriber_refund = paymentUTxO.assets.lovelace - serviceDatum.penalty_fee
 
-        return tx
+            const penaltyDatum: PenaltyDatum = {
+                service_nft_tn: config.service_nft_tn,
+                subscriber_nft_tn: config.subscriber_nft_tn
+            }
+
+            const allDatums: PaymentValidatorDatum = { Penalty: [penaltyDatum] }
+            const penaltyValDatum = Data.to<PaymentValidatorDatum>(allDatums, PaymentValidatorDatum)
+
+            const tx = yield* lucid
+                .newTx()
+                .collectFrom([subscriberUTxO])
+                .collectFrom([paymentUTxO], unsubscribeRedeemer)
+                .readFrom([serviceUTxO])
+                .pay.ToAddress(subscriberAddress, {
+                    lovelace: subscriber_refund,
+                    [subscriberNft]: 1n,
+                })
+                .pay.ToAddressWithData(paymentAddress, {
+                    kind: "inline",
+                    value: penaltyValDatum,
+                }, {
+                    lovelace: serviceDatum.penalty_fee,
+                    [paymentNFT]: 1n,
+                })
+                .validFrom(Number(config.current_time))
+                .attach.SpendingValidator(paymentValidators.spendValidator)
+                .completeProgram()
+
+            return tx
+        }
     })

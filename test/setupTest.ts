@@ -1,4 +1,4 @@
-import { Network, UTxO, validatorToAddress } from "@lucid-evolution/lucid";
+import { Network, SLOT_CONFIG_NETWORK, UTxO, validatorToAddress } from "@lucid-evolution/lucid";
 import { LucidContext, makeLucidContext } from "./service/lucidContext";
 import { Effect } from "effect";
 import { createAccountTestCase } from "./createAccountTestCase";
@@ -103,20 +103,18 @@ export type AccountSetup = BaseSetup & {
 export const setupBase = (
   intervalLength?: bigint,
 ): Effect.Effect<BaseSetup, Error, never> => {
-  const interval_length = intervalLength || 60n * 1000n * 2n;
+  const interval_length = intervalLength || 2n * 60n * 1000n;
   return Effect.gen(function* (_) {
     const { lucid, users, emulator } = yield* makeLucidContext();
     const network = lucid.config().network;
     if (!network) throw Error("Invalid Network selection");
 
-    const currentTime = emulator && network === "Custom"
-      ? BigInt(emulator.now())
-      : BigInt(Date.now());
+    const currentTime = BigInt((emulator && lucid.config().network === "Custom") ? emulator.now() : Date.now());
 
     return {
       network,
       context: { lucid, users, emulator },
-      currentTime,
+      currentTime: BigInt(currentTime),
       intervalLength: interval_length,
     };
   });

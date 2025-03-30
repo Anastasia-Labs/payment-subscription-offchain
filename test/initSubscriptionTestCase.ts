@@ -35,21 +35,13 @@ export const initSubscriptionTestCase = (
         const paymentConfig: InitPaymentConfig = {
             service_nft_tn: serviceNftTn,
             subscriber_nft_tn: subscriberNftTn,
-            num_intervals: 12n,
-            subscription_start: BigInt(currentTime) + BigInt(600),
+            subscription_start: currentTime + 610_000n,
         };
 
         const initSubscriptionFlow = Effect.gen(function* (_) {
-            const initSubscriptionUnsigned = yield* initSubscriptionProgram(
-                lucid,
-                paymentConfig,
-            );
-            const initSubscriptionSigned = yield* Effect.tryPromise(() =>
-                initSubscriptionUnsigned.sign.withWallet().complete()
-            );
-            const initSubscriptionHash = yield* Effect.promise(() =>
-                initSubscriptionSigned.submit()
-            );
+            const initSubscriptionUnsigned = yield* initSubscriptionProgram(lucid, paymentConfig);
+            const initSubscriptionSigned = yield* Effect.tryPromise(() => initSubscriptionUnsigned.sign.withWallet().complete());
+            const initSubscriptionHash = yield* Effect.promise(() => initSubscriptionSigned.submit());
             console.log("initSubscriptionHash: ", initSubscriptionHash);
             return initSubscriptionHash;
         });

@@ -5,8 +5,9 @@ import {
     updateAccount,
     UpdateAccountConfig,
 } from "../index.js";
+import { makeLucidContext } from "./lucid.js";
 
-export const runUpdateAccount = async (
+const runUpdateAccount = async (
     lucid: LucidEvolution,
     accountNftTn: string,
     subscriberNftTn: string,
@@ -37,3 +38,9 @@ export const runUpdateAccount = async (
         console.error("Failed to update Account:", error);
     }
 };
+
+const lucidContext = await makeLucidContext()
+const lucid = lucidContext.lucid
+lucid.selectWallet.fromSeed(lucidContext.users.subscriber.seedPhrase)
+await runUpdateAccount(lucid, "000643b000394b21456beff60a682287bfad204e9952cf7104d278470c5cf9da", "000de14000394b21456beff60a682287bfad204e9952cf7104d278470c5cf9da")
+

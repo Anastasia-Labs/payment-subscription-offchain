@@ -5,8 +5,9 @@ import {
     MerchantWithdrawConfig,
     PAYMENT_TOKEN_NAME,
 } from "../index.js";
+import { makeLucidContext } from "./lucid.js";
 
-export const runMerchantWithdraw = async (
+const runMerchantWithdraw = async (
     lucid: LucidEvolution,
     serviceNftTn: string,
     merchantNftTn: string,
@@ -26,10 +27,7 @@ export const runMerchantWithdraw = async (
 
         console.log("Merchant Withdraw Config:", merchantWithdrawConfig);
 
-        const merchantWithdrawUnsigned = await merchantWithdraw(
-            lucid,
-            merchantWithdrawConfig,
-        );
+        const merchantWithdrawUnsigned = await merchantWithdraw(lucid, merchantWithdrawConfig);
         const merchantWithdrawSigned = await merchantWithdrawUnsigned.sign
             .withWallet()
             .complete();
@@ -44,3 +42,8 @@ export const runMerchantWithdraw = async (
         throw error;
     }
 };
+
+const lucidContext = await makeLucidContext()
+const lucid = lucidContext.lucid
+lucid.selectWallet.fromSeed(lucidContext.users.merchant.seedPhrase)
+await runMerchantWithdraw(lucid, "000643b0002304f2370d0212543199071d5f783f0bbe716d28292e1b0c02f91e", "000de140002304f2370d0212543199071d5f783f0bbe716d28292e1b0c02f91e", "000de14000394b21456beff60a682287bfad204e9952cf7104d278470c5cf9da")

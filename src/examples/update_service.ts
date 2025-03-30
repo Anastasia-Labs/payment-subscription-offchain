@@ -3,8 +3,9 @@ import {
     updateService,
     UpdateServiceConfig,
 } from "../index.js";
+import { makeLucidContext } from "./lucid.js";
 
-export const runUpdateService = async (
+const runUpdateService = async (
     lucid: LucidEvolution,
     serviceNftTn: string,
     merchantNftTn: string,
@@ -35,3 +36,8 @@ export const runUpdateService = async (
         console.error("Failed to update service:", error);
     }
 };
+
+const lucidContext = await makeLucidContext()
+const lucid = lucidContext.lucid
+lucid.selectWallet.fromSeed(lucidContext.users.merchant.seedPhrase)
+await runUpdateService(lucid, "000643b0002304f2370d0212543199071d5f783f0bbe716d28292e1b0c02f91e", "000de140002304f2370d0212543199071d5f783f0bbe716d28292e1b0c02f91e")

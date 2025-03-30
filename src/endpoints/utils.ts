@@ -180,22 +180,15 @@ export const calculateClaimableIntervals = (
     currentTime: bigint,
     paymentData: PaymentDatum,
 ): WithdrawalCalc => {
-    const index = paymentData.installments.findIndex((i) =>
-        i.claimable_at > currentTime
-    );
+    const index = paymentData.installments.findIndex((i) => i.claimable_at > currentTime);
     if (index == 0) {
         throw new Error("No installment withdrawable");
     }
-    const withdrawableCount = index > 0
-        ? index
-        : paymentData.installments.length;
+    const withdrawableCount = index > 0 ? index : paymentData.installments.length;
 
     const newInstallments = Array.from(paymentData.installments);
     const withdrawn = newInstallments.splice(0, withdrawableCount);
-    const withdrawableAmount = withdrawn.reduce(
-        (acc, i) => acc + i.claimable_amount,
-        0n,
-    );
+    const withdrawableAmount = withdrawn.reduce((acc, i) => acc + i.claimable_amount, 0n);
 
     return {
         withdrawableAmount,

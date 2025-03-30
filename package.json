@@ -11,7 +11,7 @@
   "scripts": {
     "test": "export NODE_ENV='emulator' && vitest run",
     "build": "tsup src/index.ts --minify --format esm --dts --clean",
-    "build-examples": "tsup src/examples/*.ts --minify --format esm --dts --clean",
+    "build-examples": "tsup src/examples/*.ts --minify --format esm --clean --sourcemap",
     "lint": "eslint",
     "repack": "pnpm run build && pnpm pack",
     "ts-node": "ts-node"
@@ -39,7 +39,7 @@
     "test": "test"
   },
   "dependencies": {
-    "@lucid-evolution/lucid": "0.4.22",
+    "@lucid-evolution/lucid": "0.4.25",
     "@noble/hashes": "^1.6.1",
     "effect": "^3.12.10",
     "nanoid": "^5.0.9"

@@ -5,8 +5,9 @@ import {
     CreateAccountConfig,
     LucidEvolution,
 } from "../index.js";
+import { makeLucidContext } from "./lucid.js";
 
-export const runCreateAccount = async (
+const runCreateAccount = async (
     lucid: LucidEvolution,
 ): Promise<Error | void> => {
     try {
@@ -30,3 +31,8 @@ export const runCreateAccount = async (
         console.error("Failed to create Account:", error);
     }
 };
+
+const lucidContext = await makeLucidContext()
+const lucid = lucidContext.lucid
+lucid.selectWallet.fromSeed(lucidContext.users.subscriber.seedPhrase)
+await runCreateAccount(lucid)
