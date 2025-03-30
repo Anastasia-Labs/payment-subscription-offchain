@@ -34,18 +34,18 @@ export function readMultiValidators(
         }
 
         return {
-            type: "PlutusV2",
+            type: "PlutusV3",
             script: script,
         };
     };
 
     return {
-        spendService: getValidator("service_multi_validator.spend_service"),
-        mintService: getValidator("service_multi_validator.mint_service"),
-        spendAccount: getValidator("account_multi_validator.spend_account"),
-        mintAccount: getValidator("account_multi_validator.mint_account"),
-        spendPayment: getValidator("payment_multi_validator.spend_payment"),
-        mintPayment: getValidator("payment_multi_validator.mint_payment"),
-        alwaysFails: getValidator("always_fails_validator.always_fails"),
+        spendService: getValidator("service_multi_validator.service.spend"),
+        mintService: getValidator("service_multi_validator.service.mint"),
+        spendAccount: getValidator("account_multi_validator.account.spend"),
+        mintAccount: getValidator("account_multi_validator.account.mint"),
+        spendPayment: getValidator("payment_multi_validator.payment.spend"),
+        mintPayment: getValidator("payment_multi_validator.payment.mint"),
+        alwaysFails: getValidator("always_fails_validator.always_fails.else"),
     };
 }

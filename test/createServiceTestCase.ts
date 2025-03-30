@@ -1,11 +1,10 @@
 import {
-    ADA,
     CreateServiceConfig,
     createServiceProgram,
+    selectUTxOs,
 } from "../src/index.js";
 import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
-import { serviceScript } from "../src/core/validators/constants.js";
 
 type CreateServiceResult = {
     txHash: string;
@@ -14,18 +13,29 @@ type CreateServiceResult = {
 
 export const createServiceTestCase = (
     { lucid, users }: LucidContext,
+    intervalLength: bigint = 60n * 1000n * 5n,
 ): Effect.Effect<CreateServiceResult, Error, never> => {
     return Effect.gen(function* () {
         lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
+        const address = yield* Effect.promise(() => lucid.wallet().address());
+        const utxos = yield* Effect.promise(() => lucid.utxosAt(address));
+        const selectedUTxOs = selectUTxOs(utxos, { ["lovelace"]: 2000000n });
 
+        if (!selectedUTxOs || !selectedUTxOs.length) {
+            console.error("No selectable UTxO found at address: " + address);
+        }
+
+        const selectedUTxO = selectedUTxOs[0];
         const serviceConfig: CreateServiceConfig = {
-            service_fee: ADA,
-            service_fee_qty: 10_000_000n,
-            penalty_fee: ADA,
-            penalty_fee_qty: 1_000_000n,
-            interval_length: 30n * 24n * 60n * 60n * 1000n, // 30 days in milliseconds,
+            selected_out_ref: selectedUTxO,
+            service_fee_policyid: "",
+            service_fee_assetname: "",
+            service_fee: 10_000_000n,
+            penalty_fee_policyid: "",
+            penalty_fee_assetname: "",
+            penalty_fee: 1_000_000n,
+            interval_length: intervalLength,
             num_intervals: 12n,
-            minimum_ada: 2_000_000n,
             is_active: true,
         };
 

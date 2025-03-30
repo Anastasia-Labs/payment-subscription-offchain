@@ -4,7 +4,7 @@ import { LucidContext, makeLucidContext } from "./service/lucidContext.js";
 import { createServiceTestCase } from "./createServiceTestCase.js";
 
 test<LucidContext>("Test 1 - Create Service", async () => {
-  const program = Effect.gen(function* ($) {
+  const program = Effect.gen(function* (_) {
     const context = yield* makeLucidContext();
     const result = yield* createServiceTestCase(context);
     return result;

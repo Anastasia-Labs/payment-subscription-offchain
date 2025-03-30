@@ -2,8 +2,9 @@ import { UpdateAccountConfig, updateAccountProgram } from "../src/index.js";
 import { expect, test } from "vitest";
 import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
-import { SetupResult, setupTest } from "./setupTest.js";
-import { accountPolicyId } from "../src/core/validators/constants.js";
+import { AccountSetup, setupAccount, setupBase } from "./setupTest.js";
+import { sha256 } from "@noble/hashes/sha256";
+import { bytesToHex } from "@noble/hashes/utils";
 
 type RemoveServiceResult = {
     txHash: string;
@@ -11,7 +12,7 @@ type RemoveServiceResult = {
 };
 
 export const updateAccountTestCase = (
-    setupResult: SetupResult,
+    setupResult: AccountSetup,
 ): Effect.Effect<RemoveServiceResult, Error, never> => {
     return Effect.gen(function* () {
         const {
@@ -21,34 +22,26 @@ export const updateAccountTestCase = (
         } = setupResult;
 
         const updateAccountConfig: UpdateAccountConfig = {
-            new_email: "new_business@web3.ada",
-            new_phone: "(288) 481-2686-999",
+            new_email_hash: bytesToHex(sha256("new_business@web3.ada")),
+            new_phone_hash: bytesToHex(sha256("(288) 481-2686-999")),
             account_nft_tn: accountNftTn,
             subscriber_nft_tn: subscriberNftTn,
         };
 
         lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
         const updateAccountFlow = Effect.gen(function* (_) {
-            const updateAccountResult = yield* Effect.promise(() =>
-                Effect.runPromise(
-                    updateAccountProgram(lucid, updateAccountConfig),
-                )
-            );
+            const updateAccountResult = yield* updateAccountProgram(lucid, updateAccountConfig)
             const updateAccountSigned = yield* Effect.promise(() =>
                 updateAccountResult.sign
                     .withWallet()
                     .complete()
             );
-            const updateAccountHash = yield* Effect.promise(() =>
-                updateAccountSigned.submit()
-            );
+            const updateAccountHash = yield* Effect.promise(() => updateAccountSigned.submit());
             return updateAccountHash;
         });
 
         const updateAccountResult = yield* updateAccountFlow.pipe(
-            Effect.tapError((error) =>
-                Effect.log(`Error updating Account: ${error}`)
-            ),
+            Effect.tapError((error) => Effect.log(`Error updating Account: ${error}`)),
             Effect.map((hash) => {
                 return hash;
             }),
@@ -63,7 +56,9 @@ export const updateAccountTestCase = (
 
 test<LucidContext>("Test 5 - Update Account", async () => {
     const program = Effect.gen(function* () {
-        const setupContext = yield* setupTest();
+        const base = yield* setupBase();
+
+        const setupContext = yield* setupAccount(base);
         const result = yield* updateAccountTestCase(setupContext);
         return result;
     });

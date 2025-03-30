@@ -1,6 +1,5 @@
 import {
     merchantPenaltyWithdrawProgram,
-    toUnit,
     WithdrawPenaltyConfig,
 } from "../src/index.js";
 import { expect, test } from "vitest";
@@ -9,11 +8,6 @@ import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
 import { SetupResult, setupTest } from "./setupTest.js";
 import { unsubscribeTestCase } from "./unsubscribeTestCase.js";
-import {
-    paymentPolicyId,
-    paymentScript,
-    servicePolicyId,
-} from "../src/core/validators/constants.js";
 
 type MerchantPenaltyResult = {
     txHash: string;
@@ -27,9 +21,8 @@ export const withdrawPenaltyTestCase = (
         const {
             context: { lucid, users, emulator },
             serviceNftTn,
-            serviceUTxOs,
-            merchantUTxOs,
             merchantNftTn,
+            subscriberNftTn
         } = setupResult;
 
         if (emulator && lucid.config().network === "Custom") {
@@ -44,8 +37,7 @@ export const withdrawPenaltyTestCase = (
         const withdrawPenaltyConfig: WithdrawPenaltyConfig = {
             service_nft_tn: serviceNftTn,
             merchant_nft_tn: merchantNftTn,
-            merchant_utxos: merchantUTxOs,
-            service_utxos: serviceUTxOs,
+            subscriber_nft_tn: subscriberNftTn,
         };
 
         lucid.selectWallet.fromSeed(users.merchant.seedPhrase);
@@ -84,7 +76,7 @@ export const withdrawPenaltyTestCase = (
 };
 
 test<LucidContext>("Test 11 - Merchant Penalty Withdraw", async () => {
-    const program = Effect.gen(function* ($) {
+    const program = Effect.gen(function* (_) {
         const setupContext = yield* setupTest();
         const result = yield* withdrawPenaltyTestCase(setupContext);
         return result;

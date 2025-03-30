@@ -1,0 +1,38 @@
+import { bytesToHex } from "@noble/hashes/utils";
+import { sha256 } from "@noble/hashes/sha256";
+import {
+    createAccount,
+    CreateAccountConfig,
+    LucidEvolution,
+} from "../index.js";
+import { makeLucidContext } from "./lucid.js";
+
+const runCreateAccount = async (
+    lucid: LucidEvolution,
+): Promise<Error | void> => {
+    try {
+        const utxos = await lucid.wallet().getUtxos()
+        const accountConfig: CreateAccountConfig = {
+            selected_out_ref: utxos[0],
+            email_hash: bytesToHex(sha256("business@web3.ada")),
+            phone_hash: bytesToHex(sha256("288-481-2686")),
+        };
+
+        const createAccountUnsigned = await createAccount(lucid, accountConfig);
+        const createAccountSigned = await createAccountUnsigned.sign
+            .withWallet()
+            .complete();
+        const createAccountHash = await createAccountSigned.submit();
+        console.log(`Submitting ...`);
+        await lucid.awaitTx(createAccountHash);
+
+        console.log(`Account created successfully: ${createAccountHash}`);
+    } catch (error) {
+        console.error("Failed to create Account:", error);
+    }
+};
+
+const lucidContext = await makeLucidContext()
+const lucid = lucidContext.lucid
+lucid.selectWallet.fromSeed(lucidContext.users.subscriber.seedPhrase)
+await runCreateAccount(lucid)

@@ -1,20 +1,27 @@
-import { removeAccountProgram } from "../src/index.js";
+import { RemoveAccountConfig, removeAccountProgram } from "../src/index.js";
 import { expect, test } from "vitest";
-import { Address, validatorToAddress } from "@lucid-evolution/lucid";
 import { Effect } from "effect";
-import { LucidContext, makeLucidContext } from "./service/lucidContext.js";
 import { createAccountTestCase } from "./createAccountTestCase.js";
+import {
+  AccountSetup,
+  setupAccount,
+  setupBase,
+} from "./setupTest.js";
 
 type RemoveAccountResult = {
   txHash: string;
 };
 
-export const removeAccountTestCase = ({
-  lucid,
-  users,
-  emulator,
-}: LucidContext): Effect.Effect<RemoveAccountResult, Error, never> => {
+export const removeAccountTestCase = (
+  setupResult: AccountSetup,
+): Effect.Effect<RemoveAccountResult, Error, never> => {
   return Effect.gen(function* () {
+    const {
+      context: { lucid, users, emulator },
+      accountNftTn,
+      subscriberNftTn,
+    } = setupResult;
+
     lucid.selectWallet.fromSeed(users.subscriber.seedPhrase);
 
     if (emulator && lucid.config().network === "Custom") {
@@ -25,34 +32,25 @@ export const removeAccountTestCase = ({
       });
 
       expect(createAccountResult).toBeDefined();
-      expect(typeof createAccountResult.txHash).toBe("string"); // Assuming the createAccountResult is a transaction hash
+      expect(typeof createAccountResult.txHash).toBe("string");
       yield* Effect.sync(() => emulator.awaitBlock(10));
     }
 
-    // const removeAccountConfig: RemoveAccountConfig = {
-    //   scripts: accountScript,
-    // };
+    const removeAccountConfig: RemoveAccountConfig = {
+      account_nft_tn: accountNftTn,
+      subscriber_nft_tn: subscriberNftTn,
+    };
 
     const removeAccountFlow = Effect.gen(function* (_) {
-      const removeAccountUnsigned = yield* removeAccountProgram(
-        lucid,
-        // removeAccountConfig,
-      );
-      const removeAccountSigned = yield* Effect.promise(() =>
-        removeAccountUnsigned.sign.withWallet().complete()
-      );
+      const removeAccountUnsigned = yield* removeAccountProgram(lucid, removeAccountConfig);
+      const removeAccountSigned = yield* Effect.promise(() => removeAccountUnsigned.sign.withWallet().complete());
 
-      const removeAccountHash = yield* Effect.promise(() =>
-        removeAccountSigned.submit()
-      );
-
+      const removeAccountHash = yield* Effect.promise(() => removeAccountSigned.submit());
       return removeAccountHash;
     });
 
     const removeAccountResult = yield* removeAccountFlow.pipe(
-      Effect.tapError((error) =>
-        Effect.log(`Error creating Account: ${error}`)
-      ),
+      Effect.tapError((error) => Effect.log(`Error creating Account: ${error}`)),
       Effect.map((hash) => {
         return hash;
       }),
@@ -66,8 +64,9 @@ export const removeAccountTestCase = ({
 
 test("Test 6 - Remove Account", async () => {
   const program = Effect.gen(function* () {
-    const context = yield* makeLucidContext();
-    const result = yield* removeAccountTestCase(context);
+    const base = yield* setupBase();
+    const setupContext = yield* setupAccount(base);
+    const result = yield* removeAccountTestCase(setupContext);
     return result;
   });
   const result = await Effect.runPromise(program);

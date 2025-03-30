@@ -7,7 +7,7 @@ import { setupTest } from "./setupTest.js";
 import { subscriberWithdrawTestCase } from "./subscriberWithdrawTestCase.js";
 
 test<LucidContext>("Test 12 - Subscriber Withdraw", async () => {
-    const program = Effect.gen(function* ($) {
+    const program = Effect.gen(function* (_) {
         const setupContext = yield* setupTest();
         const result = yield* subscriberWithdrawTestCase(setupContext);
         return result;

@@ -8,6 +8,8 @@ import {
     ExtendPaymentConfig,
     InitPaymentConfig,
     MerchantWithdrawConfig,
+    RemoveAccountConfig,
+    RemoveServiceConfig,
     SubscriberWithdrawConfig,
     UnsubscribeConfig,
     UpdateAccountConfig,
@@ -47,9 +49,10 @@ export async function updateService(
 
 export async function removeService(
     lucid: LucidEvolution,
+    config: RemoveServiceConfig,
 ): Promise<TxSignBuilder> {
     return Effect.runPromise(
-        removeServiceProgram(lucid),
+        removeServiceProgram(lucid, config),
     );
 }
 
@@ -73,9 +76,10 @@ export async function updateAccount(
 
 export async function removeAccount(
     lucid: LucidEvolution,
+    config: RemoveAccountConfig,
 ): Promise<TxSignBuilder> {
     return Effect.runPromise(
-        removeAccountProgram(lucid),
+        removeAccountProgram(lucid, config),
     );
 }
 

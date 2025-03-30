@@ -1,6 +1,9 @@
-import { UnsubscribeConfig, unsubscribeProgram } from "../src/index.js";
+import {
+    UnsubscribeConfig,
+    unsubscribeProgram,
+} from "../src/index.js";
 import { Effect } from "effect";
-import { initSubscriptionTestCase } from "./initiateSubscriptionTestCase.js";
+import { initSubscriptionTestCase } from "./initSubscriptionTestCase.js";
 import { expect } from "vitest";
 import { SetupResult } from "./setupTest.js";
 
@@ -14,8 +17,8 @@ export const unsubscribeTestCase = (
     return Effect.gen(function* () {
         const {
             context: { lucid, users, emulator },
-            serviceNftTn,
             currentTime,
+            serviceNftTn,
             subscriberNftTn,
         } = setupResult;
 

@@ -86,39 +86,47 @@ const lucid = await Lucid(
 );
 
 ```
+## Service Endpoints
 
 ### Create a Service
 
+This endpoint is initiated by a Merchant with the 
+- service fee: How much a Subscriber should pay for the service
+- penalty fee: (Opional), How much the Merchant wants to charge at the event a Subscriber unsubscribes before their initial number of intervals set when subscribing.
+- Interval length: The number of intervals such as one month.
+- Number of intervals: The intervals the subscription fee covers.
+
 ```ts
-import {  createService, CreateServiceConfig, LucidEvolution, } from "@anastasia-labs/payment-subscription-offchain";
+import { ADA, createService, CreateServiceConfig, LucidEvolution, } from "@anastasia-labs/payment-subscription-offchain";
 
-// Configure the service configuration
-const serviceConfig: CreateServiceConfig = {
-  service_fee: {
-    policyId: '', // For ADA, use empty string
-    assetName: '',      // For ADA, use empty string
-  },
-  service_fee_qty: 100_000_000n, // 100 ADA in lovelace
-  penalty_fee: {
-    policyId: '', // For ADA, use empty string
-    assetName: '',      // For ADA, use empty string
-  },
-  penalty_fee_qty: 10_000_000n,  // 10 ADA in lovelace
-  interval_length: 30n * 24n * 60n * 60n * 1000n, // 30 days in milliseconds
-  num_intervals: 12n, // 12 intervals (e.g., months)
-  minimum_ada: 2_000_000n, // Minimum ADA required
-  is_active: true,
-};
+ try {
+        const utxos = await lucid.wallet().getUtxos()
+      // Configure the service configuration
+  const serviceConfig: CreateServiceConfig = {
+            selected_out_ref: utxos[0],
+            service_fee_policyid: ADA.policyId,
+            service_fee_assetname: ADA.assetName,
+            service_fee: 10_000_000n,
+            penalty_fee_policyid: ADA.policyId,
+            penalty_fee_assetname: ADA.assetName,
+            penalty_fee: 1_000_000n,
+            interval_length: 30n * 24n * 60n * 60n * 1000n, // 30 days
+            num_intervals: 12n,
+            is_active: true,
+        };
 
-// Create the service
-  try {
-        lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
+        console.log("Creating service with config:", serviceConfig);
+
         const createServiceUnSigned = await createService(lucid, serviceConfig);
-        const initTxSigned = await createServiceUnSigned.sign.withWallet()
+        const createServiceTxSigned = await createServiceUnSigned.sign
+            .withWallet()
             .complete();
-        const initTxHash = await initTxSigned.submit();
+        const createServiceTxHash = await createServiceTxSigned.submit();
 
-        console.log(`Service created successfully: ${initTxHash}`);
+        console.log(`Submitting ...`);
+        await lucid.awaitTx(createServiceTxHash);
+
+        console.log(`Service created successfully: ${createServiceTxHash}`);
     } catch (error) {
         console.error("Failed to create service:", error);
     }
@@ -126,90 +134,106 @@ const serviceConfig: CreateServiceConfig = {
 
 ### Update a Service
 
+Also initiated by the Merchant. This endpoint allows the Merchant to make changes to their initial configurations.
+
 ```ts
-import {  updateService, UpdateServiceConfig, LucidEvolution, } from "@anastasia-labs/payment-subscription-offchain";
-
-// Configure the service configuration
-  const serviceUTxOs = await lucid.utxosAt(serviceAddress);
-
-    // Get utxos where is_active in datum is set to true
-    const activeServiceUTxOs = serviceUTxOs.filter((utxo) => {
-        if (!utxo.datum) return false;
-        const datum = Data.from<ServiceDatum>(utxo.datum, ServiceDatum);
-        return datum.is_active === true;
-    });
-
-    const serviceData = await getServiceValidatorDatum(activeServiceUTxOs);
+import {
+    LucidEvolution,
+    updateService,
+    UpdateServiceConfig,
+} from "@anastasia-labs/payment-subscription-offchain";
 
     const updateServiceConfig: UpdateServiceConfig = {
-        new_service_fee: serviceData[0].service_fee,
-        new_service_fee_qty: 9_500_000n,
-        new_penalty_fee: serviceData[0].penalty_fee,
-        new_penalty_fee_qty: 1_000_000n,
-        new_interval_length: 1n,
-        new_num_intervals: 12n,
-        new_minimum_ada: 2_000_000n,
-        is_active: serviceData[0].is_active,
+        service_nft_tn: 'SERVICE_NFT_TOKEN_NAME', // Replace with actual token name
+        merchant_nft_tn: 'MERCHANT_TOKEN_UNIT', // Replace with actual unit
+        new_service_fee: 9_500_000n,
+        new_penalty_fee: 1_000_000n,
+        new_interval_length: 10n * 24n * 60n * 60n * 1000n,
+        new_num_intervals: 10n,
     };
 
-// Create the service
-  try {
-        lucid.selectWallet.fromSeed(MERCHANT_WALLET_SEED);
+    // Update Service
+    try {
         const updateServiceUnsigned = await updateService(
             lucid,
             updateServiceConfig,
         );
         const updateTxSigned = await updateServiceUnsigned.sign.withWallet()
             .complete();
-        const initTxHash = await updateTxSigned.submit();
+        const updateTxHash = await updateTxSigned.submit();
 
-        console.log(`Service updated successfully: ${initTxHash}`);
+        console.log(`Service updated successfully: ${updateTxHash}`);
     } catch (error) {
         console.error("Failed to update service:", error);
     }
+
 ```
 
 ### Remove a Service
 
+Can only be initated by the Merchant.
+
+Rather than removing the service, this endpoint allows the Merchant to deactivate the Service by setting the isActive field to false.
+
 ```ts
-import {  removeService, LucidEvolution, } from "@anastasia-labs/payment-subscription-offchain";
+import {
+    LucidEvolution,
+    removeService,
+    RemoveServiceConfig,
+} from "@anastasia-labs/payment-subscription-offchain";
 
-// Remove Service
-try {
-    const removeServiceUnsigned = await removeService(
-        lucid,
-    );
-    const removeServiceSigned = await removeServiceUnsigned.sign
-        .withWallet()
-        .complete();
-    const removeServiceHash = await removeServiceSigned.submit();
+    const removeServiceConfig: RemoveServiceConfig = {
+        service_nft_tn: 'SERVICE_NFT_TOKEN_NAME', // Replace with actual token name
+        merchant_nft_tn: 'MERCHANT_TOKEN_UNIT', // Replace with actual unit
+    };
 
-    console.log(
-        `Service removed successfully || change isActive to false: ${removeServiceHash}`,
-    );
-} catch (error) {
-    console.error("Failed to remove Service:", error);
-}
+    // Remove Service
+    try {
+        const removeServiceUnsigned = await removeService(
+            lucid,
+            removeServiceConfig,
+        );
+        const removeServiceSigned = await removeServiceUnsigned.sign
+            .withWallet()
+            .complete();
+        const removeServiceHash = await removeServiceSigned.submit();
+
+        console.log(
+            `Service removed successfully || change isActive to false: ${removeServiceHash}`,
+        );
+    } catch (error) {
+        console.error("Failed to remove Service:", error);
+    }
+
+
 ```
+## Account Endpoints
+
+These endpoints are all initiated by the Subscriber.
 
 ### Create a User Account
+
+The Subscriber creates an Account by setting an email and Phone number.
+
 
 ```ts
 import { createAccount, CreateAccountConfig } from "@anastasia-labs/payment-subscription-offchain";
 
-// Configure the account parameters
-const accountConfig: CreateAccountConfig = {
-  email: 'user@example.com',
-  phone: '+1234567890',
-  account_created: BigInt(Math.floor(Date.now() / 1000)), // Current UNIX timestamp
-}
-  // Create the user account
-   try {
+  try {
+        const utxos = await lucid.wallet().getUtxos()
+        const accountConfig: CreateAccountConfig = {
+            selected_out_ref: utxos[0],
+            email_hash: bytesToHex(sha256("business@web3.ada")),
+            phone_hash: bytesToHex(sha256("288-481-2686")),
+        };
+
         const createAccountUnsigned = await createAccount(lucid, accountConfig);
         const createAccountSigned = await createAccountUnsigned.sign
             .withWallet()
             .complete();
         const createAccountHash = await createAccountSigned.submit();
+        console.log(`Submitting ...`);
+        await lucid.awaitTx(createAccountHash);
 
         console.log(`Account created successfully: ${createAccountHash}`);
     } catch (error) {
@@ -220,87 +244,96 @@ const accountConfig: CreateAccountConfig = {
 
 ### Update an Account
 
+The endpoint allows the Subscriber to update their account details.
+
 ```ts
-import { updateAccount, UpdateAccountConfig } from "@anastasia-labs/payment-subscription-offchain";
+import {
+    LucidEvolution,
+    updateAccount,
+    UpdateAccountConfig,
+} from "@anastasia-labs/payment-subscription-offchain";
 
-// Configure the account parameters
-const accountConfig: UpdateAccountConfig = {
-  new_email: 'user@example.com',
-  new_phone: '+1234567890',
-  account_nft_tn: accountNftTn,
-  subscriber_nft_tn: subscriberNftTn,
-}
-  // Update Service
-  try {
-      const updateServiceUnsigned = await updateAccount(
-          lucid,
-          updateAccountConfig,
-      );
-      const updateAccountSigned = await updateServiceUnsigned.sign
-          .withWallet()
-          .complete();
-      const updateAccountHash = await updateAccountSigned.submit();
+    const updateAccountConfig: UpdateAccountConfig = {
+        new_email: "new_business@web3.ada",
+        new_phone: "(288) 481-2686-999",
+        account_nft_tn: 'ACCOUNT_NFT_TOKEN_NAME', // Replace with actual token name
+        subscriber_nft_tn: 'SUBSCRIBER_NFT_TOKEN_NAME', // Replace with actual token name
+    };
 
-      console.log(`Account updated successfully: ${updateAccountHash}`);
-  } catch (error) {
-      console.error("Failed to update Account:", error);
-  }
+    // Update Account
+    try {
+        const updateServiceUnsigned = await updateAccount(
+            lucid,
+            updateAccountConfig,
+        );
+        const updateAccountSigned = await updateServiceUnsigned.sign
+            .withWallet()
+            .complete();
+        const updateAccountHash = await updateAccountSigned.submit();
+
+        console.log(`Account updated successfully: ${updateAccountHash}`);
+    } catch (error) {
+        console.error("Failed to update Account:", error);
+    }
+
 
 ```
 
 ### Remove an Account
 
+This endpoint completely removes the Account from the Payment Subscription system.
+
 ```ts
-import { removeAccount } from "@anastasia-labs/payment-subscription-offchain";
+import {
+    LucidEvolution,
+    removeAccount,
+    RemoveAccountConfig,
+} from "@anastasia-labs/payment-subscription-offchain";
 
-// Remove Account
-try {
-    const removeAccountUnsigned = await removeAccount(
-        lucid,
-    );
-    const removeAccountSigned = await removeAccountUnsigned.sign
-        .withWallet()
-        .complete();
-    const removeAccountHash = await removeAccountSigned.submit();
+    const removeAccountConfig: RemoveAccountConfig = {
+      account_nft_tn: 'ACCOUNT_NFT_TOKEN_NAME', // Replace with actual token name
+      subscriber_nft_tn: 'SUBSCRIBER_NFT_TOKEN_NAME', // Replace with actual token name
+    };
 
-    console.log(`Account removed successfully: ${removeAccountHash}`);
-} catch (error) {
-    console.error("Failed to remove Account:", error);
-}
+    // Remove Account
+    try {
+        const removeAccountUnsigned = await removeAccount(
+            lucid,
+            removeAccountConfig,
+        );
+        const removeAccountSigned = await removeAccountUnsigned.sign
+            .withWallet()
+            .complete();
+        const removeAccountHash = await removeAccountSigned.submit();
+
+        console.log(`Account removed successfully: ${removeAccountHash}`);
+    } catch (error) {
+        console.error("Failed to remove Account:", error);
+    }
+
 
 ```
 
+
 ### Initiate a Subscription
 
+This endpoint allows a Subscriber to Subscribe to a Service. 
+
+They can choose the number of intervals they want to subscribe to. 
+Ensure the Subscriber has enough ADA to cover the requested fees by the Merchant.
+
 ```ts
-import { initiateSubscription, InitPaymentConfig } from "@anastasia-labs/payment-subscription-offchain";
+import { initiateSubscription, InitPaymentConfig, LucidEvolution} from "@anastasia-labs/payment-subscription-offchain";
 
 // Configure the subscription parameters
 const subscriptionConfig: InitPaymentConfig = {
   service_nft_tn: 'SERVICE_NFT_TOKEN_NAME', // Replace with actual token name
   account_nft_tn: 'ACCOUNT_NFT_TOKEN_NAME', // Replace with actual token name
-  subscription_fee: {
-    policyId: '', // For ADA, use empty string
-    assetName: '',      // For ADA, use empty string
-  },
-  total_subscription_fee: 1_200_000_000n, // Total for 12 months (1,200 ADA)
-  subscription_start: BigInt(Math.floor(Date.now() / 1000)),
-  subscription_end:
-    BigInt(Math.floor(Date.now() / 1000)) + 12n * 30n * 24n * 60n * 60n, // 12 months later
-  interval_length: 30n * 24n * 60n * 60n, // 30 days in seconds
-  interval_amount: 100_000_000n, // 100 ADA per interval
-  num_intervals: 12n,
-  last_claimed: BigInt(Math.floor(Date.now() / 1000)),
-  penalty_fee: {
-    policyId: '', // For ADA, use empty string
-    assetName: '',      // For ADA, use empty string
-  },
-  penalty_fee_qty: 10_000_000n, // 10 ADA
-  minimum_ada: 2_000_000n,
+  num_intervals: 3n, // Replace with actual intervals to pay for
+  subscription_start: BigInt(lucid.currentSlot()) + 60n * 1000n,
+
 };
 
-// Initiate the subscription
-const initiateSubTxUnsigned = await initiateSubscription(lucid, subscriptionConfig);
 
 try {
       const initSubscriptionUnsigned = await initiateSubscription(
@@ -321,102 +354,21 @@ try {
 
 ```
 
-### Extend a Subscription
-
-```ts
-import { 
-  accountPolicyId,
-  ExtendPaymentConfig,
-  extendSubscription,
-  findCip68TokenNames,
-  LucidEvolution, 
-} from "@anastasia-labs/payment-subscription-offchain";
-
-const accountUTxOs = await lucid.utxosAt(accountAddress);
-const subscriberUTxOs = await lucid.utxosAt(subscriberAddress);
-
-const { refTokenName: accountNftTn, userTokenName: subscriberNftTn } =
-    findCip68TokenNames(
-        [accountUTxOs[0], subscriberUTxOs[0]],
-        accountPolicyId,
-    );
-
-const extendPaymentConfig: ExtendPaymentConfig = {
-    subscriber_nft_tn: subscriberNftTn,
-};
-
-// Extend Subscription
-try {
-    const extendUnsigned = await extendSubscription(
-        lucid,
-        extendPaymentConfig,
-    );
-    const extendSigned = await extendUnsigned.sign
-        .withWallet()
-        .complete();
-    const extendTxHash = await extendSigned.submit();
-
-    console.log(`Service extended successfully: ${extendTxHash}`);
-} catch (error) {
-    console.error("Failed to extend service:", error);
-}
-
-```
-
-### Unsubscribe
-
-```ts
-import { 
-  accountPolicyId,
-  findCip68TokenNames,
-  LucidEvolution,
-  servicePolicyId,
-  unsubscribe,
-  UnsubscribeConfig, 
-} from "@anastasia-labs/payment-subscription-offchain";
-
-// Configure the unsubscription parameters
-const unsubscribeConfig: UnsubscribeConfig = {
-  service_nft_tn: 'SERVICE_NFT_TOKEN_NAME', // Replace with actual token name
-  subscriber_nft_tn: 'SUMSCRIBER_NFT_TOKEN_NAME', // Replace with actual token name
-  current_time: BigInt(Math.floor(Date.now() / 1000)),
-};
-
-// Unsubscribe from the service
-try {
-      const initSubscriptionUnsigned = await unsubscribe(
-          lucid,
-          unsubscribeConfig,
-      );
-      const initSubscriptionSigned = await initSubscriptionUnsigned.sign
-          .withWallet()
-          .complete();
-      const initSubscriptionHash = await initSubscriptionSigned.submit();
-
-      console.log(
-          `Unsubscribed successfully: ${initSubscriptionHash}`,
-      );
-  } catch (error) {
-      console.error("Failed to unsubscribe:", error);
-  }
-```
-
 ### Merchant Withdraw Subscription Fees
 
+Initiated by the Merchant, this endpoint allows the Merchant to unlock funds from the Payment Contract equivalent to the number of intervals passed of an active Service.
+
 ```ts
-import {  
-  findCip68TokenNames,
-  LucidEvolution,
-  merchantWithdraw,
-  MerchantWithdrawConfig,
-  servicePolicyId,
-} from "@anastasia-labs/payment-subscription-offchain";
+import { withdrawFees, WithdrawFeesConfig } from "@anastasia-labs/payment-subscription-offchain";
 
 // Configure the withdrawal parameters
 const withdrawConfig: MerchantWithdrawConfig = {
-  service_ref_token: 'SERVICE_REF_TOKEN', // Replace with actual unit
-  merchant_token: 'MERCHANT_TOKEN_UNIT', // Replace with actual unit
-  last_claimed: previousClaimTimestamp, // As bigint
+  service_nft_tn: 'SERVICE_REF_TOKEN', // Replace with actual unit
+  subscriber_nft_tn: 'SUBSCRIBER_TOKEN_UNIT', // Replace with actual unit
+  merchant_nft_tn: 'MERCHANT_TOKEN_UNIT', // Replace with actual unit
+  payment_nft_tn: 'PAYMENT_NFT_TOKEN_NAME', // Replace with actual token name
+  current_time: BigInt(Date.now()),
+
 };
 
 // Withdraw subscription fees
@@ -437,108 +389,146 @@ try {
 
 ```
 
-### Merchant Withdraw Penalty Fees
+### Extend Subscription
+
+This allows the the Subscriber to update their subscription by extending it to as many intervals as they wish.
 
 ```ts
-import {  
-  findCip68TokenNames,
-  LucidEvolution,
-  merchantPenaltyWithdraw,
-  servicePolicyId,
-  WithdrawPenaltyConfig, 
+
+import {
+    ExtendPaymentConfig,
+    extendSubscription,
+    LucidEvolution,
 } from "@anastasia-labs/payment-subscription-offchain";
 
-const serviceUTxOs = await lucid.utxosAt(serviceAddress);
-const merchantUTxOs = await lucid.utxosAt(merchantAddress);
 
-const { refTokenName: serviceNftTn, userTokenName: merchantNftTn } =
-    findCip68TokenNames(
-        [serviceUTxOs[0], merchantUTxOs[0]],
-        servicePolicyId,
-    );
+    const extendPaymentConfig: ExtendPaymentConfig = {
+        service_nft_tn: serviceNftTn,
+        subscriber_nft_tn: 'SUBSCRIBER_NFT_TOKEN_NAME', // Replace with actual token name
+        extension_intervals: 1n,
+    };
 
-const withdrawPenaltyConfig: WithdrawPenaltyConfig = {
-    service_nft_tn: serviceNftTn,
-    merchant_nft_tn: merchantNftTn,
-    merchant_utxos: merchantUTxOs,
-    service_utxos: serviceUTxOs,
-};
+    // Extend Subscription
+    try {
+        const extendUnsigned = await extendSubscription(
+            lucid,
+            extendPaymentConfig,
+        );
+        const extendSigned = await extendUnsigned.sign
+            .withWallet()
+            .complete();
+        const extendTxHash = await extendSigned.submit();
 
-// Merchant Withdraw
-try {
-    const penaltyWithdrawUnsigned = await merchantPenaltyWithdraw(
-        lucid,
-        withdrawPenaltyConfig,
-    );
-    const penaltyWithdrawSigned = await penaltyWithdrawUnsigned.sign
-        .withWallet()
-        .complete();
-    const penaltyWithdrawTxHash = await penaltyWithdrawSigned.submit();
-
-    console.log(`Service created successfully: ${penaltyWithdrawTxHash}`);
-} catch (error) {
-    console.error("Failed to create service:", error);
-}
+        console.log(`Service extended successfully: ${extendTxHash}`);
+    } catch (error) {
+        console.error("Failed to extend service:", error);
+    }
 
 ```
 
+### Unsubscribe
 
-### Subscriber Withdraw
+This endpoint allows a Subscriber to unsubscribe from a Service.
+
+It is at this point that the penalty fee is deducted from the subscription_fee to be refunded if the Merchant had set it when creating a Service.
 
 ```ts
-import { 
-  accountPolicyId,
-  Data,
-  findCip68TokenNames,
-  LucidEvolution,
-  ServiceDatum,
-  servicePolicyId,
-  subscriberWithdraw,
-  SubscriberWithdrawConfig
+import { unsubscribe, UnsubscribeConfig, LucidEvolution } from "@anastasia-labs/payment-subscription-offchain";
+
+
+// Configure the unsubscription parameters
+const unsubscribeConfig: UnsubscribeConfig = {
+  service_nft_tn: 'SERVICE_NFT_TOKEN_NAME', // Replace with actual token name
+  subscriber_nft_tn: 'SUBSCRIBER_NFT_TOKEN_NAME', // Replace with actual token name
+  current_time: BigInt(Date.now()),
+};
+
+// Unsubscribe from the service
+try {
+      const unsubscribeUnsigned = await unsubscribe(
+          lucid,
+          unsubscribeConfig,
+      );
+      const unsubscribeSigned = await unsubscribeUnsigned.sign
+          .withWallet()
+          .complete();
+      const unsubscribeHash = await unsubscribeSigned.submit();
+
+      console.log(
+          `Unsubscribed successfully: ${unsubscribeHash}`,
+      );
+  } catch (error) {
+      console.error("Failed to unsubscribe:", error);
+  }
+```
+
+### Merchant Penalty Withdraw
+
+The Merchant uses this endpoint to claim any **penalty fees** locked in the Payment Contract.
+
+```ts
+
+import {
+    LucidEvolution,
+    merchantPenaltyWithdraw,
+    WithdrawPenaltyConfig,
 } from "@anastasia-labs/payment-subscription-offchain";
 
- const serviceUTxOs = await lucid.utxosAt(serviceAddress);
-    const merchantUTxOs = await lucid.utxosAt(merchantAddress);
-    const accountUTxOs = await lucid.utxosAt(accountAddress);
-    const subscriberUTxOs = await lucid.utxosAt(subscriberAddress);
+    const withdrawPenaltyConfig: WithdrawPenaltyConfig = {
+      service_nft_tn: 'SERVICE_NFT_TOKEN_NAME', // Replace with actual token name
+      merchant_nft_tn: 'MERCHANT_NFT_TOKEN_NAME', // Replace     };
 
-    const { refTokenName: serviceNftTn, userTokenName: merchantNftTn } =
-        findCip68TokenNames(
-            [serviceUTxOs[0], merchantUTxOs[0]],
-            servicePolicyId,
-        );
-
-    const { refTokenName: accountNftTn, userTokenName: subscriberNftTn } =
-        findCip68TokenNames(
-            [accountUTxOs[0], subscriberUTxOs[0]],
-            accountPolicyId,
-        );
-
-    // Get utxos where is_active in datum is set to true
-    const inActiveServiceUTxOs = serviceUTxOs.filter((utxo) => {
-        if (!utxo.datum) return false;
-
-        const datum = Data.from<ServiceDatum>(utxo.datum, ServiceDatum);
-
-        return datum.is_active === false;
-    });
-
-    const subscriberWithdrawConfig: SubscriberWithdrawConfig = {
-        service_nft_tn: serviceNftTn,
-        subscriber_nft_tn: subscriberNftTn,
-        service_utxos: inActiveServiceUTxOs,
-    };
+      subscriber_nft_tn: 'SUBSCRIBER_NFT_TOKEN_NAME', // Replace with actual token name
 
     // Merchant Withdraw
     try {
-        const merchantWithdrawUnsigned = await subscriberWithdraw(
+        const penaltyWithdrawUnsigned = await merchantPenaltyWithdraw(
+            lucid,
+            withdrawPenaltyConfig,
+        );
+        const penaltyWithdrawSigned = await penaltyWithdrawUnsigned.sign
+            .withWallet()
+            .complete();
+        const penaltyWithdrawTxHash = await penaltyWithdrawSigned.submit();
+
+        console.log(`Service created successfully: ${penaltyWithdrawTxHash}`);
+    } catch (error) {
+        console.error("Failed to create service:", error);
+    }
+};
+
+
+```
+
+### Subscriber Withdraw
+
+This endpoint allow the Subscriber to unlock funds from the Payment Contract of an **inactive Service**, if at all there were funds left when the Merchant removed/de-activated the Service.
+
+```ts
+
+import {
+    Data,
+    LucidEvolution,
+    ServiceDatum,
+    subscriberWithdraw,
+    SubscriberWithdrawConfig,
+} from "@anastasia-labs/payment-subscription-offchain";
+   
+    const subscriberWithdrawConfig: SubscriberWithdrawConfig = {
+      service_nft_tn: 'SERVICE_NFT_TOKEN_NAME', // Replace with actual token name
+      subscriber_nft_tn: 'SUBSCRIBER_NFT_TOKEN_NAME', // Replace with actual token name
+    };
+
+    // Subscriber Withdraw
+    try {
+        const subscriberWithdrawUnsigned = await subscriberWithdraw(
             lucid,
             subscriberWithdrawConfig,
         );
-        const merchantWithdrawSigned = await merchantWithdrawUnsigned.sign
+        const subscriberWithdrawSigned = await subscriberWithdrawUnsigned.sign
             .withWallet()
             .complete();
-        const merchantWithdrawTxHash = await merchantWithdrawSigned.submit();
+        const subscriberWithdrawTxHash = await subscriberWithdrawSigned.submit();
 
         console.log(`Service created successfully: ${merchantWithdrawTxHash}`);
     } catch (error) {
@@ -546,7 +536,6 @@ import {
     }
 
 ```
-
 
 ## Local Build
 

@@ -1,33 +1,22 @@
 import {
-    findCip68TokenNames,
     LucidEvolution,
     merchantPenaltyWithdraw,
-    servicePolicyId,
     WithdrawPenaltyConfig,
-} from "@anastasia-labs/payment-subscription-offchain";
+} from "../index.js";
+import { makeLucidContext } from "./lucid.js";
 
-export const runWithdrawPenalty = async (
+const runWithdrawPenalty = async (
     lucid: LucidEvolution,
-    serviceAddress: string,
-    merchantAddress: string,
+    serviceNftTn: string,
+    merchant_nft_tn: string,
+    subscriber_nft_tn: string
 ): Promise<Error | void> => {
-    const serviceUTxOs = await lucid.utxosAt(serviceAddress);
-    const merchantUTxOs = await lucid.utxosAt(merchantAddress);
-
-    const { refTokenName: serviceNftTn, userTokenName: merchantNftTn } =
-        findCip68TokenNames(
-            [serviceUTxOs[0], merchantUTxOs[0]],
-            servicePolicyId,
-        );
-
     const withdrawPenaltyConfig: WithdrawPenaltyConfig = {
         service_nft_tn: serviceNftTn,
-        merchant_nft_tn: merchantNftTn,
-        merchant_utxos: merchantUTxOs,
-        service_utxos: serviceUTxOs,
+        merchant_nft_tn: merchant_nft_tn,
+        subscriber_nft_tn: subscriber_nft_tn,
     };
 
-    // Merchant Withdraw
     try {
         const penaltyWithdrawUnsigned = await merchantPenaltyWithdraw(
             lucid,
@@ -38,8 +27,16 @@ export const runWithdrawPenalty = async (
             .complete();
         const penaltyWithdrawTxHash = await penaltyWithdrawSigned.submit();
 
+        console.log(`Submitting ...`);
+        await lucid.awaitTx(penaltyWithdrawTxHash);
+
         console.log(`Service created successfully: ${penaltyWithdrawTxHash}`);
     } catch (error) {
         console.error("Failed to create service:", error);
     }
 };
+
+const lucidContext = await makeLucidContext()
+const lucid = lucidContext.lucid
+lucid.selectWallet.fromSeed(lucidContext.users.merchant.seedPhrase)
+await runWithdrawPenalty(lucid, "000643b0002304f2370d0212543199071d5f783f0bbe716d28292e1b0c02f91e", "000de140002304f2370d0212543199071d5f783f0bbe716d28292e1b0c02f91e", "000de14000394b21456beff60a682287bfad204e9952cf7104d278470c5cf9da")
