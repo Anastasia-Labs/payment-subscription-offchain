@@ -79,13 +79,16 @@ import { Lucid, Maestro } from "@lucid-evolution/lucid";
 const lucid = await Lucid(
   new Maestro({
     network: "Preprod", // For MAINNET: "Mainnet"
-    apiKey: "<Your-API-Key>", // Get yours by visiting https://docs.gomaestro.org/docs/Getting-started/Sign-up-login
+    apiKey: "<Your-API-Key>", // Get yours by visiting https://docs.gomaestro.org/getting-started
     turboSubmit: false, // Read about paid turbo transaction submission feature at https://docs.gomaestro.org/docs/Dapp%20Platform/Turbo%20Transaction
   }),
   "Preprod" // For MAINNET: "Mainnet"
 );
 
 ```
+
+**Get Your [Maestro API Key](https://docs.gomaestro.org/getting-started)**
+
 ## Service Endpoints
 
 ### Create a Service
