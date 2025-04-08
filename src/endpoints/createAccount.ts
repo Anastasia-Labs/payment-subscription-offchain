@@ -16,6 +16,8 @@ import { AccountDatum } from "../core/contract.types.js"
 import { createCip68TokenNames } from "../core/utils/assets.js"
 import { Effect } from "effect"
 import { accountScript } from "../core/validators/constants.js"
+import { sha256 } from "@noble/hashes/sha256"
+import { bytesToHex } from "@noble/hashes/utils"
 
 export const createAccountProgram = (
   lucid: LucidEvolution,
@@ -44,8 +46,8 @@ export const createAccountProgram = (
     }
 
     const currDatum: AccountDatum = {
-      email_hash: config.email_hash,
-      phone_hash: config.phone_hash,
+      email_hash: bytesToHex(sha256(config.email)),
+      phone_hash: bytesToHex(sha256(config.phone)),
     }
 
     const directDatum = Data.to<AccountDatum>(currDatum, AccountDatum)
