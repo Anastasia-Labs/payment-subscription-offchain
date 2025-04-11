@@ -15,6 +15,8 @@ import {
     accountPolicyId,
     accountScript,
 } from "../core/validators/constants.js"
+import { sha256 } from "@noble/hashes/sha256"
+import { bytesToHex } from "@noble/hashes/utils"
 
 export const updateAccountProgram = (
     lucid: LucidEvolution,
@@ -32,10 +34,11 @@ export const updateAccountProgram = (
         if (!accountUTxO) {
             throw new Error("Account NFT not found")
         }
-
+        
+        
         const updatedDatum: AccountDatum = {
-            email_hash: config.new_email_hash,
-            phone_hash: config.new_phone_hash,
+            email_hash: bytesToHex(sha256(config.new_email)),
+            phone_hash: bytesToHex(sha256(config.new_phone)),
         }
 
         const directDatum = Data.to<AccountDatum>(updatedDatum, AccountDatum)

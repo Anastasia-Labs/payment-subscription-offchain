@@ -5,8 +5,6 @@ import {
 } from "../src/index.js";
 import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
-import { bytesToHex } from "@noble/hashes/utils";
-import { sha256 } from "@noble/hashes/sha256";
 
 export type CreateAccountResult = {
     txHash: string;
@@ -29,8 +27,8 @@ export const createAccountTestCase = (
         const selectedUTxO = selectedUTxOs[0];
         const accountConfig: CreateAccountConfig = {
             selected_out_ref: selectedUTxO,
-            email_hash: bytesToHex(sha256("business@web3.ada")),
-            phone_hash: bytesToHex(sha256("288-481-2686")),
+            email: "business@web3.ada",
+            phone: "288-481-2686",
         };
 
         const createAccountFlow = Effect.gen(function* (_) {

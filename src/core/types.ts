@@ -53,13 +53,13 @@ export type RemoveServiceConfig = {
 
 export type CreateAccountConfig = {
   selected_out_ref: OutRef;
-  email_hash: string;
-  phone_hash: string;
+  email: string;
+  phone: string;
 };
 
 export type UpdateAccountConfig = {
-  new_email_hash: string;
-  new_phone_hash: string;
+  new_email: string;
+  new_phone: string;
   account_nft_tn: string;
   subscriber_nft_tn: string;
 };
