@@ -5,8 +5,6 @@ import {
 } from "../src/index.js";
 import { Effect } from "effect";
 import { LucidContext } from "./service/lucidContext.js";
-import { bytesToHex } from "@noble/hashes/utils";
-import { sha256 } from "@noble/hashes/sha256";
 
 export type CreateAccountResult = {
     txHash: string;

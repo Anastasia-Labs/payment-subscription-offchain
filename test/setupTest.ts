@@ -1,4 +1,4 @@
-import { Network, SLOT_CONFIG_NETWORK, UTxO, validatorToAddress } from "@lucid-evolution/lucid";
+import { Network, UTxO, validatorToAddress } from "@lucid-evolution/lucid";
 import { LucidContext, makeLucidContext } from "./service/lucidContext";
 import { Effect } from "effect";
 import { createAccountTestCase } from "./createAccountTestCase";
