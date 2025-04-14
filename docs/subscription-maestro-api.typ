@@ -440,13 +440,16 @@ curl --location 'https://mainnet.gomaestro-api.org/v1/contracts/subscription/uns
 #pagebreak()
 #v(50pt)
 
-Conclusion
+= Conclusion
+
+\
 This guide has provided a comprehensive walkthrough for using the Payment Subscription smart contract via Maestro’s API endpoints. By following these instructions, developers can easily:
 
-Register and configure services via the Service Contract.
+\
+  - Register and configure services via the Service Contract.
 
-Enable subscribers to create accounts, initiate subscriptions, and cancel subscriptions.
+  - Enable subscribers to create accounts, initiate subscriptions, and cancel subscriptions.
+  - Facilitate secure fund withdrawals for merchants in accordance with the subscription vesting rules.
 
-Facilitate secure fund withdrawals for merchants in accordance with the subscription vesting rules.
-
+\
 Before going live, replace any placeholder values (e.g., *`${API_KEY}`* and wallet addresses) with actual data, and test each endpoint in a sandbox environment. For more detailed technical references, please consult the #git-link and the full #design_docs_link
