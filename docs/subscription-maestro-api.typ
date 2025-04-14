@@ -4,6 +4,8 @@
 #let fund-link = link("https://projectcatalyst.io/funds/11/cardano-use-cases-product/anastasia-labs-x-maestro-plug-n-play-20")[Catalyst Proposal]
 #let git-link = link(" https://github.com/Anastasia-Labs/payment-subscription")[Payment Subscription Github Repo]
 #let maestro_link = link("https://docs.gomaestro.org/getting-started")[Maestro Getting Started]
+#let design_docs_link = link("https://github.com/Anastasia-Labs/payment-subscription/blob/main/docs/payment-subscription-design-specs/subscription-smart-contract.pdf")[Design Specification Documentation]
+
 
 #set page(
   background: image-background,
@@ -95,7 +97,7 @@
       #set text(size: 11pt, fill: gray)
       *Payment Subscription Smart Contract*
       #v(-3mm)
-      Proof of Achievement - Milestone 1
+      How To Use - Milestone 3
       #v(-3mm)
     ]
     #v(-6mm)
@@ -134,7 +136,7 @@ The Payment Subscription smart contract is designed to manage recurring payments
   - Extending or terminating subscriptions
   - Automated recurring payments
   - Secure withdrawal of funds for both merchants and subscribers
-  - Seamless integration with popular wallet applications
+  - Seamless integration with popular wallet applications and RESTful API endpoints
 
 #pagebreak()
 #v(50pt)
@@ -145,38 +147,38 @@ Before you begin, ensure that you have:
 
 \
   - *Access Credentials:*
+
     - Maestro API Key (Get from *#maestro_link*)
 
-    - Cardano wallet address with sufficient funds
+    - Cardano wallet address with sufficient funds for either the merchant or subscriber
 
-  - *Environment Setup:* Basic familiarity with REST APIs and JSON data formats.
+  - *Environment Setup:* 
+
+    - Basic familiarity with REST APIs and JSON data formats.
+
+    - A command-line environment with curl installed.
 
 #pagebreak()
 #v(50pt)
 
 = Smart Contract Overview
 \
-The Payment Subscription smart contract comprises three main components:
+The Payment Subscription smart contract is built using Aiken and comprises three key components:
+
 
 \
 + *Service Contract:* 
 
-  - Initiates services by minting service NFTs.
-
-  - Manages updates and deactivation of services.
+  Responsible for creating a service by minting a CIP-68 compliant Service NFT, managing service metadata, and handling service deactivation.
 
 + *Account Contract:* 
 
-  - Registers a subscriber account by minting a CIP-68 compliant Account NFT.
+  Handles the creation of subscriber accounts via minting a CIP-68 compliant Account NFT, updating subscriber metadata, and account removal.
 
-  - Facilitates metadata updates or account removal.
++  *Payment Contract:*
 
-+  *Payment Contract:* Handles the core functionality, including:
-
-  - Prepaid subscription fee management.
-
-  - Subscription renewal, extension, or cancellation.
-  - Gradual fund release with linear vesting.
+  Manages the locking of prepaid subscription fees, subscription initiation, extension, unsubscription, and fund withdrawals. A linear vesting mechanism gradually releases funds to merchants as per the subscription schedule.
+  
   \
 Each function is accompanied by detailed onchain and offchain documentation. This guide focuses on how each API endpoint maps to these smart contract functionalities.
 
@@ -186,20 +188,19 @@ Each function is accompanied by detailed onchain and offchain documentation. Thi
 = Merchant Operations
 
 \
+Merchant operations primarily include creating a new service and withdrawing subscription fees. These actions allow merchants to configure their service offerings and claim funds that accumulate from subscriber payments.
+
+\
 == Create a Service
 \
-Merchants use this to define subscription terms and effectively create a new Service.
-
-  - Uses the Service Validator to mint a Service NFT and its corresponding reference NFT.
-
-  - Validates the service fee, penalty fee, interval length, and activation status.
+This endpoint registers a new service by minting a Service NFT along with its reference NFT. It captures essential parameters such as service fee, penalty fee, subscription interval, and service status.
 
 \
 *Endpoint:*
 
 \
 ```sh
-POST https://mainnet.gomaestro-api.org/v1/contracts/subscription/createService
+  POST https://mainnet.gomaestro-api.org/v1/contracts/subscription/createService
 
 ```
 
@@ -209,17 +210,20 @@ POST https://mainnet.gomaestro-api.org/v1/contracts/subscription/createService
 \
   - *`merchant_address`*: Address of the merchant.
 
-  - *`selected_out_ref`*: Object containing tx_hash and output_index used to derive token names.
-
-  - *`service_fee_policyid`*, *`service_fee_assetname`*, *`service_fee`*: Define the fee for the service.
-  - *`penalty_fee_policyid`*, *`penalty_fee_assetname`*, *`penalty_fee`*: Define the penalty fee.
-  - *`interval_length`*: Subscription interval duration (in milliseconds).
-  - *`num_intervals`*: Total number of intervals.
+  - *`selected_out_ref`*: UTxO *`tx_hash`* and *`output_index`* used to derive token names.
+  - *`service_fee_policyid`*: Policy ID governing the service fee asset. 
+  - *`service_fee_assetname`*: Asset name for the service fee. 
+  - *`service_fee`*: Fee amount for the service.
+  - *`penalty_fee_policyid`*: Policy ID for the penalty fee asset.
+  - *`penalty_fee_assetname`*: Asset name for the penalty fee.
+  - *`penalty_fee`*: Penalty fee amount (for early cancellations).
+  - *`interval_length`*: Duration of one subscription interval (in milliseconds).
+  - *`num_intervals`*: Total number of intervals in the subscription period
   - *`is_active`*: Boolean flag indicating the service’s active state.
 
 #pagebreak()
-#v(50pt)
 
+\
 *cURL Example:*
 
 \
@@ -250,8 +254,7 @@ curl --location 'https://mainnet.gomaestro-api.org/v1/contracts/subscription/cre
 == Withdraw Fees
 
 \
-Allows the merchant to withdraw the accumulated subscription fees.
-Uses the Payment Validator’s _MerchantWithdraw_ redeemer and enforces linear vesting rules as specified.
+This merchant operation permits withdrawal of accumulated subscription fees from the Payment Contract. It verifies that the request complies with the vesting rules defined in the contract and uses the Payment NFT along with the Service NFT to authorize and execute the withdrawal.
 
 \
 *Endpoint:*
@@ -259,7 +262,7 @@ Uses the Payment Validator’s _MerchantWithdraw_ redeemer and enforces linear v
 \
 ```sh
 
-POST https://mainnet.gomaestro-api.org/v1/contracts/subscription/withdrawFees
+  POST https://mainnet.gomaestro-api.org/v1/contracts/subscription/withdrawFees
 
 ```
 
@@ -301,20 +304,19 @@ curl --location 'https://mainnet.gomaestro-api.org/v1/contracts/subscription/wit
 = Subscriber Operations
 
 \
+Subscriber operations cover account creation, subscription initiation, and unsubscription. These endpoints enable users to register for services, lock funds, and later cancel subscriptions according to the contract rules.
+
+\
 == Create User Account
 \
-Subscribers create an account to manage subscriptions.
-
-  - Uses the Account Validator to mint an Account NFT and its reference NFT.
-
-  - Registers a subscriber's account with either an email hash or a phone hash.
+This endpoint creates a subscriber account by minting an Account NFT along with its reference NFT. It binds subscriber details (such as *`email`* or *`phone`*) to ensure account integrity before locking funds for subscriptions.
 
 \
 *Endpoint:*
 
 \
 ```sh
-POST https://mainnet.gomaestro-api.org/v1/contracts/subscription/createUserAccount
+  POST https://mainnet.gomaestro-api.org/v1/contracts/subscription/createUserAccount
 
 ```
 \
@@ -324,7 +326,8 @@ POST https://mainnet.gomaestro-api.org/v1/contracts/subscription/createUserAccou
   - *`subscriber_address`*: Address of the subscriber.
 
   - *`selected_out_ref`*: UTxO with *`tx_hash`* and *`output_index`*.
-  - *`email`* and *`phone`*: Credentials as a string.
+  - *`email`*: Subscriber's email address as a string
+  - *`phone`*: Subscriber's phone number as a string.
 
 \
 *cURL Example:*
@@ -359,7 +362,7 @@ This action creates a unique Payment Token that signifies the start of a subscri
 
 \
 ```sh
-POST https://mainnet.gomaestro-api.org/v1/contracts/subscription/initSubscription
+  POST https://mainnet.gomaestro-api.org/v1/contracts/subscription/initSubscription
 
 ```
 
@@ -393,14 +396,14 @@ curl --location 'https://mainnet.gomaestro-api.org/v1/contracts/subscription/ini
 == Unsubscribe
 
 \
-Allows a subscriber to cancel their active subscription.
+This subscriber operation allows a user to cancel an active subscription. The endpoint processes the unsubscription request, calculates any applicable penalty fees (if the service is still active), and updates the contract state.
 
 \
 *Endpoint:*
 
 \
 ```sh
-POST https://mainnet.gomaestro-api.org/v1/contracts/subscription/unsubscribe
+  POST https://mainnet.gomaestro-api.org/v1/contracts/subscription/unsubscribe
 
 ```
 
@@ -433,3 +436,17 @@ curl --location 'https://mainnet.gomaestro-api.org/v1/contracts/subscription/uns
 
 \
 *Note:* Early termination may incur penalties if defined in the service contract.
+
+#pagebreak()
+#v(50pt)
+
+Conclusion
+This guide has provided a comprehensive walkthrough for using the Payment Subscription smart contract via Maestro’s API endpoints. By following these instructions, developers can easily:
+
+Register and configure services via the Service Contract.
+
+Enable subscribers to create accounts, initiate subscriptions, and cancel subscriptions.
+
+Facilitate secure fund withdrawals for merchants in accordance with the subscription vesting rules.
+
+Before going live, replace any placeholder values (e.g., *`${API_KEY}`* and wallet addresses) with actual data, and test each endpoint in a sandbox environment. For more detailed technical references, please consult the #git-link and the full #design_docs_link
