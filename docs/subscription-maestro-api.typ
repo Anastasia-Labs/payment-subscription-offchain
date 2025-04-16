@@ -2,9 +2,9 @@
 #let image-foreground = image("/docs/images/Logo-Anastasia-Labs-V-Color02.png", width: 100%, fit: "contain")
 #let image-header = image("/docs/images/Logo-Anastasia-Labs-V-Color01.png", height: 75%, fit: "contain")
 #let fund-link = link("https://projectcatalyst.io/funds/11/cardano-use-cases-product/anastasia-labs-x-maestro-plug-n-play-20")[Catalyst Proposal]
-#let git-link = link(" https://github.com/Anastasia-Labs/payment-subscription")[Payment Subscription Github Repo]
+#let subscription_git_link = link("https://github.com/Anastasia-Labs/payment-subscription")[Payment Subscription Smart Contract]
 #let maestro_link = link("https://docs.gomaestro.org/getting-started")[Maestro Getting Started]
-#let design_docs_link = link("https://github.com/Anastasia-Labs/payment-subscription/blob/main/docs/payment-subscription-design-specs/subscription-smart-contract.pdf")[Design Specification Documentation]
+#let subscription_offchain_link = link("https://github.com/Anastasia-Labs/payment-subscription-offchain")[Payment Subscription Offchain SDK]
 
 
 #set page(
@@ -97,7 +97,7 @@
       #set text(size: 11pt, fill: gray)
       *Payment Subscription Smart Contract*
       #v(-3mm)
-      How To Use - Milestone 3
+      How To Use - Maestro APIs
       #v(-3mm)
     ]
     #v(-6mm)
@@ -156,7 +156,8 @@ Before you begin, ensure that you have:
 
     - Basic familiarity with REST APIs and JSON data formats.
 
-    - A command-line environment with curl installed.
+    - A command-line environment and ability to execute *cURL* commands in a terminal/command-line environment.
+
 
 #pagebreak()
 #v(50pt)
@@ -191,6 +192,17 @@ Each function is accompanied by detailed onchain and offchain documentation. Thi
 Merchant operations primarily include creating a new service and withdrawing subscription fees. These actions allow merchants to configure their service offerings and claim funds that accumulate from subscriber payments.
 
 \
+To use these operations effectively:
+  
+  - Replace *`${API_KEY}`*, with your Maestro *`API_KEY`* and fill in the required parameters.
+
+  - Remember to enter the correct *NETWORK: preview | preprod | mainnet*
+  - Your addresses should match the chosen Network.
+
+#pagebreak()
+#v(50pt)
+
+\
 == Create a Service
 \
 This endpoint registers a new service by minting a Service NFT along with its reference NFT. It captures essential parameters such as service fee, penalty fee, subscription interval, and service status.
@@ -200,7 +212,7 @@ This endpoint registers a new service by minting a Service NFT along with its re
 
 \
 ```sh
-  POST https://mainnet.gomaestro-api.org/v1/contracts/subscription/createService
+  POST https://preprod.gomaestro-api.org/v1/contracts/subscription/createService
 
 ```
 
@@ -229,20 +241,21 @@ This endpoint registers a new service by minting a Service NFT along with its re
 \
 ```sh
 # subscription: create service
-curl --location 'https://mainnet.gomaestro-api.org/v1/contracts/subscription/createService' \
+
+curl --location 'https://preprod.gomaestro-api.org/v1/contracts/subscription/createService' \
 --header 'Content-Type: application/json' \
 --header 'api-key: ${API_KEY}' \
 --data '{
-    "merchant_address": "addr1qxccwptmx6r523vxcrplvfhtrpdut8s0hht0fyt9f8vy8385chtg2dupkyqu7pgqawju7awrwfg94skstmaves6hwaks6qlgf4",
+    "merchant_address": "addr_test1qzngfvxfk2grdas3daahzku733639z0lacyergaerf382rcungt5wwjcw2ef63324vchv7k9ryds4030h3hfw2us2vsqd48fdq",
     "selected_out_ref": {
-        "tx_hash": "f68f85ee40866144f52d8087414cfb11ec22539b3772882440bf0adfea105513",
-        "output_index": 1
+        "tx_hash": "9bae7f98ee3c363f7d8dd47e57b5458d272e4d0ed1c3f21d14662f42aac31776",
+        "output_index": 2
     },
-    "service_fee_policyid": "97bbb7db0baef89caefce61b8107ac74c7a7340166b39d906f174bec",
-    "service_fee_assetname": "54616c6f73",
+    "service_fee_policyid": "",
+    "service_fee_assetname": "",
     "service_fee": 1000,
-    "penalty_fee_policyid": "97bbb7db0baef89caefce61b8107ac74c7a7340166b39d906f174bec",
-    "penalty_fee_assetname": "54616c6f73",
+    "penalty_fee_policyid": "",
+    "penalty_fee_assetname": "",
     "penalty_fee": 10,
     "interval_length": 2592000000,
     "num_intervals": 1,
@@ -250,7 +263,9 @@ curl --location 'https://mainnet.gomaestro-api.org/v1/contracts/subscription/cre
 }'
 ```
 
-\
+#pagebreak()
+#v(50pt)
+
 == Withdraw Fees
 
 \
@@ -262,7 +277,7 @@ This merchant operation permits withdrawal of accumulated subscription fees from
 \
 ```sh
 
-  POST https://mainnet.gomaestro-api.org/v1/contracts/subscription/withdrawFees
+  POST https://preprod.gomaestro-api.org/v1/contracts/subscription/withdrawFees
 
 ```
 
@@ -278,21 +293,23 @@ This merchant operation permits withdrawal of accumulated subscription fees from
   - *`payment_nft_tn`*: The Payment NFT token involved.
   - *`current_time`*: Current Unix timestamp to validate withdrawal timing.
 
-\
+#pagebreak()
+
 *cURL Example:*
 
 ```sh
 # subscription: merchant withdrawal
-curl --location 'https://mainnet.gomaestro-api.org/v1/contracts/subscription/withdrawFees' \
+
+curl --location 'https://preprod.gomaestro-api.org/v1/contracts/subscription/withdrawFees' \
 --header 'Content-Type: application/json' \
---header 'api-key ${API_KEY}' \
+--header 'api-key:  ${API_KEY}' \
 --data '{
     "merchant_address": "addr1qxccwptmx6r523vxcrplvfhtrpdut8s0hht0fyt9f8vy8385chtg2dupkyqu7pgqawju7awrwfg94skstmaves6hwaks6qlgf4",
-    "service_nft_tn": "97bbb7db0baef89caefce61b8107ac74c7a7340166b39d906f174bec54616c",
-    "subscriber_nft_tn": "97bbb7db0baef89caefce61b8107ac74c7a7340166b39d906f174bec54616c",
-    "merchant_nft_tn": "97bbb7db0baef89caefce61b8107ac74c7a7340166b39d906f174bec54616c",
-    "payment_nft_tn": "97bbb7db0baef89caefce61b8107ac74c7a7340166b39d906f174bec54616c",
-    "current_time": 1696320000
+    "service_nft_tn": "000643b0006d5fd6a8ebe94e12ea74d46ee2bd5621a8e8d55df0bfa9419ed7ed",
+    "subscriber_nft_tn": "000de14002cfa3e99ad2d48c991d02db0adedf4b8b08ac72746e5db6a3938c57",
+    "merchant_nft_tn": "000de140006d5fd6a8ebe94e12ea74d46ee2bd5621a8e8d55df0bfa9419ed7ed",
+    "payment_nft_tn": "subscription",
+    "current_time": 4288320000
 }'
 ```
 
@@ -316,7 +333,7 @@ This endpoint creates a subscriber account by minting an Account NFT along with 
 
 \
 ```sh
-  POST https://mainnet.gomaestro-api.org/v1/contracts/subscription/createUserAccount
+  POST https://preprod.gomaestro-api.org/v1/contracts/subscription/createUserAccount
 
 ```
 \
@@ -329,27 +346,31 @@ This endpoint creates a subscriber account by minting an Account NFT along with 
   - *`email`*: Subscriber's email address as a string
   - *`phone`*: Subscriber's phone number as a string.
 
-\
+#pagebreak()
+
 *cURL Example:*
 
 \
 ```sh
 # subscription: create user account
-curl --location 'https://mainnet.gomaestro-api.org/v1/contracts/subscription/createUserAccount' \
+
+curl --location 'https://preprod.gomaestro-api.org/v1/contracts/subscription/createUserAccount' \
 --header 'Content-Type: application/json' \
---header 'api-key ${API_KEY}' \
+--header 'api-key: ${API_KEY}' \
 --data '{
-    "subscriber_address": "addr1qxccwptmx6r523vxcrplvfhtrpdut8s0hht0fyt9f8vy8385chtg2dupkyqu7pgqawju7awrwfg94skstmaves6hwaks6qlgf4",
+    "subscriber_address": "addr_test1qpp9s0ml0z9lg8ym2ueh0jsay6dg7dj0aslx2lnlda9sukk6ryucc4hthndrvllxq584xw6r2q8hynv6sslrammpmd5srdmxus",
     "selected_out_ref": {
-        "tx_hash": "f68f85ee40866144f52d8087414cfb11ec22539b3772882440bf0adfea105513",
+        "tx_hash": "e3dd79c0e578aabdac13f1f35a2ed07ad3a0e82e0e4d6eec8ee4c3a2919846c8",
         "output_index": 1
     },
-    "email": "",
-    "phone": ""
+    "email": "business@web3.ada",
+    "phone": "288-481-2686"
 }'
 ```
 
-\
+#pagebreak()
+#v(50pt)
+
 == Initiate Subscription
 
 \
@@ -362,7 +383,7 @@ This action creates a unique Payment Token that signifies the start of a subscri
 
 \
 ```sh
-  POST https://mainnet.gomaestro-api.org/v1/contracts/subscription/initSubscription
+  POST https://preprod.gomaestro-api.org/v1/contracts/subscription/initSubscription
 
 ```
 
@@ -381,17 +402,19 @@ This action creates a unique Payment Token that signifies the start of a subscri
 \
 ```sh
 # subscription: initiate subscription
-curl --location 'https://mainnet.gomaestro-api.org/v1/contracts/subscription/initSubscription' \
+
+curl --location 'https://preprod.gomaestro-api.org/v1/contracts/subscription/initSubscription' \
 --header 'Content-Type: application/json' \
---header 'api-key ${API_KEY}' \
+--header 'api-key: ${API_KEY}' \
 --data '{
-    "service_nft_tn": "97bbb7db0baef89caefce61b8107ac74c7a7340166b39d906f174bec54616c",
-    "subscriber_nft_tn": "97bbb7db0baef89caefce61b8107ac74c7a7340166b39d906f174bec54616c",
+    "service_nft_tn": "000643b0006d5fd6a8ebe94e12ea74d46ee2bd5621a8e8d55df0bfa9419ed7ed",
+    "subscriber_nft_tn": "000de14002cfa3e99ad2d48c991d02db0adedf4b8b08ac72746e5db6a3938c57",
     "subscription_start": 1696320000
 }'
 ```
 
-\
+#pagebreak()
+#v(50pt)
 
 == Unsubscribe
 
@@ -403,7 +426,7 @@ This subscriber operation allows a user to cancel an active subscription. The en
 
 \
 ```sh
-  POST https://mainnet.gomaestro-api.org/v1/contracts/subscription/unsubscribe
+  POST https://preprod.gomaestro-api.org/v1/contracts/subscription/unsubscribe
 
 ```
 
@@ -417,19 +440,21 @@ This subscriber operation allows a user to cancel an active subscription. The en
   - *`subscriber_nft_tn`*: The token string for the Subscriber NFT.
   - *`current_time`*: Unix timestamp used for validating penalty application.
 
-\
+#pagebreak()
+
 *cURL Example:*
 
 \
 ```sh
 # subscription: unsubscribe
-curl --location 'https://mainnet.gomaestro-api.org/v1/contracts/subscription/unsubscribe' \
+
+curl --location 'https://preprod.gomaestro-api.org/v1/contracts/subscription/unsubscribe' \
 --header 'Content-Type: application/json' \
---header 'api-key ${API_KEY}' \
+--header 'api-key: 2eg9m9dyrj491urTQ74qsd6k7PwfHaz4' \
 --data '{
-    "subscriber_address": "addr1qxccwptmx6r523vxcrplvfhtrpdut8s0hht0fyt9f8vy8385chtg2dupkyqu7pgqawju7awrwfg94skstmaves6hwaks6qlgf4",
-    "service_nft_tn": "97bbb7db0baef89caefce61b8107ac74c7a7340166b39d906f174bec54616c",
-    "subscriber_nft_tn": "97bbb7db0baef89caefce61b8107ac74c7a7340166b39d906f174bec54616c",
+    "subscriber_address": "addr_test1qpp9s0ml0z9lg8ym2ueh0jsay6dg7dj0aslx2lnlda9sukk6ryucc4hthndrvllxq584xw6r2q8hynv6sslrammpmd5srdmxus",
+    "service_nft_tn": "000643b0006d5fd6a8ebe94e12ea74d46ee2bd5621a8e8d55df0bfa9419ed7ed",
+    "subscriber_nft_tn": "000de14002cfa3e99ad2d48c991d02db0adedf4b8b08ac72746e5db6a3938c57",
     "current_time": 1696320000
 }'
 ```
@@ -452,4 +477,11 @@ This guide has provided a comprehensive walkthrough for using the Payment Subscr
   - Facilitate secure fund withdrawals for merchants in accordance with the subscription vesting rules.
 
 \
-Before going live, replace any placeholder values (e.g., *`${API_KEY}`* and wallet addresses) with actual data, and test each endpoint in a sandbox environment. For more detailed technical references, please consult the #git-link and the full #design_docs_link
+Before going live, replace any placeholder values (e.g., *`${API_KEY}`* and wallet addresses) with actual data, and test each endpoint in a sandbox environment. For more detailed technical references, please consult the the associated documentation provided by the project.
+
+#v(50pt)
+= Links
+\
+- #subscription_git_link 
+
+- #subscription_offchain_link
