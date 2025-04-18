@@ -19,7 +19,7 @@ const runCreateService = async (
             penalty_fee_policyid: ADA.policyId,
             penalty_fee_assetname: ADA.assetName,
             penalty_fee: 1_000_000n,
-            interval_length: 30n * 24n * 60n * 60n * 1000n, // 30 days
+            interval_length:  5n * 60n * 1000n, // 30n * 24n * 60n * 60n * 1000n, // 30 days
             num_intervals: 12n,
             is_active: true,
         };
