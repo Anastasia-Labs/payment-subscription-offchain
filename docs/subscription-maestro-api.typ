@@ -5,6 +5,7 @@
 #let subscription_git_link = link("https://github.com/Anastasia-Labs/payment-subscription")[Payment Subscription Smart Contract]
 #let maestro_link = link("https://docs.gomaestro.org/getting-started")[Maestro Getting Started]
 #let subscription_offchain_link = link("https://github.com/Anastasia-Labs/payment-subscription-offchain")[Payment Subscription Offchain SDK]
+#let maestro_postman_link = link("https://www.postman.com/go-maestro/maestro-api/folder/uoqljqx/subscription")[Maestro Postman API Endpoints]
 
 
 #set page(
@@ -482,6 +483,7 @@ Before going live, replace any placeholder values (e.g., *`${API_KEY}`* and wall
 #v(50pt)
 = Links
 \
-- #subscription_git_link 
+- #maestro_postman_link
 
 - #subscription_offchain_link
+- #subscription_git_link 
