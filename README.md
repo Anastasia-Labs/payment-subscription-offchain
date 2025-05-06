@@ -226,8 +226,8 @@ import { createAccount, CreateAccountConfig } from "@anastasia-labs/payment-subs
         const utxos = await lucid.wallet().getUtxos()
         const accountConfig: CreateAccountConfig = {
             selected_out_ref: utxos[0],
-            email_hash: bytesToHex(sha256("business@web3.ada")),
-            phone_hash: bytesToHex(sha256("288-481-2686")),
+            email: bytesToHex(sha256("business@web3.ada")),
+            phone: bytesToHex(sha256("288-481-2686")),
         };
 
         const createAccountUnsigned = await createAccount(lucid, accountConfig);

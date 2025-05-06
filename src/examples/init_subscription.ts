@@ -40,4 +40,4 @@ const runInitSubscription = async (
 const lucidContext = await makeLucidContext()
 const lucid = lucidContext.lucid
 lucid.selectWallet.fromSeed(lucidContext.users.subscriber.seedPhrase)
-await runInitSubscription(lucid, "000643b0006d5fd6a8ebe94e12ea74d46ee2bd5621a8e8d55df0bfa9419ed7ed", "000de14002cfa3e99ad2d48c991d02db0adedf4b8b08ac72746e5db6a3938c57")
+await runInitSubscription(lucid, "000643b0016a4891d308f52197c69b219a9ee2e3a9302a093db030c05fb521bf", "000de140018e0591f38a6369e96bfefd14fb0b0999053daf3efc503c015139a2")
